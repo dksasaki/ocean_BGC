@@ -2902,6 +2902,14 @@ contains
     type(g_tracer_type), pointer :: g_tracer,g_tracer_next
     real :: KD_SMOOTH = 1.0E-05
 
+
+   ! --- DKS 2025/02/18 added detritus local variables  --
+    real, dimension(:,:,:), Allocatable :: n_det_override
+    real, dimension(:,:,:), Allocatable :: p_det_override
+    real, dimension(:,:,:), Allocatable :: fedet_override
+    real, dimension(:,:,:), Allocatable :: mask_addition_t
+    ! --
+
     if(do_vertfill_pre) then
       g_tracer => tracer_list
       do
@@ -4668,6 +4676,25 @@ contains
 
     enddo; enddo; enddo  !} i,j,k
 
+
+   ! 4.6: Adding external detritus (OM) component
+   ! This implementation adds OM to the existing detrital nitrogen (`ndet`), detrital phosphorus (`pdet`), detrital iron (`fedet`)
+
+   call data_override('ocean', 'ndet_addition', cobalt%f_n_det_addition(:,:,:), model_time)
+   call data_override('ocean', 'pdet_addition', cobalt%f_pdet_addition(:,:,:), model_time)
+   call data_override('ocean', 'fedet_addition', cobalt%f_fedet_addition(:,:,:), model_time)
+   call data_override('ocean', 'mask_addition_t', mask_addition_t(:,:,1), model_time)
+
+
+   do j = jsc, jec; do i = isc, iec
+      k = grid_kmt(i,j) !Get bottom layer
+      if (k .gt. 0) then
+         ! You would access your override variables here
+         n_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_n_det_addition(i,j,k)
+         p_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_pdet_addition(i,j,k)
+         fedet_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_fedet_addition(i,j,k)
+      endif
+   enddo; enddo !} i,j
 !
 !-------------------------------------------------------------------------------------------------
 ! 5: Sediment, coastal and ice dynamics
@@ -5397,6 +5424,17 @@ contains
                               cobalt%det_jhploss_fe(i,j,k)
        cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + cobalt%jfedet(i,j,k)*dt*grid_tmask(i,j,k)
     enddo; enddo; enddo  !} i,j,k
+
+   ! DKS 2025/02/18 added detritus variables
+   do j = jsc, jec; do i= isc, iec
+      k = grid_kmt(i,j) !Get bottom layer
+      if (mask_addition_t(i,j,1) .gt. 0.0) then
+         cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + n_det_override(i,j)
+         cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j)
+         cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j)
+      endif
+enddo; enddo !} i,j
+
     !
     !     Dissolved Organic Matter
     !
@@ -7500,6 +7538,11 @@ contains
       allocate(cobalt%mld_aclm(isd:ied, jsd:jed));             cobalt%mld_aclm=0.0
 
 
+      ! DKS 2025/02/18 added detritus variables
+      allocate(cobalt%f_n_det_addition)
+      allocate(cobalt%f_pdet_addition)
+      allocate(cobalt%f_fedet_addition)
+
   end subroutine user_allocate_arrays
 
   !
@@ -8041,6 +8084,12 @@ contains
       deallocate(cobalt%deltap_dic)
       deallocate(cobalt%deltap_o2)
       deallocate(cobalt%mld_aclm)
+
+
+      ! DKS 2025/02/18 added detritus variables
+      deallocate(cobalt%f_n_det_addition)
+      deallocate(cobalt%f_pdet_addition)
+      deallocate(cobalt%f_fedet_addition)
 
   end subroutine user_deallocate_arrays
 
