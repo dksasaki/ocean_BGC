@@ -2907,7 +2907,7 @@ contains
     real, dimension(:,:), Allocatable :: n_det_override
     real, dimension(:,:), Allocatable :: p_det_override
     real, dimension(:,:), Allocatable :: fedet_override
-    real, dimension(:,:), Allocatable :: mask_addition_t
+    real, dimension(:,:,:), Allocatable :: mask_addition_t
     ! --
 
     if(do_vertfill_pre) then
