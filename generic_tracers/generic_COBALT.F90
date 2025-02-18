@@ -4680,10 +4680,10 @@ contains
    ! 4.6: Adding external detritus (OM) component
    ! This implementation adds OM to the existing detrital nitrogen (`ndet`), detrital phosphorus (`pdet`), detrital iron (`fedet`)
 
-   call data_override('ocean', 'ndet_addition', cobalt%f_n_det_addition(:,:,:), model_time)
-   call data_override('ocean', 'pdet_addition', cobalt%f_pdet_addition(:,:,:), model_time)
-   call data_override('ocean', 'fedet_addition', cobalt%f_fedet_addition(:,:,:), model_time)
-   call data_override('ocean', 'mask_addition_t', mask_addition_t(:,:,1), model_time)
+   call data_override('ocean', 'ndet_addition', cobalt%f_n_det_addition(isd:ied, jsd:jed, 1:nk), model_time)
+   call data_override('ocean', 'pdet_addition', cobalt%f_pdet_addition(isd:ied, jsd:jed, 1:nk), model_time)
+   call data_override('ocean', 'fedet_addition', cobalt%f_fedet_addition(isd:ied, jsd:jed, 1:nk), model_time)
+   call data_override('ocean', 'mask_addition_t', mask_addition_t(isd:ied, jsd:jed,1), model_time)
 
 
    do j = jsc, jec; do i = isc, iec
