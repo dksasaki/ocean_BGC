@@ -7539,9 +7539,9 @@ enddo; enddo !} i,j
 
 
       ! DKS 2025/02/18 added detritus variables
-      allocate(cobalt%f_n_det_addition);                      cobalt%f_n_det_addition=0.0
-      allocate(cobalt%f_pdet_addition);                       cobalt%f_pdet_addition=0.0
-      allocate(cobalt%f_fedet_addition);                      cobalt%f_fedet_addition=0.0
+      allocate(cobalt%f_n_det_addition(isd:ied, jsd:jed, 1:nk));  cobalt%f_n_det_addition=0.0
+      allocate(cobalt%f_pdet_addition(isd:ied, jsd:jed, 1:nk));   cobalt%f_pdet_addition=0.0
+      allocate(cobalt%f_fedet_addition(isd:ied, jsd:jed, 1:nk));  cobalt%f_fedet_addition=0.0
 
   end subroutine user_allocate_arrays
 
