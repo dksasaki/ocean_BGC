@@ -741,7 +741,7 @@ module cobalt_types
           remoc, &
           tot_layer_int_doc,&
           tot_layer_int_poc,&
-          tot_layer_int_dic
+          tot_layer_int_dic,&
           f_n_det_addition,& !DKS
           f_pdet_addition,&  !DKS
           f_fedet_addition   !DKS
