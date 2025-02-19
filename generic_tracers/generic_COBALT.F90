@@ -4679,6 +4679,14 @@ contains
 
    ! 4.6: Adding external detritus (OM) component
    ! This implementation adds OM to the existing detrital nitrogen (`ndet`), detrital phosphorus (`pdet`), detrital iron (`fedet`)
+   
+    ! --- DKS 2025/02/18 added allocate local variables  --
+    allocate(n_det_override(isc:iec,jsc:jec))
+    allocate( p_det_override(isc:iec,jsc:jec))
+    allocate(fedet_override(isc:iec,jsc:jec))
+    allocate(mask_addition_t(isc:iec,jsc:jec,1:nk))
+
+
 
    call data_override('ocean', 'ndet_addition', cobalt%f_n_det_addition(isd:ied, jsd:jed, 1:nk), model_time)
    call data_override('ocean', 'pdet_addition', cobalt%f_pdet_addition(isd:ied, jsd:jed, 1:nk), model_time)
@@ -5426,15 +5434,19 @@ contains
     enddo; enddo; enddo  !} i,j,k
 
    ! DKS 2025/02/18 added detritus variables
-   do j = jsc, jec; do i= isc, iec
-      k = grid_kmt(i,j) !Get bottom layer
-      if (mask_addition_t(i,j,1) .gt. 0.0) then
+    do j = jsc, jec; do i= isc, iec
+       k = grid_kmt(i,j) !Get bottom layer
+       if (mask_addition_t(i,j,1) .gt. 0.0) then
          cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + n_det_override(i,j)
          cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j)
          cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j)
-      endif
-enddo; enddo !} i,j
+       endif
+    enddo; enddo !} i,j
 
+    deallocate(n_det_override)
+    deallocate( p_det_override)
+    deallocate(fedet_override)
+    deallocate(mask_addition_t)
     !
     !     Dissolved Organic Matter
     !
