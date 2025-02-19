@@ -4686,6 +4686,11 @@ contains
     allocate(fedet_override(isc:iec,jsc:jec))
     allocate(mask_addition_t(isc:iec,jsc:jec,1:nk))
 
+    n_det_override(:,:)    = 0.0
+    p_det_override(:,:)    = 0.0
+    fedet_override(:,:)    = 0.0
+    mask_addition_t(:,:,:) = 0
+
 
 
    call data_override('ocean', 'ndet_addition', cobalt%f_n_det_addition(isd:ied, jsd:jed, 1:nk), model_time)
@@ -4696,7 +4701,7 @@ contains
 
    do j = jsc, jec; do i = isc, iec
       k = grid_kmt(i,j) !Get bottom layer
-      if (k .gt. 0) then
+      if (mask_addition_t(i,j,1) .gt. 0) then
          ! You would access your override variables here
          n_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_n_det_addition(i,j,k)
          p_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_pdet_addition(i,j,k)
