@@ -741,10 +741,7 @@ module cobalt_types
           remoc, &
           tot_layer_int_doc,&
           tot_layer_int_poc,&
-          tot_layer_int_dic,&
-          f_n_det_addition,& !DKS
-          f_pdet_addition,&  !DKS
-          f_fedet_addition   !DKS
+          tot_layer_int_dic
 !==============================================================================================================
 
      real, dimension(:,:), ALLOCATABLE :: &
@@ -833,6 +830,9 @@ module cobalt_types
           z_sat_arag,&
           z_sat_calc,&
           daylength,&
+          f_n_det_addition,& !DKS
+          f_pdet_addition,&  !DKS
+          f_fedet_addition,&   !DKS
 !==============================================================================================================
 ! JGJ 2016/08/08 CMIP6 Ocnbgc
           f_alk_int_100, &

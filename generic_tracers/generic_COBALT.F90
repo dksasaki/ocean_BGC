@@ -2908,6 +2908,12 @@ contains
     real, dimension(:,:), Allocatable :: p_det_override
     real, dimension(:,:), Allocatable :: fedet_override
     real, dimension(:,:,:), Allocatable :: mask_addition_t
+
+    logical :: ndet_add_override
+    logical :: pdet_add_override
+    logical :: fedet_add_override
+    logical :: mask_addition_override
+
     ! --
 
     if(do_vertfill_pre) then
@@ -4693,19 +4699,19 @@ contains
 
 
 
-   call data_override('ocean', 'ndet_addition', cobalt%f_n_det_addition(isd:ied, jsd:jed, 1:nk), model_time)
-   call data_override('ocean', 'pdet_addition', cobalt%f_pdet_addition(isd:ied, jsd:jed, 1:nk), model_time)
-   call data_override('ocean', 'fedet_addition', cobalt%f_fedet_addition(isd:ied, jsd:jed, 1:nk), model_time)
-   call data_override('ocean', 'mask_addition_t', mask_addition_t(isd:ied, jsd:jed,1), model_time)
+   call data_override('OCN', 'ndet_addition', cobalt%f_n_det_addition(isc:iec, jsc:jec), model_time,override=ndet_add_override)
+   call data_override('OCN', 'pdet_addition', cobalt%f_pdet_addition(isc:iec, jsc:jec), model_time,override=pdet_add_override)
+   call data_override('OCN', 'fedet_addition', cobalt%f_fedet_addition(isc:iec, jsc:jec), model_time,override=fedet_add_override)
+   call data_override('OCN', 'mask_addition_t', mask_addition_t(isc:iec, jsc:jec,1:nk), model_time,override=mask_addition_override)
 
 
    do j = jsc, jec; do i = isc, iec
       k = grid_kmt(i,j) !Get bottom layer
       if (mask_addition_t(i,j,1) .gt. 0) then
          ! You would access your override variables here
-         n_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_n_det_addition(i,j,k)
-         p_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_pdet_addition(i,j,k)
-         fedet_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_fedet_addition(i,j,k)
+         n_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_n_det_addition(i,j)
+         p_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_pdet_addition(i,j)
+         fedet_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_fedet_addition(i,j)
       endif
    enddo; enddo !} i,j
 !
@@ -5448,6 +5454,17 @@ contains
        endif
     enddo; enddo !} i,j
 
+    do j = jsc, jec; do i= isc, iec
+      k = grid_kmt(i,j) !Get bottom layer
+         if (mask_addition_t(i,j,1) .gt. 0.0) then
+            pre_totn(i,j,k) = pre_totn(i,j,k) + n_det_override(i,j) 
+            pre_totp(i,j,k) = pre_totp(i,j,k) + p_det_override(i,j) 
+            pre_totfe(i,j,k) = pre_totfe(i,j,k) + fedet_override(i,j)  
+            pre_totc(i,j,k) = pre_totc(i,j,k) + cobalt%c_2_n*(n_det_override(i,j))
+         endif
+      enddo; enddo !} i,j
+
+      
     deallocate(n_det_override)
     deallocate( p_det_override)
     deallocate(fedet_override)
@@ -7556,9 +7573,9 @@ contains
 
 
       ! DKS 2025/02/18 added detritus variables
-      allocate(cobalt%f_n_det_addition(isd:ied, jsd:jed, 1:nk));  cobalt%f_n_det_addition=0.0
-      allocate(cobalt%f_pdet_addition(isd:ied, jsd:jed, 1:nk));   cobalt%f_pdet_addition=0.0
-      allocate(cobalt%f_fedet_addition(isd:ied, jsd:jed, 1:nk));  cobalt%f_fedet_addition=0.0
+      allocate(cobalt%f_n_det_addition(isd:ied, jsd:jed));  cobalt%f_n_det_addition=0.0
+      allocate(cobalt%f_pdet_addition(isd:ied, jsd:jed));   cobalt%f_pdet_addition=0.0
+      allocate(cobalt%f_fedet_addition(isd:ied, jsd:jed));  cobalt%f_fedet_addition=0.0
 
   end subroutine user_allocate_arrays
 
