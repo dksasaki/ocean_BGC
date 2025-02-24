@@ -5142,7 +5142,7 @@ contains
          ! DKS --
          ! Correction for flux uptake by external sources imposed by data_override
          
-         if (mask_e_juptake(i,j,j) .gt. 0) then
+         if (mask_e_juptake(i,j,k) .gt. 0) then
             e_juptake_no3(i,j,k) = min(cobalt%e_juptake_no3(i,j,k)*mask_e_juptake(i,j,k)*dt,&
                                  cobalt%p_no3(i,j,k,tau))
             e_juptake_po4(i,j,k) = min(cobalt%e_juptake_po4(i,j,k)*mask_e_juptake(i,j,k)*dt,&
