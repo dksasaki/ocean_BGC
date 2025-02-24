@@ -2885,7 +2885,9 @@ contains
     integer :: yearday
     real :: rev_angle, dec_angle, temp_arg
 
-    logical ::  phos_nh3_override
+    logical ::  phos_nh3_override,e_no3_add_override, &
+               e_po4_add_override, e_fed_add_override, &
+               e_mask_add_override
     logical ::  pha_all_same = .true.
 
     real, dimension(:,:,:), Allocatable :: ztop, zmid, zbot
@@ -6685,9 +6687,7 @@ contains
     real, dimension(:,:), ALLOCATABLE :: c14o2_alpha,c14o2_csurf
     real :: pka_nh3,tr,ltr
 
-    logical :: phos_nh3_override,e_no3_add_override, &
-               e_po4_add_override, e_fed_add_override, &
-               e_mask_add_override
+    logical :: phos_nh3_override
 
     character(len=fm_string_len), parameter :: sub_name = 'generic_COBALT_set_boundary_values'
 
