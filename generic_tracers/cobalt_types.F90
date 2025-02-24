@@ -741,8 +741,12 @@ module cobalt_types
           remoc, &
           tot_layer_int_doc,&
           tot_layer_int_poc,&
-          tot_layer_int_dic
-
+          tot_layer_int_dic,&
+          ! DKS --
+          e_juptake_no3,&
+          e_juptake_po4,&
+          e_juptake_fed
+          ! -- DKS
 !==============================================================================================================
 
      real, dimension(:,:), ALLOCATABLE :: &
