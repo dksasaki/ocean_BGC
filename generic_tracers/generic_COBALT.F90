@@ -5523,7 +5523,7 @@ contains
 
       ! DKS --
       cobalt%jo2(i,j,k) = cobalt%jo2(i,j,k) + cobalt%o2_2_no3 * e_juptake_no3(i,j,k)
-      -- !
+      ! -- !
 
        cobalt%p_o2(i,j,k,tau) = cobalt%p_o2(i,j,k,tau) + cobalt%jo2(i,j,k) * dt * grid_tmask(i,j,k)
     enddo; enddo ; enddo  !} i,j,k
