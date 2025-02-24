@@ -5147,7 +5147,6 @@ contains
                                  cobalt%p_no3(i,j,k,tau))
             e_juptake_po4(i,j,k) = min(cobalt%e_juptake_po4(i,j,k)*mask_e_juptake(i,j,k)*dt,&
                                  cobalt%p_po4(i,j,k,tau))
-                                 
             e_juptake_fed(i,j,k) = min(cobalt%e_juptake_fed(i,j,k)*mask_e_juptake(i,j,k)*dt,&
                                  cobalt%p_fed(i,j,k,tau))
          end if
@@ -5349,14 +5348,12 @@ contains
                              phyto(LARGE)%juptake_no3(i,j,k) - phyto(MEDIUM)%juptake_no3(i,j,k) - &
                              phyto(SMALL)%juptake_no3(i,j,k) - &
                              cobalt%jno3denit_wc(i,j,k) - cobalt%juptake_no3amx(i,j,k)
-      ! DKS --
-      ! e_juptake_no3(i,j,k) = min(cobalt%e_juptake_no3(i,j,k)*mask_e_juptake(i,j,k)*dt,&
-      !                            cobalt%p_no3(i,j,k,tau))
-      cobalt%jno3(i,j,k) =  cobalt%jno3(i,j,k) - e_juptake_no3(i,j,k)
-      ! -- DKS
+
 
        cobalt%p_no3(i,j,k,tau) = cobalt%p_no3(i,j,k,tau) + &
-               (cobalt%jno3(i,j,k)+cobalt%jno3_iceberg(i,j,k))*dt*grid_tmask(i,j,k)
+               (cobalt%jno3(i,j,k)+cobalt%jno3_iceberg(i,j,k))*dt*grid_tmask(i,j,k) -&
+                e_juptake_no3(i,j,k) * grid_tmask(i,j,k) ! DKS
+
     enddo; enddo ; enddo  !} i,j,k
     !
     !     Other nutrients
@@ -5376,14 +5373,11 @@ contains
        cobalt%jpo4(i,j,k) = cobalt%jprod_po4(i,j,k) - phyto(DIAZO)%juptake_po4(i,j,k) - &
                             phyto(LARGE)%juptake_po4(i,j,k) - phyto(MEDIUM)%juptake_po4(i,j,k) - &
                             phyto(SMALL)%juptake_po4(i,j,k)
-       ! DKS --
-      !  e_juptake_po4(i,j,k) = min(cobalt%e_juptake_po4(i,j,k)*mask_e_juptake(i,j,k)*dt,&
-      !                             cobalt%p_po4(i,j,k,tau))
-       cobalt%jpo4(i,j,k) =  cobalt%jpo4(i,j,k) - e_juptake_po4(i,j,k)
-       ! -- DKS
+
 
        cobalt%p_po4(i,j,k,tau) = cobalt%p_po4(i,j,k,tau) + &
-              (cobalt%jpo4(i,j,k)+cobalt%jpo4_iceberg(i,j,k)) * dt * grid_tmask(i,j,k)
+              (cobalt%jpo4(i,j,k)+cobalt%jpo4_iceberg(i,j,k)) * dt * grid_tmask(i,j,k) -&
+               e_juptake_po4(i,j,k) * grid_tmask(i,j,k) ! DKS
        !
        ! SiO4
        !
@@ -5402,13 +5396,9 @@ contains
                             phyto(LARGE)%juptake_fe(i,j,k) - phyto(MEDIUM)%juptake_fe(i,j,k) - &
                             phyto(SMALL)%juptake_fe(i,j,k) - cobalt%jfe_ads(i,j,k)
 
-       ! DKS --
-      !  e_juptake_fed(i,j,k) = min(cobalt%e_juptake_fed(i,j,k)*mask_e_juptake(i,j,k)*dt,&
-      !                             cobalt%p_fed(i,j,k,tau))
-       cobalt%jfed(i,j,k) =  cobalt%jfed(i,j,k) - e_juptake_fed(i,j,k)
-       ! -- DKS
 
-       cobalt%p_fed(i,j,k,tau) = cobalt%p_fed(i,j,k,tau) + cobalt%jfed(i,j,k) * dt * grid_tmask(i,j,k)
+       cobalt%p_fed(i,j,k,tau) = cobalt%p_fed(i,j,k,tau) + cobalt%jfed(i,j,k) * dt * grid_tmask(i,j,k) -&
+                                 e_juptake_fed(i,j,k) * grid_tmask(i,j,k)
     enddo; enddo; enddo  !} i,j,k
 
     call mpp_clock_end(id_clock_source_sink_loop5)
@@ -5527,9 +5517,7 @@ contains
        cobalt%jo2(i,j,k) = cobalt%jo2(i,j,k) - cobalt%jo2resp_wc(i,j,k)
 
       ! DKS --
-       if (mask_e_juptake(i,j,k) .gt. 0.0) then
-          cobalt%jo2(i,j,k) = cobalt%jo2(i,j,k) + cobalt%o2_2_no3 * e_juptake_no3(i,j,k)
-       end if
+       cobalt%jo2(i,j,k) = cobalt%jo2(i,j,k) + cobalt%o2_2_no3 * e_juptake_no3(i,j,k)
       ! -- !
 
        cobalt%p_o2(i,j,k,tau) = cobalt%p_o2(i,j,k,tau) + cobalt%jo2(i,j,k) * dt * grid_tmask(i,j,k)
@@ -5575,9 +5563,7 @@ contains
           cobalt%jprod_cadet_arag(i,j,k) - cobalt%jprod_cadet_calc(i,j,k))
 
        ! DKS --
-          if (mask_e_juptake(i,j,k) .gt. 0.0) then
-             cobalt%jdic(i,j,k) = cobalt%jdic(i,j,k) - cobalt%c_2_n * e_juptake_no3(i,j,k)
-         end if
+         cobalt%jdic(i,j,k) = cobalt%jdic(i,j,k) - cobalt%c_2_n * e_juptake_no3(i,j,k)
        ! -- DKS
     
 
@@ -5723,6 +5709,7 @@ contains
                     cobalt%p_nlgz(i,j,k,tau)))*grid_tmask(i,j,k)
         imbal = (post_totc(i,j,k) - pre_totc(i,j,k) - net_srcc(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
+            write(*,*) imbal
            call mpp_error(FATAL,&
            '==>biological source/sink imbalance (generic_COBALT_update_from_source): Carbon')
          endif
