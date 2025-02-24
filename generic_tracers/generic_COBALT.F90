@@ -5141,13 +5141,16 @@ contains
 
          ! DKS --
          ! Correction for flux uptake by external sources imposed by data_override
-         e_juptake_no3(i,j,k) = min(cobalt%e_juptake_no3(i,j,k)*mask_e_juptake(i,j,k)*dt,&
-                              cobalt%p_no3(i,j,k,tau))
-         e_juptake_po4(i,j,k) = min(cobalt%e_juptake_po4(i,j,k)*mask_e_juptake(i,j,k)*dt,&
-                              cobalt%p_po4(i,j,k,tau))
-                              
-         e_juptake_fed(i,j,k) = min(cobalt%e_juptake_fed(i,j,k)*mask_e_juptake(i,j,k)*dt,&
-                              cobalt%p_fed(i,j,k,tau))
+         
+         if (mask_e_juptake(i,j,j) .gt. 0) then
+            e_juptake_no3(i,j,k) = min(cobalt%e_juptake_no3(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+                                 cobalt%p_no3(i,j,k,tau))
+            e_juptake_po4(i,j,k) = min(cobalt%e_juptake_po4(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+                                 cobalt%p_po4(i,j,k,tau))
+                                 
+            e_juptake_fed(i,j,k) = min(cobalt%e_juptake_fed(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+                                 cobalt%p_fed(i,j,k,tau))
+         end if
 
          pre_totn(i,j,k)  = pre_totn(i,j,k) - e_juptake_no3(i,j,k)
          pre_totp(i,j,k)  = pre_totp(i,j,k) - e_juptake_po4(i,j,k)
@@ -5347,8 +5350,8 @@ contains
                              phyto(SMALL)%juptake_no3(i,j,k) - &
                              cobalt%jno3denit_wc(i,j,k) - cobalt%juptake_no3amx(i,j,k)
       ! DKS --
-      e_juptake_no3(i,j,k) = min(cobalt%e_juptake_no3(i,j,k)*mask_e_juptake(i,j,k)*dt,&
-                                 cobalt%p_no3(i,j,k,tau))
+      ! e_juptake_no3(i,j,k) = min(cobalt%e_juptake_no3(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+      !                            cobalt%p_no3(i,j,k,tau))
       cobalt%jno3(i,j,k) =  cobalt%jno3(i,j,k) - e_juptake_no3(i,j,k)
       ! -- DKS
 
@@ -5524,7 +5527,9 @@ contains
        cobalt%jo2(i,j,k) = cobalt%jo2(i,j,k) - cobalt%jo2resp_wc(i,j,k)
 
       ! DKS --
-      cobalt%jo2(i,j,k) = cobalt%jo2(i,j,k) + cobalt%o2_2_no3 * e_juptake_no3(i,j,k)
+       if (mask_e_juptake(i,j,k) .gt. 0.0) then
+          cobalt%jo2(i,j,k) = cobalt%jo2(i,j,k) + cobalt%o2_2_no3 * e_juptake_no3(i,j,k)
+       end if
       ! -- !
 
        cobalt%p_o2(i,j,k,tau) = cobalt%p_o2(i,j,k,tau) + cobalt%jo2(i,j,k) * dt * grid_tmask(i,j,k)
@@ -5570,7 +5575,9 @@ contains
           cobalt%jprod_cadet_arag(i,j,k) - cobalt%jprod_cadet_calc(i,j,k))
 
        ! DKS --
-       cobalt%jdic(i,j,k) = cobalt%jdic(i,j,k) - cobalt%c_2_n * e_juptake_no3(i,j,k)
+          if (mask_e_juptake(i,j,k) .gt. 0.0) then
+             cobalt%jdic(i,j,k) = cobalt%jdic(i,j,k) - cobalt%c_2_n * e_juptake_no3(i,j,k)
+         end if
        ! -- DKS
     
 
