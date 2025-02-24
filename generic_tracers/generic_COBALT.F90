@@ -5516,11 +5516,9 @@ contains
             phyto(DIAZO)%juptake_n2(i,j,k)) ) * grid_tmask(i,j,k)
        cobalt%jo2(i,j,k) = cobalt%jo2(i,j,k) - cobalt%jo2resp_wc(i,j,k)
 
-      ! DKS --
-       cobalt%jo2(i,j,k) = cobalt%jo2(i,j,k) + cobalt%o2_2_no3 * e_juptake_no3(i,j,k)
-      ! -- !
 
-       cobalt%p_o2(i,j,k,tau) = cobalt%p_o2(i,j,k,tau) + cobalt%jo2(i,j,k) * dt * grid_tmask(i,j,k)
+       cobalt%p_o2(i,j,k,tau) = cobalt%p_o2(i,j,k,tau) + cobalt%jo2(i,j,k) * dt * grid_tmask(i,j,k) + &
+                                cobalt%o2_2_no3 * e_juptake_no3(i,j,k) ! DKS
     enddo; enddo ; enddo  !} i,j,k
     !
     !     The Carbon system
@@ -5544,11 +5542,9 @@ contains
           phyto(MEDIUM)%juptake_nh4(i,j,k) - &
           phyto(SMALL)%juptake_nh4(i,j,k) - 2.0 * cobalt%juptake_nh4nitrif(i,j,k)
 
-       ! DKS --
-       cobalt%jalk(i,j,k) = cobalt%jalk(i,j,k) + e_juptake_no3(i,j,k)
-       ! -- DKS
 
-       cobalt%p_alk(i,j,k,tau) = cobalt%p_alk(i,j,k,tau) + cobalt%jalk(i,j,k) * dt * grid_tmask(i,j,k)
+       cobalt%p_alk(i,j,k,tau) = cobalt%p_alk(i,j,k,tau) + cobalt%jalk(i,j,k) * dt * grid_tmask(i,j,k) + &
+                                 e_juptake_no3(i,j,k)* grid_tmask(i,j,k) ! DKS
        !
        ! Dissolved Inorganic Carbon
        !
@@ -5561,13 +5557,10 @@ contains
           phyto(DIAZO)%juptake_n2(i,j,k)) + &
           cobalt%jdiss_cadet_arag(i,j,k) + cobalt%jdiss_cadet_calc(i,j,k) - &
           cobalt%jprod_cadet_arag(i,j,k) - cobalt%jprod_cadet_calc(i,j,k))
-
-       ! DKS --
-         cobalt%jdic(i,j,k) = cobalt%jdic(i,j,k) - cobalt%c_2_n * e_juptake_no3(i,j,k)
-       ! -- DKS
     
 
-       cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) + cobalt%jdic(i,j,k) * dt * grid_tmask(i,j,k)
+       cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) + cobalt%jdic(i,j,k) * dt * grid_tmask(i,j,k) - &
+                                 cobalt%c_2_n * e_juptake_no3(i,j,k) ! DKS
     enddo; enddo ; enddo !} i,j,k
 !
 
@@ -5709,7 +5702,6 @@ contains
                     cobalt%p_nlgz(i,j,k,tau)))*grid_tmask(i,j,k)
         imbal = (post_totc(i,j,k) - pre_totc(i,j,k) - net_srcc(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
-            write(*,*) imbal
            call mpp_error(FATAL,&
            '==>biological source/sink imbalance (generic_COBALT_update_from_source): Carbon')
          endif
