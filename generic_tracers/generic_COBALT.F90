@@ -5448,19 +5448,19 @@ contains
     do j = jsc, jec; do i= isc, iec
        k = grid_kmt(i,j) !Get bottom layer
        if (mask_addition_t(i,j,1) .gt. 0.0) then
-         cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + n_det_override(i,j)
-         cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j)
-         cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j)
+         cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + n_det_override(i,j) * dt
+         cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
+         cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
        endif
     enddo; enddo !} i,j
 
     do j = jsc, jec; do i= isc, iec
       k = grid_kmt(i,j) !Get bottom layer
          if (mask_addition_t(i,j,1) .gt. 0.0) then
-            pre_totn(i,j,k) = pre_totn(i,j,k) + n_det_override(i,j) 
-            pre_totp(i,j,k) = pre_totp(i,j,k) + p_det_override(i,j) 
-            pre_totfe(i,j,k) = pre_totfe(i,j,k) + fedet_override(i,j)  
-            pre_totc(i,j,k) = pre_totc(i,j,k) + cobalt%c_2_n*(n_det_override(i,j))
+            pre_totn(i,j,k) = pre_totn(i,j,k) + n_det_override(i,j) * dt 
+            pre_totp(i,j,k) = pre_totp(i,j,k) + p_det_override(i,j) * dt
+            pre_totfe(i,j,k) = pre_totfe(i,j,k) + fedet_override(i,j) *dt 
+            pre_totc(i,j,k) = pre_totc(i,j,k) + cobalt%c_2_n*(n_det_override(i,j) *dt)
          endif
       enddo; enddo !} i,j
 
