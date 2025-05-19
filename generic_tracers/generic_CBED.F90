@@ -27,6 +27,7 @@ integer, parameter :: nk_cbed = 10 ! Number of benthic layers
 type generic_CBED_type
   real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
   integer :: id_tr1                             ! tracer 1 diagnostics id
+  integer :: id_o2                              ! tracer o2 diagnostics id
 end type generic_CBED_type
 
 type(generic_CBED_type) :: cbed
