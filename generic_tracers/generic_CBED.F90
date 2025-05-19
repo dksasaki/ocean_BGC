@@ -26,6 +26,7 @@ integer, parameter :: nk_cbed = 10 ! Number of benthic layers
 
 type generic_CBED_type
   real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
+  real, dimension(:,:,:), allocatable :: f_o2   ! tracer o2 concentration field
   integer :: id_tr1                             ! tracer 1 diagnostics id
   integer :: id_o2                              ! tracer o2 diagnostics id
 end type generic_CBED_type
@@ -44,6 +45,7 @@ contains
 
     !Allocate and initialize CBED arrays for tracer concentrations and other workarrays
     allocate(cbed%f_tr1(isd:ied,jsd:jed,nk_cbed));cbed%f_tr1=0.0
+    allocate(cbed%f_o2(isd:ied,jsd:jed,nk_cbed));cbed%f_o2=300.0
 
 
   end subroutine generic_CBED_init
@@ -74,6 +76,7 @@ contains
       call register_axis(fileobj,'lev',nk_cbed)
      ! register the restart variables
       call register_restart_field(fileobj, "cbed_tr1", cbed%f_tr1, (/"x","y","lev"/))
+      call register_restart_field(fileobj, "cbed_o2", cbed%f_o2, (/"x","y","lev"/))
       call read_restart(fileobj)
     endif
     !!END read_restart code block
@@ -86,7 +89,8 @@ contains
 
     cbed%id_tr1 = register_diag_field(package_name, 'cbed_tr1_conc', (/axes(1),axes(2),id_layer/), init_time,&
                                       'cbed tracer1 concentration', 'unknown units', missing_value = missing_value1)
-
+    cbed%id_o2 = register_diag_field(package_name, 'cbed_o2_conc', (/axes(1),axes(2),id_layer/), init_time,&
+                                      'cbed oxygen concentration', 'mol/kg', missing_value = missing_value1)
   end subroutine generic_CBED_reg_diagnostics
 
   subroutine generic_CBED_send_diagnostics(model_time,grid_tmask, isc,iec,jsc,jec, isd,ied,jsd,jed,nk)
@@ -103,7 +107,8 @@ contains
 
     used = send_data(cbed%id_tr1, cbed%f_tr1, model_time, rmask = cbed_tmask,&
                        is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
-
+    used = send_data(cbed%id_o2, cbed%f_o2, model_time, rmask = cbed_tmask,&
+                       is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
   end subroutine generic_CBED_send_diagnostics
 
   subroutine generic_CBED_end()
@@ -123,6 +128,7 @@ contains
        call register_axis(fileobj,'lev',nk_cbed)
       ! register the restart variables
        call register_restart_field(fileobj, "cbed_tr1", cbed%f_tr1, (/"x","y","lev"/))
+       call register_restart_field(fileobj, "cbed_o2", cbed%f_o2, (/"x","y","lev"/))
        call write_restart(fileobj)
        call close_file(fileobj)
     else
@@ -131,6 +137,7 @@ contains
 
     !Deallocate arrays
     deallocate(cbed%f_tr1)
+    deallocate(cbed%f_o2)
 
   end subroutine generic_CBED_end
 
@@ -160,7 +167,10 @@ contains
     do j = jsc, jec; do i = isc, iec  !{
       do k=1,nk_cbed
         if (grid_kmt(i,j) .gt. 0) cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
-      enddo
+
+           cbed%f_o2(i,j,k) = cbed%f_o2(i,j,k) * (1-cobalt%fntot_btm(i,j)*0.1/k)
+
+        enddo
     enddo;enddo
     !!==================================================================================================================
     !!The rest of this subrouine that follows is a copy of the COBALT code.
