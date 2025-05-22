@@ -27,8 +27,20 @@ integer, parameter :: nk_cbed = 10 ! Number of benthic layers
 type generic_CBED_type
   real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
   real, dimension(:,:,:), allocatable :: f_o2   ! tracer o2 concentration field
-  integer :: id_tr1                             ! tracer 1 diagnostics id
-  integer :: id_o2                              ! tracer o2 diagnostics id
+  real, dimension(:,:,:), allocatable :: f_om1   ! tracer organic matter 1 (fast reacting) concentration field
+  real, dimension(:,:,:), allocatable :: f_om2   ! tracer organic matter 2 (medium reacting) concentration field
+  real, dimension(:,:,:), allocatable :: f_om3   ! tracer organic matter 3 (slow reacting) concentration field
+  real, dimension(:,:,:), allocatable :: f_nh4   ! tracer nh4 (ammonium) concentration field
+  real, dimension(:,:,:), allocatable :: f_no3   ! tracer no3 (nitrate) concentration field
+  real, dimension(:,:,:), allocatable :: f_dic   ! tracer dic (dissolved inorganic carbon) concentration field
+  integer :: id_tr1                              ! tracer 1 diagnostics id
+  integer :: id_o2                               ! tracer o2 diagnostics id
+  integer :: id_om1                              ! tracer om1 diagnostics id
+  integer :: id_om2                              ! tracer om2 diagnostics id
+  integer :: id_om3                              ! tracer om3 diagnostics id
+  integer :: id_nh4                              ! tracer nh4 diagnostics id
+  integer :: id_no3                              ! tracer no3 diagnostics id
+  integer :: id_dic                              ! tracer dic diagnostics id
 end type generic_CBED_type
 
 type(generic_CBED_type) :: cbed
@@ -46,6 +58,12 @@ contains
     !Allocate and initialize CBED arrays for tracer concentrations and other workarrays
     allocate(cbed%f_tr1(isd:ied,jsd:jed,nk_cbed));cbed%f_tr1=0.0
     allocate(cbed%f_o2(isd:ied,jsd:jed,nk_cbed));cbed%f_o2=300.0
+    allocate(cbed%f_om1(isd:ied,jsd:jed,nk_cbed));cbed%f_om1=0.0
+    allocate(cbed%f_om2(isd:ied,jsd:jed,nk_cbed));cbed%f_om2=0.0
+    allocate(cbed%f_om3(isd:ied,jsd:jed,nk_cbed));cbed%f_om3=0.0
+    allocate(cbed%f_nh4(isd:ied,jsd:jed,nk_cbed));cbed%f_nh4=0.0
+    allocate(cbed%f_no3(isd:ied,jsd:jed,nk_cbed));cbed%f_no3=0.0
+    allocate(cbed%f_dic(isd:ied,jsd:jed,nk_cbed));cbed%f_dic=0.0
 
 
   end subroutine generic_CBED_init
@@ -77,6 +95,12 @@ contains
      ! register the restart variables
       call register_restart_field(fileobj, "cbed_tr1", cbed%f_tr1, (/"x","y","lev"/))
       call register_restart_field(fileobj, "cbed_o2", cbed%f_o2, (/"x","y","lev"/))
+      call register_restart_field(fileobj, "cbed_om1", cbed%f_om1, (/"x","y","lev"/))
+      call register_restart_field(fileobj, "cbed_om2", cbed%f_om2, (/"x","y","lev"/))
+      call register_restart_field(fileobj, "cbed_om3", cbed%f_om3, (/"x","y","lev"/))
+      call register_restart_field(fileobj, "cbed_nh4", cbed%f_nh4, (/"x","y","lev"/))
+      call register_restart_field(fileobj, "cbed_no3", cbed%f_no3, (/"x","y","lev"/))
+      call register_restart_field(fileobj, "cbed_dic", cbed%f_dic, (/"x","y","lev"/))
       call read_restart(fileobj)
     endif
     !!END read_restart code block
@@ -91,6 +115,19 @@ contains
                                       'cbed tracer1 concentration', 'unknown units', missing_value = missing_value1)
     cbed%id_o2 = register_diag_field(package_name, 'cbed_o2_conc', (/axes(1),axes(2),id_layer/), init_time,&
                                       'cbed oxygen concentration', 'mol/kg', missing_value = missing_value1)
+    cbed%id_om1 = register_diag_field(package_name, 'cbed_om1_conc', (/axes(1),axes(2),id_layer/), init_time,&
+                                      'cbed OM1 concentration', 'mol/kg', missing_value = missing_value1)
+    cbed%id_om2 = register_diag_field(package_name, 'cbed_om2_conc', (/axes(1),axes(2),id_layer/), init_time,&
+                                      'cbed OM2 concentration', 'mol/kg', missing_value = missing_value1)
+    cbed%id_om3 = register_diag_field(package_name, 'cbed_om3_conc', (/axes(1),axes(2),id_layer/), init_time,&
+                                      'cbed OM3 concentration', 'mol/kg', missing_value = missing_value1)
+    cbed%id_nh4 = register_diag_field(package_name, 'cbed_nh4_conc', (/axes(1),axes(2),id_layer/), init_time,&
+                                      'cbed ammonium concentration', 'mol/kg', missing_value = missing_value1)
+    cbed%id_no3 = register_diag_field(package_name, 'cbed_no3_conc', (/axes(1),axes(2),id_layer/), init_time,&
+                                      'cbed nitrate concentration', 'mol/kg', missing_value = missing_value1)
+    cbed%id_dic = register_diag_field(package_name, 'cbed_dic_conc', (/axes(1),axes(2),id_layer/), init_time,&
+                                      'cbed DIC concentration', 'mol/kg', missing_value = missing_value1)
+
   end subroutine generic_CBED_reg_diagnostics
 
   subroutine generic_CBED_send_diagnostics(model_time,grid_tmask, isc,iec,jsc,jec, isd,ied,jsd,jed,nk)
@@ -108,6 +145,18 @@ contains
     used = send_data(cbed%id_tr1, cbed%f_tr1, model_time, rmask = cbed_tmask,&
                        is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
     used = send_data(cbed%id_o2, cbed%f_o2, model_time, rmask = cbed_tmask,&
+                       is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+    used = send_data(cbed%id_om1, cbed%f_om1, model_time, rmask = cbed_tmask,&
+                       is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+    used = send_data(cbed%id_om2, cbed%f_om2, model_time, rmask = cbed_tmask,&
+                       is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+    used = send_data(cbed%id_om3, cbed%f_om3, model_time, rmask = cbed_tmask,&
+                       is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+    used = send_data(cbed%id_nh4, cbed%f_nh4, model_time, rmask = cbed_tmask,&
+                       is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+    used = send_data(cbed%id_no3, cbed%f_no3, model_time, rmask = cbed_tmask,&
+                       is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+    used = send_data(cbed%id_dic, cbed%f_dic, model_time, rmask = cbed_tmask,&
                        is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
   end subroutine generic_CBED_send_diagnostics
 
@@ -129,6 +178,12 @@ contains
       ! register the restart variables
        call register_restart_field(fileobj, "cbed_tr1", cbed%f_tr1, (/"x","y","lev"/))
        call register_restart_field(fileobj, "cbed_o2", cbed%f_o2, (/"x","y","lev"/))
+       call register_restart_field(fileobj, "cbed_om1", cbed%f_om1, (/"x","y","lev"/))
+       call register_restart_field(fileobj, "cbed_om2", cbed%f_om2, (/"x","y","lev"/))
+       call register_restart_field(fileobj, "cbed_om3", cbed%f_om3, (/"x","y","lev"/))
+       call register_restart_field(fileobj, "cbed_nh4", cbed%f_nh4, (/"x","y","lev"/))
+       call register_restart_field(fileobj, "cbed_no3", cbed%f_no3, (/"x","y","lev"/))
+       call register_restart_field(fileobj, "cbed_dic", cbed%f_dic, (/"x","y","lev"/))
        call write_restart(fileobj)
        call close_file(fileobj)
     else
@@ -138,6 +193,12 @@ contains
     !Deallocate arrays
     deallocate(cbed%f_tr1)
     deallocate(cbed%f_o2)
+    deallocate(cbed%f_om1)
+    deallocate(cbed%f_om2)
+    deallocate(cbed%f_om3)
+    deallocate(cbed%f_nh4)
+    deallocate(cbed%f_no3)
+    deallocate(cbed%f_dic)
 
   end subroutine generic_CBED_end
 
@@ -166,9 +227,16 @@ contains
     !Test that we can change the value of concentration field of a CBED tracer
     do j = jsc, jec; do i = isc, iec  !{
       do k=1,nk_cbed
-        if (grid_kmt(i,j) .gt. 0) cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
-
+        if (grid_kmt(i,j) .gt. 0) 
+           
+           cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
            cbed%f_o2(i,j,k) = cbed%f_o2(i,j,k) * (1-cobalt%fntot_btm(i,j)*0.1/k)
+           cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + 0.03 * k
+           cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + 0.04 * k
+           cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + 0.05 * k
+           cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + 0.06 * k
+           cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + 0.07 * k
+           cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + 0.08 * k
 
         enddo
     enddo;enddo
