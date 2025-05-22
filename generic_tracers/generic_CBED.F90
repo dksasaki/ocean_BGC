@@ -227,9 +227,7 @@ contains
     !Test that we can change the value of concentration field of a CBED tracer
     do j = jsc, jec; do i = isc, iec  !{
       do k=1,nk_cbed
-        if (grid_kmt(i,j) .gt. 0) 
-           
-           cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
+        if (grid_kmt(i,j) .gt. 0)  cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
            cbed%f_o2(i,j,k) = cbed%f_o2(i,j,k) * (1-cobalt%fntot_btm(i,j)*0.1/k)
            cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + 0.03 * k
            cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + 0.04 * k
