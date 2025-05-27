@@ -229,7 +229,7 @@ contains
       do k=1,nk_cbed
         if (grid_kmt(i,j) .gt. 0)  cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
            cbed%f_o2(i,j,k) = cbed%f_o2(i,j,k) * (1-cobalt%fntot_btm(i,j)*0.1/k)
-           cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + 0.03 * k
+           cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
            cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + 0.04 * k
            cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + 0.05 * k
            cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + 0.06 * k
