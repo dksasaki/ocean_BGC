@@ -224,13 +224,38 @@ contains
     integer, dimension(isc:iec,jsc:jec) :: k_bot
     real,    dimension(isc:iec,jsc:jec) :: rho_dzt_bot
 
+     
+    ! grid
+    ! local parameters
+    real, parameter :: l_cbed = 20             ! length of sediment domain | sediment depth (cm, 20 cm)
+    real, parameter :: rho_s = 2.5             ! solid density (g/cm³)
+
+    ! sediment grid and state variables (to be allocated)
+    real, allocatable :: dz_cbed(:)                 ! sediment layer thickness (m)
+    real, allocatable :: z_cbed(:)              ! sediment depth points (m)
+
+    ! grid param end. 
+
+    ! define uniform sediment grid
+    dz_cbed = l_cbed / real(nk_cbed)
+    z_cbed(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
+    do k = 1, nk_cbed
+        z_cbed(k+1) = z_cbed(k) + dz_cbed(k)
+    end do
+
+    ! update upper boundary condition
+    do j = jsc, jec; do i = isc, iec !{
+      cbed%f_om2(i,j,1) = cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/(dz_cbed(1)/100) ! c
+    enddo;enddo
+
+
     !Test that we can change the value of concentration field of a CBED tracer
     do j = jsc, jec; do i = isc, iec  !{
       do k=1,nk_cbed
         if (grid_kmt(i,j) .gt. 0)  cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
            cbed%f_o2(i,j,k) = cbed%f_o2(i,j,k) * (1-cobalt%fntot_btm(i,j)*0.1/k)
            cbed%f_om1(i,j,k) = cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
-           cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + 0.04 * k
+           cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) 
            cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + 0.05 * k
            cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + 0.06 * k
            cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + 0.07 * k
