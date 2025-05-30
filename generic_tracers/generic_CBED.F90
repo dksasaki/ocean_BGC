@@ -236,6 +236,9 @@ contains
 
     ! grid param end. 
 
+    allocate(dz(nk_cbed))
+    allocate(z_cbed(nk_cbed+1))
+
     ! define uniform sediment grid
     dz_cbed = l_cbed / real(nk_cbed)
     z_cbed(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
@@ -247,7 +250,9 @@ contains
     do j = jsc, jec; do i = isc, iec 
         if (grid_kmt(i,j) .gt. 0)  cbed%f_om2(i,j,1) = cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/(dz_cbed(1)/100) 
     enddo;enddo
-
+    
+    deallocate(dz)
+    deallocate(z_cbed)
 
     !Test that we can change the value of concentration field of a CBED tracer
     do j = jsc, jec; do i = isc, iec  !{
