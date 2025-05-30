@@ -244,15 +244,16 @@ contains
     end do
 
     ! update upper boundary condition
-    do j = jsc, jec; do i = isc, iec !{
-      cbed%f_om2(i,j,1) = cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/(dz_cbed(1)/100) ! c
+    do j = jsc, jec; do i = isc, iec 
+        if (grid_kmt(i,j) .gt. 0)  cbed%f_om2(i,j,1) = cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/(dz_cbed(1)/100) 
     enddo;enddo
 
 
     !Test that we can change the value of concentration field of a CBED tracer
     do j = jsc, jec; do i = isc, iec  !{
       do k=1,nk_cbed
-        if (grid_kmt(i,j) .gt. 0)  cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
+        if (grid_kmt(i,j) .gt. 0) then 
+           cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
            cbed%f_o2(i,j,k) = cbed%f_o2(i,j,k) * (1-cobalt%fntot_btm(i,j)*0.1/k)
            cbed%f_om1(i,j,k) = cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
            cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) 
@@ -260,6 +261,8 @@ contains
            cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + 0.06 * k
            cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + 0.07 * k
            cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + 0.08 * k
+
+        endif
 
         enddo
     enddo;enddo
