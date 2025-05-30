@@ -236,7 +236,7 @@ contains
 
     ! grid param end. 
 
-    allocate(dz(nk_cbed))
+    allocate(dz_cbed(nk_cbed))
     allocate(z_cbed(nk_cbed+1))
 
     ! define uniform sediment grid
@@ -251,7 +251,7 @@ contains
         if (grid_kmt(i,j) .gt. 0)  cbed%f_om2(i,j,1) = cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/(dz_cbed(1)/100) 
     enddo;enddo
     
-    deallocate(dz)
+    deallocate(dz_cbed)
     deallocate(z_cbed)
 
     !Test that we can change the value of concentration field of a CBED tracer
