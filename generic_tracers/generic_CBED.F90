@@ -62,17 +62,19 @@ type(generic_CBED_type) :: cbed
 
     ! grid param end. 
 
-    ! define uniform sediment grid
-    dz_cbed = l_cbed / real(nk_cbed)
-    z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
-    do k = 1, nk_cbed
-        z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
-    end do
+     call grid_cbed(nk_cbed, dz_cbed, z_cbed_mid, z_cbed_int)
 
-    z_cbed_mid(1) = dz_cbed(1)/2   ! first layer mid point
-    do k = 1, nk_cbed-1
-        z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
-    end do
+!    ! define uniform sediment grid
+!    dz_cbed = l_cbed / real(nk_cbed)
+!    z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
+!    do k = 1, nk_cbed
+!        z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
+!    end do
+!
+!    z_cbed_mid(1) = dz_cbed(1)/2   ! first layer mid point
+!    do k = 1, nk_cbed-1
+!        z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
+!    end do
 
 
 contains
@@ -232,6 +234,26 @@ contains
 
   end subroutine generic_CBED_end
 
+
+  subroutine grid_cbed(nk_cbed, dz_cbed, z_cbed_mid, z_cbed_int)
+    real,          intent(in)     :: nk_cbed
+    real,          intent(inout)  :: dz_cbed
+    real,          intent(inout)  :: z_cbed_mid
+    real,          intent(inout)  :: z_cbed_int
+
+    ! define uniform sediment grid
+    dz_cbed = l_cbed / real(nk_cbed)
+    z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
+    do k = 1, nk_cbed
+        z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
+    end do
+
+    z_cbed_mid(1) = dz_cbed(1)/2   ! first layer mid point
+    do k = 1, nk_cbed-1
+        z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
+    end do
+
+  end subroutine grid_cbed
 
 
 
