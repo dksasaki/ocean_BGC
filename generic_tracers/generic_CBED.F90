@@ -45,6 +45,36 @@ end type generic_CBED_type
 
 type(generic_CBED_type) :: cbed
 
+! porosity. check with Niki
+! real, dimension(isc:iec,jsc:jec,1:nk_cbed) :: por = 0.8  !niki
+
+    ! grid
+    ! local parameters
+    real, parameter :: l_cbed = 20             ! length of sediment domain | sediment depth (cm, 20 cm)
+    real, parameter :: rho_s = 2.5             ! solid density (g/cm³)
+
+    ! sediment grid and state variables (to be allocated)
+    !real, allocatable :: dz_cbed(:)                 ! sediment layer thickness (m)
+    !real, allocatable :: z_cbed(:)              ! sediment depth points (m)
+    real :: dz_cbed(nk_cbed)              ! thickness of each cbed layers (m)
+    real :: z_cbed_int(nk_cbed+1)         ! layer interfaces (m)
+    real :: z_cbed_mid(nk_cbed)           ! layer mid points (m)
+
+    ! grid param end. 
+
+    ! define uniform sediment grid
+    dz_cbed = l_cbed / real(nk_cbed)
+    z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
+    do k = 1, nk_cbed
+        z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
+    end do
+
+    z_cbed_mid(1) = dz_cbed(1)/2   ! first layer mid point
+    do k = 1, nk_cbed-1
+        z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
+    end do
+
+
 contains
 
   subroutine generic_CBED_init(isc,iec,jsc,jec,isd,ied,jsd,jed,nk)
@@ -203,6 +233,52 @@ contains
   end subroutine generic_CBED_end
 
 
+
+
+!  subroutine wrapper_tridag(D, w, VF, dt, isc,iec, jsc,jec, isd, jsd, nk, nk_cbed, a, b, c)
+!    real, dimension(:,:,:),       intent(in)    :: D   ! diffustion 
+!    real, dimension(:,:,:),       intent(in)    :: w   !sinking velocity or sedimentation rate
+!    real, dimension(:,:),       intent(in)    :: VF    ! volumn fraction
+!    real, dimension(:),       intent(out)    :: a
+!    real, dimension(:),       intent(out)    :: b
+!    real, dimension(:),       intent(out)    :: c
+!    real,                         intent(in)    :: dt
+!    integer,                      intent(in)    :: isc,iec, jsc,jec, isd, jsd, nk, nk_cbed
+!
+!
+!    ! h_old
+!    do k = 1, nk_cbed
+!        h_old(k) = dz_cbed(k)
+!    enddo
+!
+!    ! ea , eb
+!    do j = jsc, jec; do i = isc, iec
+!      do k=1,nk_cbed
+!        if (grid_kmt(i,j) .gt. 0) then
+!                ea(i,j,k) = D(i,j,k)*dt/h_old(k)
+!                eb(i,j,k) = D(i,j,k+1)*dt/h_old(k)
+!        endif
+!        enddo; enddo
+!
+!    ! a, b, c
+!    do j = jsc, jec; do i = isc, iec
+!      do k=1,nk_cbed
+!        if (grid_kmt(i,j) .gt. 0) then
+!           
+!           a(k)= -(ea(i,j,k)+w(i,j))/(VF(i,j)*h_old(k))
+!          
+!           b(k)=  (VF(i,j)*h_old(k)+eb(i,j,k)+ea(i,j,k)+w(i,j,k+1))/(VF(i,j)*h_old(k))
+!          
+!           c(k)= -eb(i,j,k)/(VF(i,j)*h_old(i,j,k))
+!
+!        endif
+!        enddo; enddo
+!
+!   end subroutine wrapper_tridag
+
+
+
+
   subroutine generic_CBED_sediments_update_from_source(cobalt_tracer_list, cobalt, phyto, ilb, jlb, mask_coast, &
            grid_tmask, grid_dat, grid_kmt, isc,iec, jsc,jec, isd, jsd, nk, r_dt, dt, frunoff, rho_dzt, dzt, internal_heat)
 
@@ -225,34 +301,76 @@ contains
     real,    dimension(isc:iec,jsc:jec) :: rho_dzt_bot
 
      
-    ! grid
-    ! local parameters
-    real, parameter :: l_cbed = 20             ! length of sediment domain | sediment depth (cm, 20 cm)
-    real, parameter :: rho_s = 2.5             ! solid density (g/cm³)
+!    ! grid
+!    ! local parameters
+!    real, parameter :: l_cbed = 20             ! length of sediment domain | sediment depth (cm, 20 cm)
+!    real, parameter :: rho_s = 2.5             ! solid density (g/cm³)
 
     ! sediment grid and state variables (to be allocated)
-    real, allocatable :: dz_cbed(:)                 ! sediment layer thickness (m)
-    real, allocatable :: z_cbed(:)              ! sediment depth points (m)
+    !real, allocatable :: dz_cbed(:)                 ! sediment layer thickness (m)
+    !real, allocatable :: z_cbed(:)              ! sediment depth points (m)
+!    real :: dz_cbed(nk_cbed)              ! thickness of each cbed layers (m)
+!    real :: z_cbed_int(nk_cbed+1)         ! layer interfaces (m)
+!    real :: z_cbed_mid(nk_cbed)           ! layer mid points (m)
 
     ! grid param end. 
 
-    allocate(dz_cbed(nk_cbed))
-    allocate(z_cbed(nk_cbed+1))
+    ! other required parameters
+!    real, parameter :: por = 0.8                 ! porosity
+!    real, parameter :: w = 1.0 /100.0/spery      ! m/s ! sedimentation rate (1 cm/year)
+!    real, parameter :: Do2_0 =  1.0e-9           ! o₂ diffusion coefficient at ideal (m²/s)   
+!    real, dimension(isc:iec,jsc:jec,1:(nk_cbed+1)) :: Do2          ! o₂ diffusion coefficient real (3D) (m²/s)
+    
+!    real, dimension(isc:iec,jsc:jec,:) :: ea
+!    real, dimension(isc:iec,jsc:jec,:) :: eb
+!    real :: h_old(nk_cbed)
 
-    ! define uniform sediment grid
-    dz_cbed = l_cbed / real(nk_cbed)
-    z_cbed(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
-    do k = 1, nk_cbed
-        z_cbed(k+1) = z_cbed(k) + dz_cbed(k)
-    end do
+
+    !end other required parameters
+
+
+    !allocate(dz_cbed(nk_cbed))
+    !allocate(z_cbed(nk_cbed+1))
+
+!    ! define uniform sediment grid
+!    dz_cbed = l_cbed / real(nk_cbed)
+!    z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
+!    do k = 1, nk_cbed
+!        z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
+!    end do
+
+!    z_cbed_mid(1) = dz_cbed(1)/2   ! first layer mid point
+!    do k = 1, nk_cbed-1
+!        z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
+!    end do
 
     ! update upper boundary condition
     do j = jsc, jec; do i = isc, iec 
         if (grid_kmt(i,j) .gt. 0)  cbed%f_om2(i,j,1) = cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/(dz_cbed(1)/100) 
     enddo;enddo
     
-    deallocate(dz_cbed)
-    deallocate(z_cbed)
+    !deallocate(dz_cbed)
+    !deallocate(z_cbed)
+
+!    ! Tridiag calculation
+!    do k = 1, nk_cbed
+!        h_old(k) = dz_cbed(k)
+!    enddo
+!
+!    do j = jsc, jec; do i = isc, iec  
+!      do k=1,nk_cbed
+!        if (grid_kmt(i,j) .gt. 0) then
+!                ea(i,j,k) = Do2(i,j,k)*dt/h_old(k)
+!                eb(i,j,k) = Do2(i,j,k+1)*dt/h_old(k) 
+!        endif
+!        enddo; enddo
+
+
+
+
+
+
+
 
     !Test that we can change the value of concentration field of a CBED tracer
     do j = jsc, jec; do i = isc, iec  !{
@@ -262,8 +380,8 @@ contains
            cbed%f_o2(i,j,k) = cbed%f_o2(i,j,k) * (1-cobalt%fntot_btm(i,j)*0.1/k)
            cbed%f_om1(i,j,k) = cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
            cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) 
-           cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + 0.05 * k
-           cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + 0.06 * k
+           cbed%f_om3(i,j,k) = z_cbed_mid(k)
+           cbed%f_nh4(i,j,k) = z_cbed_int(k)
            cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + 0.07 * k
            cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + 0.08 * k
 
