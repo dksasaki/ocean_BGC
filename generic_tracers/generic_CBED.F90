@@ -235,8 +235,8 @@ contains
   end subroutine generic_CBED_end
 
 
-  subroutine grid_cbed(nk_cbed, dz_cbed, z_cbed_mid, z_cbed_int)
-    real,          intent(in)     :: nk_cbed
+  subroutine grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
+    !real,          intent(in)     :: nk_cbed
     real,          intent(out)  :: dz_cbed(nk_cbed)
     real,          intent(out)  :: z_cbed_mid(nk_cbed)
     real,          intent(out)  :: z_cbed_int(nk_cbed+1)
@@ -325,7 +325,7 @@ contains
 
 
 
-    call grid_cbed(nk_cbed, dz_cbed, z_cbed_mid, z_cbed_int)
+    call grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
 
 
 !    ! grid
