@@ -237,10 +237,11 @@ contains
 
   subroutine grid_cbed(nk_cbed, dz_cbed, z_cbed_mid, z_cbed_int)
     real,          intent(in)     :: nk_cbed
-    real,          intent(inout)  :: dz_cbed
-    real,          intent(inout)  :: z_cbed_mid
-    real,          intent(inout)  :: z_cbed_int
-
+    real,          intent(out)  :: dz_cbed(nk_cbed)
+    real,          intent(out)  :: z_cbed_mid(nk_cbed)
+    real,          intent(out)  :: z_cbed_int(nk_cbed+1)
+    integer :: i, j, k
+    
     ! define uniform sediment grid
     dz_cbed = l_cbed / real(nk_cbed)
     z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
