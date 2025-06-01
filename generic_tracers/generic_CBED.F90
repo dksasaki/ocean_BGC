@@ -62,7 +62,7 @@ type(generic_CBED_type) :: cbed
 
     ! grid param end. 
 
-     call grid_cbed(nk_cbed, dz_cbed, z_cbed_mid, z_cbed_int)
+!     call grid_cbed(nk_cbed, dz_cbed, z_cbed_mid, z_cbed_int)
 
 !    ! define uniform sediment grid
 !    dz_cbed = l_cbed / real(nk_cbed)
@@ -322,7 +322,11 @@ contains
     integer, dimension(isc:iec,jsc:jec) :: k_bot
     real,    dimension(isc:iec,jsc:jec) :: rho_dzt_bot
 
-     
+
+
+    call grid_cbed(nk_cbed, dz_cbed, z_cbed_mid, z_cbed_int)
+
+
 !    ! grid
 !    ! local parameters
 !    real, parameter :: l_cbed = 20             ! length of sediment domain | sediment depth (cm, 20 cm)
