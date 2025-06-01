@@ -56,9 +56,9 @@ type(generic_CBED_type) :: cbed
     ! sediment grid and state variables (to be allocated)
     !real, allocatable :: dz_cbed(:)                 ! sediment layer thickness (m)
     !real, allocatable :: z_cbed(:)              ! sediment depth points (m)
-    real :: dz_cbed(nk_cbed)              ! thickness of each cbed layers (m)
-    real :: z_cbed_int(nk_cbed+1)         ! layer interfaces (m)
-    real :: z_cbed_mid(nk_cbed)           ! layer mid points (m)
+    !real :: dz_cbed(nk_cbed)              ! thickness of each cbed layers (m)
+    !real :: z_cbed_int(nk_cbed+1)         ! layer interfaces (m)
+    !real :: z_cbed_mid(nk_cbed)           ! layer mid points (m)
 
     ! grid param end. 
 
