@@ -62,7 +62,7 @@ type(generic_CBED_type) :: cbed
 
     ! grid param end. 
 
-    real    :: w(:,:)  !sedimentation rate
+    real, allocatable  :: w(:,:)  !sedimentation rate
 
 
 
@@ -272,7 +272,7 @@ contains
     real, dimension(:,:,:),       intent(in)    :: grid_tmask
     integer,                      intent(in)    :: isc,iec, jsc,jec, isd, jsd, nk
     integer, dimension(:,:),      intent(in)    :: mask_coast, grid_kmt    
-    real,                         intent(out)   :: w(isd:ied,jsd:jed)  !sedimentation rate
+    real,                         intent(out)   :: w(:,:)  !sedimentation rate
 
     integer :: i, j, k
     ! now write the calculation.
