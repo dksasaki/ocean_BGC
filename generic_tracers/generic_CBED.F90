@@ -62,7 +62,7 @@ type(generic_CBED_type) :: cbed
 
     ! grid param end. 
 
-    real,dimension(isd:ied,jsd:jed)    :: w  !sedimentation rate
+    real    :: w(:,:)  !sedimentation rate
 
 
 
