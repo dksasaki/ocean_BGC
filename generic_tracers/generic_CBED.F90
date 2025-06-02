@@ -46,7 +46,7 @@ end type generic_CBED_type
 type(generic_CBED_type) :: cbed
 
 ! porosity. check with Niki
-! real, dimension(isc:iec,jsc:jec,1:nk_cbed) :: por = 0.8  !niki
+    real, dimension(isc:iec,jsc:jec) :: por = 0.8  !niki
 
     ! grid
     ! local parameters
@@ -61,6 +61,12 @@ type(generic_CBED_type) :: cbed
     real :: z_cbed_mid(nk_cbed)           ! layer mid points (m)
 
     ! grid param end. 
+
+    real,dimension(isd:ied,jsd:jed)    :: w  !sedimentation rate
+
+
+
+
 
 !     call grid_cbed(nk_cbed, dz_cbed, z_cbed_mid, z_cbed_int)
 
@@ -257,6 +263,31 @@ contains
   end subroutine grid_cbed
 
 
+  subroutine calc_sedimentation_rate(cobalt_tracer_list, cobalt,grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, w ) 
+    type(g_tracer_type),          pointer       :: cobalt_tracer_list
+    type(generic_COBALT_type),    intent(inout) :: cobalt
+    real, dimension(:,:,:),       intent(in)    :: grid_tmask
+    integer,                      intent(in)    :: isc,iec, jsc,jec, isd, jsd, nk
+    integer, dimension(:,:),      intent(in)    :: mask_coast, grid_kmt    
+    real,dimension(isd:ied,jsd:jed), intent(out)    :: w  !sedimentation rate
+
+    integer :: i, j, k
+    ! now write the calculation.
+
+   do j = jsc, jec; do i = isc, iec  
+          if (grid_kmt(i,j) .gt. 0) then
+               ! w (sedimentation rate, cm/year) 
+               w(i,j) = (cobalt%fcadet_arag_btm(i,j)*100/2.71 + &
+                       cobalt%fcadet_calc_btm(i,j)*100/2.94 + &
+                       cobalt%fsitot_btm(i,j)*60/2.65 + &
+                       cobalt%flithdet_btm(i,j)/2.65 + &
+                       cobalt%ffetot_btm(i,j)*160/5.24 + &
+                       cobalt%fptot_btm(i,j)*120/2.3 + &
+                       cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por(i,j))
+       endif
+
+    end subroutine calc_sedimentation_rate  
+
 
 !  subroutine wrapper_tridag(D, w, VF, dt, isc,iec, jsc,jec, isd, jsd, nk, nk_cbed, a, b, c)
 !    real, dimension(:,:,:),       intent(in)    :: D   ! diffustion 
@@ -326,7 +357,8 @@ contains
 
 
     call grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
-
+   
+    call calc_sedimentation_rate(cobalt_tracer_list, cobalt,grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, w )
 
 !    ! grid
 !    ! local parameters
@@ -408,7 +440,7 @@ contains
            cbed%f_om1(i,j,k) = cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
            cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) 
            cbed%f_om3(i,j,k) = z_cbed_mid(k)
-           cbed%f_nh4(i,j,k) = z_cbed_int(k)
+           cbed%f_nh4(i,j,k) = w(i,j)
            cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + 0.07 * k
            cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + 0.08 * k
 
