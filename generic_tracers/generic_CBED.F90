@@ -46,8 +46,8 @@ end type generic_CBED_type
 type(generic_CBED_type) :: cbed
 
 ! porosity. check with Niki
-    real, dimension(isc:iec,jsc:jec) :: por = 0.8  !niki
-
+    !real, dimension(isc:iec,jsc:jec) :: por = 0.8  !niki
+    real :: por = 0.8
     ! grid
     ! local parameters
     real, parameter :: l_cbed = 20             ! length of sediment domain | sediment depth (cm, 20 cm)
@@ -62,7 +62,7 @@ type(generic_CBED_type) :: cbed
 
     ! grid param end. 
 
-    real,dimension(isd:ied,jsd:jed)    :: w  !sedimentation rate
+    real,dimension(:,:)    :: w  !sedimentation rate
 
 
 
@@ -263,9 +263,12 @@ contains
   end subroutine grid_cbed
 
 
-  subroutine calc_sedimentation_rate(cobalt_tracer_list, cobalt,grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, w ) 
+  subroutine calc_sedimentation_rate(cobalt_tracer_list, cobalt,ilb, jlb, grid_dat, grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, &
+                  mask_coast, grid_kmt, w) 
     type(g_tracer_type),          pointer       :: cobalt_tracer_list
     type(generic_COBALT_type),    intent(inout) :: cobalt
+    integer,                      intent(in)    :: ilb, jlb
+    real, dimension(ilb:,jlb:),   intent(in)    :: grid_dat
     real, dimension(:,:,:),       intent(in)    :: grid_tmask
     integer,                      intent(in)    :: isc,iec, jsc,jec, isd, jsd, nk
     integer, dimension(:,:),      intent(in)    :: mask_coast, grid_kmt    
@@ -283,8 +286,9 @@ contains
                        cobalt%flithdet_btm(i,j)/2.65 + &
                        cobalt%ffetot_btm(i,j)*160/5.24 + &
                        cobalt%fptot_btm(i,j)*120/2.3 + &
-                       cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por(i,j))
+                       cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por)
        endif
+       enddo;enddo
 
     end subroutine calc_sedimentation_rate  
 
@@ -358,7 +362,8 @@ contains
 
     call grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
    
-    call calc_sedimentation_rate(cobalt_tracer_list, cobalt,grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, w )
+    call calc_sedimentation_rate(cobalt_tracer_list, cobalt,ilb, jlb, grid_dat, grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, &
+                  mask_coast, grid_kmt, w)
 
 !    ! grid
 !    ! local parameters
@@ -366,7 +371,7 @@ contains
 !    real, parameter :: rho_s = 2.5             ! solid density (g/cm³)
 
     ! sediment grid and state variables (to be allocated)
-    !real, allocatable :: dz_cbed(:)                 ! sediment layer thickness (m)
+    !real, allocatable :: dz_cbed(:)                ! sediment layer thickness (m)
     !real, allocatable :: z_cbed(:)              ! sediment depth points (m)
 !    real :: dz_cbed(nk_cbed)              ! thickness of each cbed layers (m)
 !    real :: z_cbed_int(nk_cbed+1)         ! layer interfaces (m)
