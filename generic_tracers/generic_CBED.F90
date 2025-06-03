@@ -103,6 +103,7 @@ contains
     allocate(cbed%f_no3(isd:ied,jsd:jed,nk_cbed));cbed%f_no3=0.0
     allocate(cbed%f_dic(isd:ied,jsd:jed,nk_cbed));cbed%f_dic=0.0
 
+    allocate(w(isc:iec,jsc:jec)); w=0.0   !adding sedimentation rate initalize 
 
   end subroutine generic_CBED_init
 
@@ -237,6 +238,8 @@ contains
     deallocate(cbed%f_nh4)
     deallocate(cbed%f_no3)
     deallocate(cbed%f_dic)
+
+    deallocate(w)
 
   end subroutine generic_CBED_end
 
