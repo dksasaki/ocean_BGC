@@ -275,7 +275,7 @@ contains
     real, dimension(:,:,:),       intent(in)    :: grid_tmask
     integer,                      intent(in)    :: isc,iec, jsc,jec, isd, jsd, nk
     integer, dimension(:,:),      intent(in)    :: mask_coast, grid_kmt    
-    real,                         intent(inout)   :: w  !sedimentation rate
+    real,   dimension(:,:),       intent(inout) :: w  !sedimentation rate
 
     integer :: i, j, k
     ! now write the calculation.
