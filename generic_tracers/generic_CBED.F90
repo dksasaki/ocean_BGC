@@ -92,6 +92,8 @@ contains
     type(FmsNetcdfDomainFile_t) :: fileobj ! netCDF file object returned by call to fms2_open_file
     character(len=64)           :: restart_file
     logical                     :: file_open_success ! result returned by call to fms2_open_file
+    
+    integer :: k !for grid. 
 
     !Allocate and initialize CBED arrays for tracer concentrations and other workarrays
     allocate(cbed%f_tr1(isd:ied,jsd:jed,nk_cbed));cbed%f_tr1=0.0
@@ -105,9 +107,7 @@ contains
 
     allocate(w(isc:iec,jsc:jec)); w=0.0   !adding sedimentation rate initalize
 
-
-    !! moved grid_cbed to init. 
-    integer :: k
+    ! Grid does not change with time, so can be define only once. 
     ! define uniform sediment grid
     dz_cbed = l_cbed / real(nk_cbed)
     z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
@@ -119,6 +119,7 @@ contains
     do k = 1, nk_cbed-1
         z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
     end do
+
 
   end subroutine generic_CBED_init
 
@@ -259,56 +260,56 @@ contains
   end subroutine generic_CBED_end
 
 
-  !subroutine grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int) 
-   ! !real,          intent(in)     :: nk_cbed
-   ! real,          intent(out)  :: dz_cbed(nk_cbed)
-   ! real,          intent(out)  :: z_cbed_mid(nk_cbed)
-   ! real,          intent(out)  :: z_cbed_int(nk_cbed+1)
-   ! integer :: i, j, k
-   ! 
-   ! ! define uniform sediment grid
-   ! dz_cbed = l_cbed / real(nk_cbed)
-   ! z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
-   ! do k = 1, nk_cbed
-   !     z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
-   ! end do
+ ! subroutine grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int) 
+ !   real,          intent(in)     :: nk_cbed
+ !   real,          intent(out)  :: dz_cbed(nk_cbed)
+ !   real,          intent(out)  :: z_cbed_mid(nk_cbed)
+ !   real,          intent(out)  :: z_cbed_int(nk_cbed+1)
+ !   integer :: i, j, k
+    
+ !   ! define uniform sediment grid
+ !   dz_cbed = l_cbed / real(nk_cbed)
+ !   z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
+ !   do k = 1, nk_cbed
+ !       z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
+ !   end do
 
-!    z_cbed_mid(1) = dz_cbed(1)/2   ! first layer mid point
-!    do k = 1, nk_cbed-1
-!        z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
-!    end do
+ !   z_cbed_mid(1) = dz_cbed(1)/2   ! first layer mid point
+ !   do k = 1, nk_cbed-1
+ !       z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
+ !   end do
 
  ! end subroutine grid_cbed
 
 
-  subroutine calc_sedimentation_rate(cobalt_tracer_list, cobalt,ilb, jlb, grid_dat, grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, &
-                  mask_coast, grid_kmt, w) 
-    type(g_tracer_type),          pointer       :: cobalt_tracer_list
-    type(generic_COBALT_type),    intent(inout) :: cobalt
-    integer,                      intent(in)    :: ilb, jlb
-    real, dimension(ilb:,jlb:),   intent(in)    :: grid_dat
-    real, dimension(:,:,:),       intent(in)    :: grid_tmask
-    integer,                      intent(in)    :: isc,iec, jsc,jec, isd, jsd, nk
-    integer, dimension(:,:),      intent(in)    :: mask_coast, grid_kmt    
-    real,   dimension(:,:),       intent(out) :: w  !sedimentation rate
+ ! subroutine calc_sedimentation_rate(cobalt_tracer_list, cobalt,ilb, jlb, grid_dat, grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, &
+ !                 mask_coast, grid_kmt, w) 
+ !   type(g_tracer_type),          pointer       :: cobalt_tracer_list
+ !   type(generic_COBALT_type),    intent(inout) :: cobalt
+ !   integer,                      intent(in)    :: ilb, jlb
+ !   real, dimension(ilb:,jlb:),   intent(in)    :: grid_dat
+ !   real, dimension(:,:,:),       intent(in)    :: grid_tmask
+ !   integer,                      intent(in)    :: isc,iec, jsc,jec, isd, jsd, nk
+ !   integer, dimension(:,:),      intent(in)    :: mask_coast, grid_kmt    
+ !   real,   dimension(:,:),       intent(out) :: w  !sedimentation rate
 
-    integer :: i, j, k
-    ! now write the calculation.
+ !   integer :: i, j, k
+ !   ! now write the calculation.
 
-   do j = jsc, jec; do i = isc, iec  
-          if (grid_kmt(i,j) .gt. 0) then
-               ! w (sedimentation rate, cm/year) 
-               w(i,j) = (cobalt%fcadet_arag_btm(i,j)*100/2.71 + &
-                       cobalt%fcadet_calc_btm(i,j)*100/2.94 + &
-                       cobalt%fsitot_btm(i,j)*60/2.65 + &
-                       cobalt%flithdet_btm(i,j)/2.65 + &
-                       cobalt%ffetot_btm(i,j)*160/5.24 + &
-                       cobalt%fptot_btm(i,j)*120/2.3 + &
-                       cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por)
-       endif
-       enddo;enddo
+ !  do j = jsc, jec; do i = isc, iec  
+ !         if (grid_kmt(i,j) .gt. 0) then
+ !              ! w (sedimentation rate, cm/year) 
+ !              w(i,j) = (cobalt%fcadet_arag_btm(i,j)*100/2.71 + &
+ !                      cobalt%fcadet_calc_btm(i,j)*100/2.94 + &
+ !                      cobalt%fsitot_btm(i,j)*60/2.65 + &
+ !                      cobalt%flithdet_btm(i,j)/2.65 + &
+ !                      cobalt%ffetot_btm(i,j)*160/5.24 + &
+ !                      cobalt%fptot_btm(i,j)*120/2.3 + &
+ !                      cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por)
+ !      endif
+ !      enddo;enddo
 
-    end subroutine calc_sedimentation_rate  
+ !   end subroutine calc_sedimentation_rate  
 
 
 !  subroutine wrapper_tridag(D, w, VF, dt, isc,iec, jsc,jec, isd, jsd, nk, nk_cbed, a, b, c)
@@ -378,10 +379,24 @@ contains
 
 
 
-  !  call grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
+    !call grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
    
-    call calc_sedimentation_rate(cobalt_tracer_list, cobalt,ilb, jlb, grid_dat, grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, &
-                  mask_coast, grid_kmt, w)
+    !call calc_sedimentation_rate(cobalt_tracer_list, cobalt,ilb, jlb, grid_dat, grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, &
+    !    mask_coast, grid_kmt, w)
+
+   do j = jsc, jec; do i = isc, iec
+          if (grid_kmt(i,j) .gt. 0) then
+               ! w (sedimentation rate, cm/year) 
+               w(i,j) = (cobalt%fcadet_arag_btm(i,j)*100/2.71 + &
+                       cobalt%fcadet_calc_btm(i,j)*100/2.94 + &
+                       cobalt%fsitot_btm(i,j)*60/2.65 + &
+                       cobalt%flithdet_btm(i,j)/2.65 + &
+                       cobalt%ffetot_btm(i,j)*160/5.24 + &
+                       cobalt%fptot_btm(i,j)*120/2.3 + &
+                       cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por)
+       endif
+       enddo;enddo
+
 
 !    ! grid
 !    ! local parameters
