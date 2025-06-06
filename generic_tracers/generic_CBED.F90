@@ -50,7 +50,7 @@ type(generic_CBED_type) :: cbed
     real :: por = 0.8
     ! grid
     ! local parameters
-    real, parameter :: l_cbed = 20             ! length of sediment domain | sediment depth (cm, 20 cm)
+    real, parameter :: l_cbed = 0.20             ! length of sediment domain | sediment depth (cm, 20 cm)
     real, parameter :: rho_s = 2.5             ! solid density (g/cm³)
 
     ! sediment grid and state variables (to be allocated)
@@ -107,7 +107,7 @@ contains
 
     allocate(w(isc:iec,jsc:jec));                  w=0.0      !adding sedimentation rate initalize
     allocate(Db_0(isc:iec,jsc:jec));               Db_0=0.0   !bioturbation_0 init.
-    allocate(Db(isc:iec,jsc:jec,nk_cbed));         Db=0.0     !bioturbation_0 init.
+    allocate(Db(isc:iec,jsc:jec,nk_cbed+1));         Db=0.0     !bioturbation_0 init.
 
 
     ! Grid does not change with time, so can be define only once. 
@@ -414,7 +414,7 @@ contains
          do k = 1, nk_cbed+1 
           if (grid_kmt(i,j) .gt. 0) then
                ! relation from Archer. POC flux unit in umol cm-2 y-1. 
-               Db(i,j,k) = Db_0(i,j)*exp(-(z_cbed_int(k)/0.08)**2)*(cobalt%btm_o2(i,j)/(cobalt%btm_o2(i,j)+(20/1e6)))
+               Db(i,j,k) = max(0.0, Db_0(i,j)*exp(-(z_cbed_int(k)/0.08)**2)*(cobalt%btm_o2(i,j)/(cobalt%btm_o2(i,j)+(20/1e6))) )
           endif
        enddo
        enddo;enddo
