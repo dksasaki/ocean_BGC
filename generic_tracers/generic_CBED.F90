@@ -62,9 +62,9 @@ type(generic_CBED_type) :: cbed
 
     ! grid param end. 
 
-    real, dimension(:,:), allocatable :: w  !sedimentation rate
-
-
+    real, dimension(:,:), allocatable :: w       !sedimentation rate
+    real, dimension(:,:), allocatable :: Db_0    !max bioturbation rate 
+    real, dimension(:,:,:), allocatable :: Db    !bioturbation  
 
 
 
@@ -105,7 +105,10 @@ contains
     allocate(cbed%f_no3(isd:ied,jsd:jed,nk_cbed));cbed%f_no3=0.0
     allocate(cbed%f_dic(isd:ied,jsd:jed,nk_cbed));cbed%f_dic=0.0
 
-    allocate(w(isc:iec,jsc:jec)); w=0.0   !adding sedimentation rate initalize
+    allocate(w(isc:iec,jsc:jec));                  w=0.0      !adding sedimentation rate initalize
+    allocate(Db_0(isc:iec,jsc:jec));               Db_0=0.0   !bioturbation_0 init.
+    allocate(Db(isc:iec,jsc:jec,nk_cbed));         Db=0.0     !bioturbation_0 init.
+
 
     ! Grid does not change with time, so can be define only once. 
     ! define uniform sediment grid
@@ -256,6 +259,8 @@ contains
     deallocate(cbed%f_dic)
 
     deallocate(w)
+    deallocate(Db_0)
+    deallocate(Db)
 
   end subroutine generic_CBED_end
 
@@ -397,6 +402,24 @@ contains
        endif
        enddo;enddo
 
+     !Bioturbation
+        do j = jsc, jec; do i = isc, iec
+          if (grid_kmt(i,j) .gt. 0) then
+               ! relation from Archer. POC flux unit in umol cm-2 y-1. 
+               Db_0(i,j) = ( 0.0232*((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**0.85) ) /1e4/spery ! in cobalt unit m2/s
+       endif
+       enddo;enddo
+       
+       do j = jsc, jec; do i = isc, iec
+         do k = 1, nk_cbed+1 
+          if (grid_kmt(i,j) .gt. 0) then
+               ! relation from Archer. POC flux unit in umol cm-2 y-1. 
+               Db(i,j,k) = Db_0(i,j)*exp(-(z_cbed_int(k)/0.08)**2)*(cobalt%btm_o2/(cobalt%btm_o2+(20/1e6)))
+          endif
+       enddo
+       enddo;enddo
+
+
 
 !    ! grid
 !    ! local parameters
@@ -476,7 +499,7 @@ contains
            cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
            cbed%f_o2(i,j,k) = cbed%f_o2(i,j,k) * (1-cobalt%fntot_btm(i,j)*0.1/k)
            cbed%f_om1(i,j,k) = cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
-           cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) 
+           cbed%f_om2(i,j,k) = Db(i,j,k) 
            cbed%f_om3(i,j,k) = z_cbed_mid(k)
            cbed%f_nh4(i,j,k) = w(i,j)
            cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + 0.07 * k
