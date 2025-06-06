@@ -103,7 +103,22 @@ contains
     allocate(cbed%f_no3(isd:ied,jsd:jed,nk_cbed));cbed%f_no3=0.0
     allocate(cbed%f_dic(isd:ied,jsd:jed,nk_cbed));cbed%f_dic=0.0
 
-    allocate(w(isc:iec,jsc:jec)); w=0.0   !adding sedimentation rate initalize 
+    allocate(w(isc:iec,jsc:jec)); w=0.0   !adding sedimentation rate initalize
+
+
+    !! moved grid_cbed to init. 
+    integer :: k
+    ! define uniform sediment grid
+    dz_cbed = l_cbed / real(nk_cbed)
+    z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
+    do k = 1, nk_cbed
+        z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
+    end do
+
+    z_cbed_mid(1) = dz_cbed(1)/2   ! first layer mid point
+    do k = 1, nk_cbed-1
+        z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
+    end do
 
   end subroutine generic_CBED_init
 
@@ -244,26 +259,26 @@ contains
   end subroutine generic_CBED_end
 
 
-  subroutine grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int) 
-    !real,          intent(in)     :: nk_cbed
-    real,          intent(out)  :: dz_cbed(nk_cbed)
-    real,          intent(out)  :: z_cbed_mid(nk_cbed)
-    real,          intent(out)  :: z_cbed_int(nk_cbed+1)
-    integer :: i, j, k
-    
-    ! define uniform sediment grid
-    dz_cbed = l_cbed / real(nk_cbed)
-    z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
-    do k = 1, nk_cbed
-        z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
-    end do
+  !subroutine grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int) 
+   ! !real,          intent(in)     :: nk_cbed
+   ! real,          intent(out)  :: dz_cbed(nk_cbed)
+   ! real,          intent(out)  :: z_cbed_mid(nk_cbed)
+   ! real,          intent(out)  :: z_cbed_int(nk_cbed+1)
+   ! integer :: i, j, k
+   ! 
+   ! ! define uniform sediment grid
+   ! dz_cbed = l_cbed / real(nk_cbed)
+   ! z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
+   ! do k = 1, nk_cbed
+   !     z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
+   ! end do
 
-    z_cbed_mid(1) = dz_cbed(1)/2   ! first layer mid point
-    do k = 1, nk_cbed-1
-        z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
-    end do
+!    z_cbed_mid(1) = dz_cbed(1)/2   ! first layer mid point
+!    do k = 1, nk_cbed-1
+!        z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
+!    end do
 
-  end subroutine grid_cbed
+ ! end subroutine grid_cbed
 
 
   subroutine calc_sedimentation_rate(cobalt_tracer_list, cobalt,ilb, jlb, grid_dat, grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, &
@@ -363,7 +378,7 @@ contains
 
 
 
-    call grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
+  !  call grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
    
     call calc_sedimentation_rate(cobalt_tracer_list, cobalt,ilb, jlb, grid_dat, grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, &
                   mask_coast, grid_kmt, w)
