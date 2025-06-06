@@ -414,7 +414,7 @@ contains
          do k = 1, nk_cbed+1 
           if (grid_kmt(i,j) .gt. 0) then
                ! relation from Archer. POC flux unit in umol cm-2 y-1. 
-               Db(i,j,k) = Db_0(i,j)*exp(-(z_cbed_int(k)/0.08)**2)*(cobalt%btm_o2/(cobalt%btm_o2+(20/1e6)))
+               Db(i,j,k) = Db_0(i,j)*exp(-(z_cbed_int(k)/0.08)**2)*(cobalt%btm_o2(i,j)/(cobalt%btm_o2(i,j)+(20/1e6)))
           endif
        enddo
        enddo;enddo
