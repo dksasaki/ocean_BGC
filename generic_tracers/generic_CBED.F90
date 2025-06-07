@@ -45,13 +45,17 @@ module generic_CBED
 
    type(generic_CBED_type) :: cbed
 
+   real, parameter :: pi = acos(-1.0)
+
 ! porosity. check with Niki
    !real, dimension(isc:iec,jsc:jec) :: por = 0.8  !niki
    real :: por = 0.8
    ! grid
    ! local parameters
-   real, parameter :: l_cbed = 0.20             ! length of sediment domain | sediment depth (cm, 20 cm)
+   real, parameter :: l_cbed = 0.20           ! length of sediment domain | sediment depth (m, 20 cm)
    real, parameter :: rho_s = 2.5             ! solid density (g/cm³)
+   real, parameter :: Db_l = 0.08             ! bioturbation length scale (m) 8 cm. 
+   real, parameter :: bioirri_l = 0.018       ! bioirrigation length scale (m) 1.8 cm.
 
    ! sediment grid and state variables (to be allocated)
    !real, allocatable :: dz_cbed(:)                 ! sediment layer thickness (m)
@@ -65,6 +69,8 @@ module generic_CBED
    real, dimension(:,:), allocatable :: w       !sedimentation rate
    real, dimension(:,:), allocatable :: Db_0    !max bioturbation rate
    real, dimension(:,:,:), allocatable :: Db    !bioturbation
+   real, dimension(:,:), allocatable :: bioirri_0    !max bioirrigation rate
+   real, dimension(:,:,:), allocatable :: bioirri    !bioirrigation
 
 
 
@@ -107,7 +113,9 @@ contains
 
       allocate(w(isc:iec,jsc:jec));                  w=0.0      !adding sedimentation rate initalize
       allocate(Db_0(isc:iec,jsc:jec));               Db_0=0.0   !bioturbation_0 init.
-      allocate(Db(isc:iec,jsc:jec,nk_cbed+1));         Db=0.0     !bioturbation_0 init.
+      allocate(Db(isc:iec,jsc:jec,nk_cbed+1));         Db=0.0     !bioturbation init.
+      allocate(bioirri_0(isc:iec,jsc:jec));               bioirri_0=0.0   !bioirrigation_0 init.
+      allocate(bioirri(isc:iec,jsc:jec,nk_cbed));         bioirri=0.0     !bioturbation init.
 
 
       ! Grid does not change with time, so can be define only once.
@@ -261,6 +269,8 @@ contains
       deallocate(w)
       deallocate(Db_0)
       deallocate(Db)
+      deallocate(bioirri_0)
+      deallocate(bioirri)
 
    end subroutine generic_CBED_end
 
@@ -414,11 +424,30 @@ contains
             do k = 1, nk_cbed+1
                if (grid_kmt(i,j) .gt. 0) then
                   ! relation from Archer. POC flux unit in umol cm-2 y-1.
-                  Db(i,j,k) = max(0.0, Db_0(i,j)*exp(-(z_cbed_int(k)/0.08)**2)*(cobalt%btm_o2(i,j)/(cobalt%btm_o2(i,j)+(20/1e6))) )
+                  Db(i,j,k) = max(0.0, Db_0(i,j)*exp(-(z_cbed_int(k)/Db_l)**2)*(cobalt%btm_o2(i,j)/(cobalt%btm_o2(i,j)+(20/1e6))) )
                endif
             enddo
          enddo;enddo
 
+      !Bioirrigation
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               ! relation from Archer. POC flux unit in umol cm-2 y-1.
+               bioirri_0(i,j) = ( 11*(((atan((5*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery) -400)/400))/pi)+0.5) &
+                - 0.9 + 20*((cobalt%btm_o2(i,j)*1e6)/(cobalt%btm_o2(i,j)*1e6+10)) * exp(-cobalt%btm_o2*1e6/10) * & 
+                ((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)/((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)+30)) )/spery   ! in cobalt unit s^-1
+
+            endif
+         enddo;enddo
+
+      do j = jsc, jec; do i = isc, iec
+            do k = 1, nk_cbed
+               if (grid_kmt(i,j) .gt. 0) then
+                  ! relation from Archer. POC flux unit in umol cm-2 y-1.
+                  bioirri(i,j,k) = max(0.0, bioirri_0(i,j)*exp(-(z_mid_cbed(k)/bioirri_l)**2) )
+               endif
+            enddo
+         enddo;enddo
 
 
 !    ! grid
@@ -502,7 +531,7 @@ contains
                   cbed%f_om2(i,j,k) = Db(i,j,k)
                   cbed%f_om3(i,j,k) = z_cbed_mid(k)
                   cbed%f_nh4(i,j,k) = w(i,j)
-                  cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + 0.07 * k
+                  cbed%f_no3(i,j,k) = bioirri(i,j,k) 
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + 0.08 * k
 
                endif
