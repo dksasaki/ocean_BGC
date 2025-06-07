@@ -54,7 +54,7 @@ module generic_CBED
    ! local parameters
    real, parameter :: l_cbed = 0.20           ! length of sediment domain | sediment depth (m, 20 cm)
    real, parameter :: rho_s = 2.5             ! solid density (g/cm³)
-   real, parameter :: Db_l = 0.08             ! bioturbation length scale (m) 8 cm. 
+   real, parameter :: Db_l = 0.08             ! bioturbation length scale (m) 8 cm.
    real, parameter :: bioirri_l = 0.018       ! bioirrigation length scale (m) 1.8 cm.
 
    ! sediment grid and state variables (to be allocated)
@@ -73,6 +73,13 @@ module generic_CBED
    real, dimension(:,:,:), allocatable :: bioirri    !bioirrigation
 
    real, dimension(:,:,:), allocatable :: D_o2    !diffusion coefficient for o2
+   real, dimension(:,:,:), allocatable :: D_dic    !diffusion coefficient for DIC
+   real, dimension(:,:,:), allocatable :: D_nh4    !diffusion coefficient for NH4
+   real, dimension(:,:,:), allocatable :: D_no3    !diffusion coefficient for NO3
+   real, dimension(:,:,:), allocatable :: D_odu    !diffusion coefficient for ODU (H2S)
+
+
+
 
 
 
@@ -119,7 +126,11 @@ contains
       allocate(bioirri_0(isc:iec,jsc:jec));               bioirri_0=0.0   !bioirrigation_0 init.
       allocate(bioirri(isc:iec,jsc:jec,nk_cbed));         bioirri=0.0     !bioturbation init.
 
-      allocate(D_o2(isc:iec,jsc:jec,nk_cbed+1));         D_o2=0.0     ! D_o2 init.
+      allocate(D_o2(isc:iec,jsc:jec,nk_cbed+1)); D_o2=0.0     ! D_o2 init.
+      allocate(D_dic(isc:iec,jsc:jec,nk_cbed+1)); D_dic=0.0
+      allocate(D_nh4(isc:iec,jsc:jec,nk_cbed+1)); D_nh4=0.0
+      allocate(D_no3(isc:iec,jsc:jec,nk_cbed+1)); D_no3=0.0
+      allocate(D_odu(isc:iec,jsc:jec,nk_cbed+1)); D_odu=0.0
 
 
       ! Grid does not change with time, so can be define only once.
@@ -277,6 +288,10 @@ contains
       deallocate(bioirri)
 
       deallocate(D_o2)
+      deallocate(D_dic)
+      deallocate(D_nh4)
+      deallocate(D_no3)
+      deallocate(D_odu)
 
    end subroutine generic_CBED_end
 
@@ -440,8 +455,8 @@ contains
             if (grid_kmt(i,j) .gt. 0) then
                ! relation from Archer. POC flux unit in umol cm-2 y-1.
                bioirri_0(i,j) = ( 11*(((atan((5*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery) -400)/400))/pi)+0.5) &
-                - 0.9 + 20*((cobalt%btm_o2(i,j)*1e6)/(cobalt%btm_o2(i,j)*1e6+10)) * exp(-cobalt%btm_o2(i,j)*1e6/10) * & 
-                ((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)/((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)+30)) )/spery   ! in cobalt unit s^-1
+                  - 0.9 + 20*((cobalt%btm_o2(i,j)*1e6)/(cobalt%btm_o2(i,j)*1e6+10)) * exp(-cobalt%btm_o2(i,j)*1e6/10) * &
+                  ((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)/((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)+30)) )/spery   ! in cobalt unit s^-1
 
             endif
          enddo;enddo
@@ -457,15 +472,17 @@ contains
 
 
       !Calculate diffusion coefficients
-      
-         !Diffusion coefficient for O2
       do j = jsc, jec; do i = isc, iec
-         do k = 1, nk_cbed+1
-            if (grid_kmt(i,j) .gt. 0) then
-               D_o2(i,j,k) = ( (0.031558+0.001428*cobalt%btm_temp(i,j))/(1-2*log(por)) )/spery + Db(i,j,k)   ! m2/s   
-            endif   
-         enddo
-      enddo;enddo
+            do k = 1, nk_cbed+1
+               if (grid_kmt(i,j) .gt. 0) then
+                  D_o2(i,j,k)  = ( (0.031558+0.001428*cobalt%btm_temp(i,j))/(1-2*log(por)) )/spery + Db(i,j,k)   ! m2/s
+                  D_dic(i,j,k) = ( (0.015179+0.000795*cobalt%btm_temp(i,j))/(1-2*log(por)) )/spery + Db(i,j,k)
+                  D_nh4(i,j,k) = ( (0.030926+0.001225*cobalt%btm_temp(i,j))/(1-2*log(por)) )/spery + Db(i,j,k)
+                  D_no3(i,j,k) = ( (0.030863+0.001153*cobalt%btm_temp(i,j))/(1-2*log(por)) )/spery + Db(i,j,k)
+                  D_odu(i,j,k) = ( (0.028938+0.001314*cobalt%btm_temp(i,j))/(1-2*log(por)) )/spery + Db(i,j,k)
+               endif
+            enddo
+         enddo;enddo
 
 
 
@@ -536,23 +553,17 @@ contains
 !        enddo; enddo
 
 
-
-
-
-
-
-
       !Test that we can change the value of concentration field of a CBED tracer
       do j = jsc, jec; do i = isc, iec  !{
             do k=1,nk_cbed
                if (grid_kmt(i,j) .gt. 0) then
                   cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
-                  cbed%f_o2(i,j,k) = cbed%f_o2(i,j,k) * (1-cobalt%fntot_btm(i,j)*0.1/k)
+                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) * (1-cobalt%fntot_btm(i,j)*0.1/k)
                   cbed%f_om1(i,j,k) = cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
                   cbed%f_om2(i,j,k) = Db(i,j,k)
                   cbed%f_om3(i,j,k) = z_cbed_mid(k)
                   cbed%f_nh4(i,j,k) = w(i,j)
-                  cbed%f_no3(i,j,k) = D_o2(i,j,k) 
+                  cbed%f_no3(i,j,k) = D_o2(i,j,k)
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + 0.08 * k
 
                endif
