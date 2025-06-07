@@ -434,7 +434,7 @@ contains
             if (grid_kmt(i,j) .gt. 0) then
                ! relation from Archer. POC flux unit in umol cm-2 y-1.
                bioirri_0(i,j) = ( 11*(((atan((5*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery) -400)/400))/pi)+0.5) &
-                - 0.9 + 20*((cobalt%btm_o2(i,j)*1e6)/(cobalt%btm_o2(i,j)*1e6+10)) * exp(-cobalt%btm_o2*1e6/10) * & 
+                - 0.9 + 20*((cobalt%btm_o2(i,j)*1e6)/(cobalt%btm_o2(i,j)*1e6+10)) * exp(-cobalt%btm_o2(i,j)*1e6/10) * & 
                 ((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)/((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)+30)) )/spery   ! in cobalt unit s^-1
 
             endif
@@ -444,7 +444,7 @@ contains
             do k = 1, nk_cbed
                if (grid_kmt(i,j) .gt. 0) then
                   ! relation from Archer. POC flux unit in umol cm-2 y-1.
-                  bioirri(i,j,k) = max(0.0, bioirri_0(i,j)*exp(-(z_mid_cbed(k)/bioirri_l)**2) )
+                  bioirri(i,j,k) = max(0.0, bioirri_0(i,j)*exp(-(z_cbed_mid(k)/bioirri_l)**2) )
                endif
             enddo
          enddo;enddo
