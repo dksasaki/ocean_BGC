@@ -72,6 +72,8 @@ module generic_CBED
    real, dimension(:,:), allocatable :: bioirri_0    !max bioirrigation rate
    real, dimension(:,:,:), allocatable :: bioirri    !bioirrigation
 
+   real, dimension(:,:,:), allocatable :: D_o2    !diffusion coefficient for o2
+
 
 
 !     call grid_cbed(nk_cbed, dz_cbed, z_cbed_mid, z_cbed_int)
@@ -116,6 +118,8 @@ contains
       allocate(Db(isc:iec,jsc:jec,nk_cbed+1));         Db=0.0     !bioturbation init.
       allocate(bioirri_0(isc:iec,jsc:jec));               bioirri_0=0.0   !bioirrigation_0 init.
       allocate(bioirri(isc:iec,jsc:jec,nk_cbed));         bioirri=0.0     !bioturbation init.
+
+      allocate(D_o2(isc:iec,jsc:jec,nk_cbed+1));         D_o2=0.0     ! D_o2 init.
 
 
       ! Grid does not change with time, so can be define only once.
@@ -271,6 +275,8 @@ contains
       deallocate(Db)
       deallocate(bioirri_0)
       deallocate(bioirri)
+
+      deallocate(D_o2)
 
    end subroutine generic_CBED_end
 
@@ -450,6 +456,21 @@ contains
          enddo;enddo
 
 
+      !Calculate diffusion coefficients
+      
+         !Diffusion coefficient for O2
+      do j = jsc, jec; do i = isc, iec
+         do k = 1, nk_cbed+1
+            if (grid_kmt(i,j) .gt. 0) then
+               D_o2(i,j,k) = ( (0.031558+0.001428*cobalt%btm_temp(i,j))/(1-2*log(por)) )/spery + Db(i,j,k)   ! m2/s   
+            endif   
+         enddo
+      enddo;enddo
+
+
+
+
+
 !    ! grid
 !    ! local parameters
 !    real, parameter :: l_cbed = 20             ! length of sediment domain | sediment depth (cm, 20 cm)
@@ -531,7 +552,7 @@ contains
                   cbed%f_om2(i,j,k) = Db(i,j,k)
                   cbed%f_om3(i,j,k) = z_cbed_mid(k)
                   cbed%f_nh4(i,j,k) = w(i,j)
-                  cbed%f_no3(i,j,k) = bioirri(i,j,k) 
+                  cbed%f_no3(i,j,k) = D_o2(i,j,k) 
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + 0.08 * k
 
                endif
