@@ -66,7 +66,7 @@ module generic_CBED
 
    ! grid param end.
 
-   real, dimension(:,:), allocatable :: w       !sedimentation rate
+   real, dimension(:,:,:), allocatable :: w       !sedimentation rate
    real, dimension(:,:), allocatable :: Db_0    !max bioturbation rate
    real, dimension(:,:,:), allocatable :: Db    !bioturbation
    real, dimension(:,:), allocatable :: bioirri_0    !max bioirrigation rate
@@ -77,6 +77,10 @@ module generic_CBED
    real, dimension(:,:,:), allocatable :: D_nh4    !diffusion coefficient for NH4
    real, dimension(:,:,:), allocatable :: D_no3    !diffusion coefficient for NO3
    real, dimension(:,:,:), allocatable :: D_odu    !diffusion coefficient for ODU (H2S)
+
+   real, dimension(:,:), allocatable :: k1       ! k1 is the rate constant for the first order reaction of OM1 decomposition
+   real, dimension(:,:), allocatable :: k2       ! k2 is the rate constant for the first order reaction of OM2 decomposition
+   real, dimension(:,:), allocatable :: k3       ! k3 is the rate constant for the first order reaction of OM3 decomposition
 
 
 
@@ -120,7 +124,7 @@ contains
       allocate(cbed%f_no3(isd:ied,jsd:jed,nk_cbed));cbed%f_no3=0.0
       allocate(cbed%f_dic(isd:ied,jsd:jed,nk_cbed));cbed%f_dic=0.0
 
-      allocate(w(isc:iec,jsc:jec));                  w=0.0      !adding sedimentation rate initalize
+      allocate(w(isc:iec,jsc:jec,nk_cbed+1));                  w=0.0      !adding sedimentation rate initalize
       allocate(Db_0(isc:iec,jsc:jec));               Db_0=0.0   !bioturbation_0 init.
       allocate(Db(isc:iec,jsc:jec,nk_cbed+1));         Db=0.0     !bioturbation init.
       allocate(bioirri_0(isc:iec,jsc:jec));               bioirri_0=0.0   !bioirrigation_0 init.
@@ -131,6 +135,10 @@ contains
       allocate(D_nh4(isc:iec,jsc:jec,nk_cbed+1)); D_nh4=0.0
       allocate(D_no3(isc:iec,jsc:jec,nk_cbed+1)); D_no3=0.0
       allocate(D_odu(isc:iec,jsc:jec,nk_cbed+1)); D_odu=0.0
+
+      allocate(k1(isc:iec,jsc:jec)); k1=0.0
+      allocate(k2(isc:iec,jsc:jec)); k2=0.0
+      allocate(k3(isc:iec,jsc:jec)); k3=0.0
 
 
       ! Grid does not change with time, so can be define only once.
@@ -293,6 +301,10 @@ contains
       deallocate(D_no3)
       deallocate(D_odu)
 
+      deallocate(k1)
+      deallocate(k2)
+      deallocate(k3)
+
    end subroutine generic_CBED_end
 
 
@@ -421,9 +433,10 @@ contains
       !    mask_coast, grid_kmt, w)
 
       do j = jsc, jec; do i = isc, iec
+         do k = 1, nk_cbed+1
             if (grid_kmt(i,j) .gt. 0) then
                ! w (sedimentation rate, cm/year)
-               w(i,j) = (cobalt%fcadet_arag_btm(i,j)*100/2.71 + &
+               w(i,j,k) = (cobalt%fcadet_arag_btm(i,j)*100/2.71 + &
                   cobalt%fcadet_calc_btm(i,j)*100/2.94 + &
                   cobalt%fsitot_btm(i,j)*60/2.65 + &
                   cobalt%flithdet_btm(i,j)/2.65 + &
@@ -431,6 +444,7 @@ contains
                   cobalt%fptot_btm(i,j)*120/2.3 + &
                   cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por)
             endif
+         enddo
          enddo;enddo
 
       !Bioturbation
@@ -485,7 +499,17 @@ contains
          enddo;enddo
 
 
+         ! calculate OM decay rates k1,k2,k3. 
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               ! k1, k2, k3 in s^-1
+               k1(i,j) = ( (1.5*10**-1)*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4 *spery)**0.85 )/spery 
+               k2(i,j) = ( (2.3*10**-3)*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4 *spery)**0.85 )/spery
+               k3(i,j) = ( (1.3*10**-4)*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4 *spery)**0.85 )/spery
+            endif
+         enddo;enddo
 
+! calculations for tridiag. Press et al. Calc ea, eb, h_old. 
 
 
 !    ! grid
@@ -560,10 +584,10 @@ contains
                   cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
                   cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) * (1-cobalt%fntot_btm(i,j)*0.1/k)
                   cbed%f_om1(i,j,k) = cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
-                  cbed%f_om2(i,j,k) = Db(i,j,k)
-                  cbed%f_om3(i,j,k) = z_cbed_mid(k)
-                  cbed%f_nh4(i,j,k) = w(i,j)
-                  cbed%f_no3(i,j,k) = D_o2(i,j,k)
+                  cbed%f_om2(i,j,k) = k1(i,j)
+                  cbed%f_om3(i,j,k) = k2(i,j)
+                  cbed%f_nh4(i,j,k) = w(i,j,k)
+                  cbed%f_no3(i,j,k) = D_nh4(i,j,k)
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + 0.08 * k
 
                endif
