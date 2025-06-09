@@ -435,14 +435,14 @@ contains
       do j = jsc, jec; do i = isc, iec
          do k = 1, nk_cbed+1
             if (grid_kmt(i,j) .gt. 0) then
-               ! w (sedimentation rate, cm/year)
-               w(i,j,k) = (cobalt%fcadet_arag_btm(i,j)*100/2.71 + &
+               ! w (sedimentation rate, cm/year) m/s
+               w(i,j,k) = ( (cobalt%fcadet_arag_btm(i,j)*100/2.71 + &
                   cobalt%fcadet_calc_btm(i,j)*100/2.94 + &
                   cobalt%fsitot_btm(i,j)*60/2.65 + &
                   cobalt%flithdet_btm(i,j)/2.65 + &
                   cobalt%ffetot_btm(i,j)*160/5.24 + &
                   cobalt%fptot_btm(i,j)*120/2.3 + &
-                  cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por)
+                  cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por) )/100/spery
             endif
          enddo
          enddo;enddo
@@ -499,16 +499,17 @@ contains
          enddo;enddo
 
 
-         ! calculate OM decay rates k1,k2,k3. 
-      do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) .gt. 0) then
-               ! k1, k2, k3 in s^-1
-               k1(i,j) = ( (1.5*10**(-1))*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4 *spery)**0.85 )/spery
-               k2(i,j) = ( (2.3*10**(-3))*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4 *spery)**0.85 )/ spery
-               k3(i,j) = ( (1.3*10**(-4))*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4 *spery)**0.85 )/spery
-            endif
-         enddo;enddo
+         ! calculate k1,k2,k3 
 
+         do j = jsc, jec; do i = isc, iec
+               if (grid_kmt(i,j) .gt. 0) then
+                  ! POC flux unit in umol cm-2 y-1. Unit of k is y-1
+                  k1(i,j) = (1.5*10**(-1))*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) 
+                  k2(i,j) = (2.3*10**(-3))*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) 
+                  k3(i,j) = (1.3*10**(-4))*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85)
+               endif
+         enddo;enddo 
+         
 ! calculations for tridiag. Press et al. Calc ea, eb, h_old. 
 
 
