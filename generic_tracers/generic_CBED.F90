@@ -504,7 +504,7 @@ contains
          do j = jsc, jec; do i = isc, iec
                if (grid_kmt(i,j) .gt. 0) then
                   ! POC flux unit in umol cm-2 y-1. Unit of k is y-1
-                  k1(i,j) = (1.5*10**(-1))*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery) 
+                  k1(i,j) = (cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery) 
                   k2(i,j) = (2.3*10**(-3))*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) 
                   k3(i,j) = (1.3*10**(-4))*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85)
                endif
