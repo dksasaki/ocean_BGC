@@ -504,8 +504,8 @@ contains
          do j = jsc, jec; do i = isc, iec
                if (grid_kmt(i,j) .gt. 0) then
                   ! POC flux unit in umol cm-2 y-1. Unit of k is y-1
-                  k1(i,j) = (cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery) 
-                  k2(i,j) = (2.3*10**(-3))*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) 
+                  k1(i,j) = (1.5*10**(-1))*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery) 
+                  k2(i,j) = (cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) 
                   k3(i,j) = (1.3*10**(-4))*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85)
                endif
          enddo;enddo 
@@ -587,8 +587,8 @@ contains
                   cbed%f_om1(i,j,k) = cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
                   cbed%f_om2(i,j,k) = k1(i,j)
                   cbed%f_om3(i,j,k) = k2(i,j)
-                  cbed%f_nh4(i,j,k) = w(i,j,k)
-                  cbed%f_no3(i,j,k) = D_nh4(i,j,k)
+                  cbed%f_nh4(i,j,k) = k3(i,j)
+                  cbed%f_no3(i,j,k) = w(i,j,k)
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + 0.08 * k
 
                endif
