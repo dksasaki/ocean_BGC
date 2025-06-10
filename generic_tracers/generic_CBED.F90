@@ -123,7 +123,7 @@ contains
 
       !Allocate and initialize CBED arrays for tracer concentrations and other workarrays
       allocate(cbed%f_tr1(isd:ied,jsd:jed,nk_cbed));cbed%f_tr1=0.0
-      allocate(cbed%f_o2(isd:ied,jsd:jed,nk_cbed));cbed%f_o2=300.0
+      allocate(cbed%f_o2(isd:ied,jsd:jed,nk_cbed));cbed%f_o2=0.0
       allocate(cbed%f_om1(isd:ied,jsd:jed,nk_cbed));cbed%f_om1=0.0
       allocate(cbed%f_om2(isd:ied,jsd:jed,nk_cbed));cbed%f_om2=0.0
       allocate(cbed%f_om3(isd:ied,jsd:jed,nk_cbed));cbed%f_om3=0.0
@@ -595,9 +595,32 @@ contains
 
       ! update upper boundary condition
       do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) .gt. 0)  cbed%f_om2(i,j,1) = cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/(dz_cbed(1)/100)
+            if (grid_kmt(i,j) .gt. 0)  cbed%f_om1(i,j,1) = cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
          enddo;enddo
 
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0)  cbed%f_om2(i,j,1) = cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
+         enddo;enddo   
+
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0)  cbed%f_om3(i,j,1) = cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
+         enddo;enddo
+
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0)  cbed%f_o2(i,j,1) = cobalt%f_o2(i,j,nk)
+         enddo;enddo
+
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0)  cbed%f_nh4(i,j,1) = cobalt%f_nh4(i,j,nk)
+         enddo;enddo
+
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0)  cbed%f_no3(i,j,1) = cobalt%f_no3(i,j,nk)
+         enddo;enddo
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0)  cbed%f_dic(i,j,1) = cobalt%f_dic(i,j,nk)
+         enddo;enddo
+      
       !deallocate(dz_cbed)
       !deallocate(z_cbed)
 
@@ -620,7 +643,7 @@ contains
             do k=1,nk_cbed
                if (grid_kmt(i,j) .gt. 0) then
                   cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
-                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) * (1-cobalt%fntot_btm(i,j)*0.1/k)
+                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,1) 
                   cbed%f_om1(i,j,k) = cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
                   cbed%f_om2(i,j,k) = k1(i,j)
                   cbed%f_om3(i,j,k) = k2(i,j)
