@@ -420,6 +420,24 @@ contains
 !
 !   end subroutine wrapper_tridag
 
+!!!!! Copied from Niki's code.
+!   subroutine tridag_solver_Press_et_al(a,b,c,r,u,n)
+!      integer, intent(in) :: n
+!      real,    intent(in) :: a(n),b(n),c(n),r(n)
+!      real,    intent(inout) :: u(n)
+!      real    :: bet,gam(n)
+!      integer :: k
+!      bet=b(1)
+!      u(1)=r(1)/bet
+!      do k=2,n
+!         gam(k)=c(k-1)/bet
+!         bet=b(k)-a(k)*gam(k)
+!         u(k)=(r(k)-a(k)*u(k-1))/bet
+!      enddo
+!      do k=n-1,1,-1
+!         u(k)=u(k)-gam(k+1)*u(k+1)
+!      enddo
+!   end subroutine tridag_solver_Press_et_al
 
 
 
@@ -452,18 +470,18 @@ contains
       !    mask_coast, grid_kmt, w)
 
       do j = jsc, jec; do i = isc, iec
-         do k = 1, nk_cbed+1
-            if (grid_kmt(i,j) .gt. 0) then
-               ! w (sedimentation rate, cm/year) m/s
-               w(i,j,k) = ( (cobalt%fcadet_arag_btm(i,j)*100/2.71 + &
-                  cobalt%fcadet_calc_btm(i,j)*100/2.94 + &
-                  cobalt%fsitot_btm(i,j)*60/2.65 + &
-                  cobalt%flithdet_btm(i,j)/2.65 + &
-                  cobalt%ffetot_btm(i,j)*160/5.24 + &
-                  cobalt%fptot_btm(i,j)*120/2.3 + &
-                  cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por(i,j,k)) )/100/spery
-            endif
-         enddo
+            do k = 1, nk_cbed+1
+               if (grid_kmt(i,j) .gt. 0) then
+                  ! w (sedimentation rate, cm/year) m/s
+                  w(i,j,k) = ( (cobalt%fcadet_arag_btm(i,j)*100/2.71 + &
+                     cobalt%fcadet_calc_btm(i,j)*100/2.94 + &
+                     cobalt%fsitot_btm(i,j)*60/2.65 + &
+                     cobalt%flithdet_btm(i,j)/2.65 + &
+                     cobalt%ffetot_btm(i,j)*160/5.24 + &
+                     cobalt%fptot_btm(i,j)*120/2.3 + &
+                     cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por(i,j,k)) )/100/spery
+               endif
+            enddo
          enddo;enddo
 
       !Bioturbation
@@ -518,18 +536,18 @@ contains
          enddo;enddo
 
 
-         ! calculate k1,k2,k3 
+      ! calculate k1,k2,k3
 
-         do j = jsc, jec; do i = isc, iec
-               if (grid_kmt(i,j) .gt. 0) then
-                  ! POC flux unit in umol cm-2 y-1. Unit of k is y-1
-                  k1(i,j) = ( 0.15*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery 
-                  k2(i,j) = ( 0.0023*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
-                  k3(i,j) = ( 0.00013*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
-               endif
-         enddo;enddo 
-         
-! calculations for tridiag. Press et al. Calc ea, eb, h_old. 
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               ! POC flux unit in umol cm-2 y-1. Unit of k is y-1
+               k1(i,j) = ( 0.15*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
+               k2(i,j) = ( 0.0023*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
+               k3(i,j) = ( 0.00013*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
+            endif
+         enddo;enddo
+
+! calculations for tridiag. Press et al. Calc ea, eb, h_old.
 
 
 !    ! grid
@@ -606,7 +624,7 @@ contains
                   cbed%f_om1(i,j,k) = cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
                   cbed%f_om2(i,j,k) = k1(i,j)
                   cbed%f_om3(i,j,k) = k2(i,j)
-                  cbed%f_nh4(i,j,k) = por(i,j,k) 
+                  cbed%f_nh4(i,j,k) = por(i,j,k)
                   cbed%f_no3(i,j,k) = w(i,j,k)
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + 0.08 * k
 
