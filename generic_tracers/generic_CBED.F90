@@ -49,7 +49,8 @@ module generic_CBED
 
 ! porosity. check with Niki
    !real, dimension(isc:iec,jsc:jec) :: por = 0.8  !niki
-   real :: por = 0.8
+   !real :: por = 0.8
+
    ! grid
    ! local parameters
    real, parameter :: l_cbed = 0.20           ! length of sediment domain | sediment depth (m, 20 cm)
@@ -66,6 +67,8 @@ module generic_CBED
 
    ! grid param end.
 
+   real, dimension(:,:,:), allocatable :: por       !porosity
+
    real, dimension(:,:,:), allocatable :: w       !sedimentation rate
    real, dimension(:,:), allocatable :: Db_0    !max bioturbation rate
    real, dimension(:,:,:), allocatable :: Db    !bioturbation
@@ -81,6 +84,10 @@ module generic_CBED
    real, dimension(:,:), allocatable :: k1       ! k1 is the rate constant for the first order reaction of OM1 decomposition
    real, dimension(:,:), allocatable :: k2       ! k2 is the rate constant for the first order reaction of OM2 decomposition
    real, dimension(:,:), allocatable :: k3       ! k3 is the rate constant for the first order reaction of OM3 decomposition
+
+   real, dimension(:,:,:), allocatable :: ea
+   real, dimension(:,:,:), allocatable :: eb
+   real, dimension(:,:,:), allocatable :: h_old
 
 
 
@@ -124,11 +131,13 @@ contains
       allocate(cbed%f_no3(isd:ied,jsd:jed,nk_cbed));cbed%f_no3=0.0
       allocate(cbed%f_dic(isd:ied,jsd:jed,nk_cbed));cbed%f_dic=0.0
 
-      allocate(w(isc:iec,jsc:jec,nk_cbed+1));                  w=0.0      !adding sedimentation rate initalize
+      allocate(por(isc:iec,jsc:jec,nk_cbed));        por=0.8  !porosity=0.8 assumed constant for whole seafloor.
+
+      allocate(w(isc:iec,jsc:jec,nk_cbed+1));        w=0.0      !adding sedimentation rate initalize
       allocate(Db_0(isc:iec,jsc:jec));               Db_0=0.0   !bioturbation_0 init.
-      allocate(Db(isc:iec,jsc:jec,nk_cbed+1));         Db=0.0     !bioturbation init.
-      allocate(bioirri_0(isc:iec,jsc:jec));               bioirri_0=0.0   !bioirrigation_0 init.
-      allocate(bioirri(isc:iec,jsc:jec,nk_cbed));         bioirri=0.0     !bioturbation init.
+      allocate(Db(isc:iec,jsc:jec,nk_cbed+1));       Db=0.0     !bioturbation init.
+      allocate(bioirri_0(isc:iec,jsc:jec));          bioirri_0=0.0   !bioirrigation_0 init.
+      allocate(bioirri(isc:iec,jsc:jec,nk_cbed));    bioirri=0.0     !bioturbation init.
 
       allocate(D_o2(isc:iec,jsc:jec,nk_cbed+1)); D_o2=0.0     ! D_o2 init.
       allocate(D_dic(isc:iec,jsc:jec,nk_cbed+1)); D_dic=0.0
@@ -139,6 +148,10 @@ contains
       allocate(k1(isc:iec,jsc:jec)); k1=0.0
       allocate(k2(isc:iec,jsc:jec)); k2=0.0
       allocate(k3(isc:iec,jsc:jec)); k3=0.0
+
+      allocate(ea(isc:iec,jsc:jec,nk_cbed)); ea=0.0
+      allocate(eb(isc:iec,jsc:jec,nk_cbed)); eb=0.0
+      allocate(h_old(isc:iec,jsc:jec,nk_cbed)); h_old=0.0
 
 
       ! Grid does not change with time, so can be define only once.
@@ -289,6 +302,8 @@ contains
       deallocate(cbed%f_no3)
       deallocate(cbed%f_dic)
 
+      deallocate(por)
+
       deallocate(w)
       deallocate(Db_0)
       deallocate(Db)
@@ -304,6 +319,10 @@ contains
       deallocate(k1)
       deallocate(k2)
       deallocate(k3)
+
+      deallocate(ea)
+      deallocate(eb)
+      deallocate(h_old)
 
    end subroutine generic_CBED_end
 
@@ -363,7 +382,7 @@ contains
 !  subroutine wrapper_tridag(D, w, VF, dt, isc,iec, jsc,jec, isd, jsd, nk, nk_cbed, a, b, c)
 !    real, dimension(:,:,:),       intent(in)    :: D   ! diffustion
 !    real, dimension(:,:,:),       intent(in)    :: w   !sinking velocity or sedimentation rate
-!    real, dimension(:,:),       intent(in)    :: VF    ! volumn fraction
+!    real, dimension(:,:,:),       intent(in)    :: VF    ! volumn fraction
 !    real, dimension(:),       intent(out)    :: a
 !    real, dimension(:),       intent(out)    :: b
 !    real, dimension(:),       intent(out)    :: c
@@ -390,11 +409,11 @@ contains
 !      do k=1,nk_cbed
 !        if (grid_kmt(i,j) .gt. 0) then
 !
-!           a(k)= -(ea(i,j,k)+w(i,j))/(VF(i,j)*h_old(k))
+!           a(k)= -(ea(i,j,k)+w(i,j))/(VF(i,j,k)*h_old(k))
 !
-!           b(k)=  (VF(i,j)*h_old(k)+eb(i,j,k)+ea(i,j,k)+w(i,j,k+1))/(VF(i,j)*h_old(k))
+!           b(k)=  (VF(i,j,k)*h_old(k)+eb(i,j,k)+ea(i,j,k)+w(i,j,k+1))/(VF(i,j,k)*h_old(k))
 !
-!           c(k)= -eb(i,j,k)/(VF(i,j)*h_old(i,j,k))
+!           c(k)= -eb(i,j,k)/(VF(i,j,k)*h_old(i,j,k))
 !
 !        endif
 !        enddo; enddo
@@ -442,7 +461,7 @@ contains
                   cobalt%flithdet_btm(i,j)/2.65 + &
                   cobalt%ffetot_btm(i,j)*160/5.24 + &
                   cobalt%fptot_btm(i,j)*120/2.3 + &
-                  cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por) )/100/spery
+                  cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por(i,j,k)) )/100/spery
             endif
          enddo
          enddo;enddo
@@ -489,11 +508,11 @@ contains
       do j = jsc, jec; do i = isc, iec
             do k = 1, nk_cbed+1
                if (grid_kmt(i,j) .gt. 0) then
-                  D_o2(i,j,k)  = ( (0.031558+0.001428*cobalt%btm_temp(i,j))/(1-2*log(por)) )/spery + Db(i,j,k)   ! m2/s
-                  D_dic(i,j,k) = ( (0.015179+0.000795*cobalt%btm_temp(i,j))/(1-2*log(por)) )/spery + Db(i,j,k)
-                  D_nh4(i,j,k) = ( (0.030926+0.001225*cobalt%btm_temp(i,j))/(1-2*log(por)) )/spery + Db(i,j,k)
-                  D_no3(i,j,k) = ( (0.030863+0.001153*cobalt%btm_temp(i,j))/(1-2*log(por)) )/spery + Db(i,j,k)
-                  D_odu(i,j,k) = ( (0.028938+0.001314*cobalt%btm_temp(i,j))/(1-2*log(por)) )/spery + Db(i,j,k)
+                  D_o2(i,j,k)  = ( (0.031558+0.001428*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)   ! m2/s
+                  D_dic(i,j,k) = ( (0.015179+0.000795*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
+                  D_nh4(i,j,k) = ( (0.030926+0.001225*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
+                  D_no3(i,j,k) = ( (0.030863+0.001153*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
+                  D_odu(i,j,k) = ( (0.028938+0.001314*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
                endif
             enddo
          enddo;enddo
@@ -587,7 +606,7 @@ contains
                   cbed%f_om1(i,j,k) = cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
                   cbed%f_om2(i,j,k) = k1(i,j)
                   cbed%f_om3(i,j,k) = k2(i,j)
-                  cbed%f_nh4(i,j,k) = k3(i,j)
+                  cbed%f_nh4(i,j,k) = por(i,j,k) 
                   cbed%f_no3(i,j,k) = w(i,j,k)
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + 0.08 * k
 
