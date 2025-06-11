@@ -379,7 +379,7 @@ contains
    !   end subroutine calc_sedimentation_rate
 
 
-!  subroutine wrapper_tridag(D, w, VF, dt, isc,iec, jsc,jec, isd, jsd, nk, nk_cbed, a, b, c)
+!  subroutine vertdiff_CBED(D, w, VF, dt, isc,iec, jsc,jec, isd, jsd, nk, nk_cbed, a, b, c)
 !    real, dimension(:,:,:),       intent(in)    :: D   ! diffustion
 !    real, dimension(:,:,:),       intent(in)    :: w   !sinking velocity or sedimentation rate
 !    real, dimension(:,:,:),       intent(in)    :: VF    ! volumn fraction
@@ -418,7 +418,7 @@ contains
 !        endif
 !        enddo; enddo
 !
-!   end subroutine wrapper_tridag
+!   end subroutine vertdiff_CBED
 
 !!!!! Copied from Niki's code.
 !   subroutine tridag_solver_Press_et_al(a,b,c,r,u,n)
@@ -462,6 +462,24 @@ contains
       integer, dimension(isc:iec,jsc:jec) :: k_bot
       real,    dimension(isc:iec,jsc:jec) :: rho_dzt_bot
 
+      ! local parameters for bgc reactions
+      real, parameter :: frac_OM1 = 0.70
+      real, parameter :: frac_OM2 = 0.20
+      real, parameter :: frac_OM3 = 0.10
+
+      real, parameter :: k_adj_denit = 0.1  
+      real, parameter :: k_adj_anoxia = 0.005
+
+      real, parameter :: ks_o2 = 0.008 /1e3   ! O2 half saturation constant (mol/kg)
+      real, parameter :: ks_no3 = 0.001 /1e3  ! NO3 half saturation constant (mol/kg)
+
+      real, parameter :: k_nox = 1e6 /1e3/spery    ! mol/kg/s (mol/L/s) !nitrification rate constant
+      real, parameter :: k_ana = 1e5 /1e3/spery    !                    !anammox rate constant
+      real, parameter :: k_oduox = 1e6 /1e3/spery  !                    !ODU oxidation rate constant
+      
+      real, parameter :: Q10 = 1.88
+
+
 
 
       !call grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
@@ -473,13 +491,13 @@ contains
             do k = 1, nk_cbed+1
                if (grid_kmt(i,j) .gt. 0) then
                   ! w (sedimentation rate, cm/year) m/s
-                  w(i,j,k) = ( (cobalt%fcadet_arag_btm(i,j)*100/2.71 + &
-                     cobalt%fcadet_calc_btm(i,j)*100/2.94 + &
-                     cobalt%fsitot_btm(i,j)*60/2.65 + &
+                  w(i,j,k) = ( (cobalt%fcadet_arag_btm(i,j)*100.0/2.71 + &
+                     cobalt%fcadet_calc_btm(i,j)*100.0/2.94 + &
+                     cobalt%fsitot_btm(i,j)*60.0/2.65 + &
                      cobalt%flithdet_btm(i,j)/2.65 + &
-                     cobalt%ffetot_btm(i,j)*160/5.24 + &
-                     cobalt%fptot_btm(i,j)*120/2.3 + &
-                     cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por(i,j,k)) )/100/spery
+                     cobalt%ffetot_btm(i,j)*160.0/5.24 + &
+                     cobalt%fptot_btm(i,j)*120.0/2.3 + &
+                     cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000.0*spery/(1-por(i,j,k)) )/100.0/spery
                endif
             enddo
          enddo;enddo
@@ -600,7 +618,7 @@ contains
 
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0)  cbed%f_om2(i,j,1) = cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
-         enddo;enddo   
+         enddo;enddo
 
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0)  cbed%f_om3(i,j,1) = cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
@@ -620,7 +638,7 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0)  cbed%f_dic(i,j,1) = cobalt%f_dic(i,j,nk)
          enddo;enddo
-      
+
       !deallocate(dz_cbed)
       !deallocate(z_cbed)
 
@@ -643,7 +661,7 @@ contains
             do k=1,nk_cbed
                if (grid_kmt(i,j) .gt. 0) then
                   cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
-                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,1) 
+                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,1)
                   cbed%f_om1(i,j,k) = cobalt%fntot_btm(i,j) * cobalt%c_2_n*sperd*1000.0
                   cbed%f_om2(i,j,k) = k1(i,j)
                   cbed%f_om3(i,j,k) = k2(i,j)
