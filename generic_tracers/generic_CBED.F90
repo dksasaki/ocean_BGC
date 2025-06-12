@@ -381,9 +381,13 @@ contains
       integer,                      intent(in)    :: tau
       integer,                      intent(in)    :: isc,iec, jsc,jec, isd, jsd, nk, nk_cbed
 
+      integer :: i, j, k
+
       !local
       real, dimension(nk_cbed) :: a,b,c,f_old,h_old
       real, dimension(:,:,:) :: ea,eb
+
+
 
 
 
@@ -414,17 +418,17 @@ contains
                do k=1,nk_cbed
                   if (grid_kmt(i,j) .gt. 0) then
 
-                     a(k)= -(ea(i,j,k)+w(i,j))/(VF(i,j,k)*h_old(k))
+                     a(k)= -(ea(i,j,k)+w(i,j,k))/(VF(i,j,k)*h_old(k))
 
                      b(k)=  (VF(i,j,k)*h_old(k)+eb(i,j,k)+ea(i,j,k)+w(i,j,k+1))/(VF(i,j,k)*h_old(k))
 
-                     c(k)= -eb(i,j,k)/(VF(i,j,k)*h_old(i,j,k))
+                     c(k)= -eb(i,j,k)/(VF(i,j,k)*h_old(k))
 
-                     f_old(k)= cbed_field(i,j,k,tau)
+                     f_old(k)= cbed_field(i,j,k)
 
                   endif
 
-                  call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:,tau),nk_cbed)
+                  call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:),nk_cbed)
 
                enddo; enddo
 
@@ -490,11 +494,11 @@ contains
             real, parameter :: Q10 = 1.88
 
             ! Reaction rates
-            real, dimension(:,:,:) :: R.om1.o2, R.om2.o2, R.om3.o2
-            real, dimension(:,:,:) :: R.om1.no3, R.om2.no3, R.om3.no3
-            real, dimension(:,:,:) :: R.om1.odu, R.om2.odu, R.om3.odu
-            real, dimension(:,:,:) :: R.dic.om1, R.dic.om2, R.dic.om3
-            real, dimension(:,:,:) :: R.nox, R.ana, R.oduox
+            real, dimension(:,:,:) :: R_om1_o2, R_om2_o2, R_om3_o2
+            real, dimension(:,:,:) :: R_om1_no3, R_om2_no3, R_om3_no3
+            real, dimension(:,:,:) :: R_om1_odu, R_om2_odu, R_om3_odu
+            real, dimension(:,:,:) :: R_dic_om1, R_dic_om2, R_dic_om3
+            real, dimension(:,:,:) :: R_nox, R_ana, R_oduox
 
 
             !call grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
@@ -587,28 +591,28 @@ contains
                      if (grid_kmt(i,j) .gt. 0) then
 
                         ! O₂ reaction rates
-                        R.om1.o2(i,j,k) = k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                        R.om2.o2(i,j,k) = k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                        R.om3.o2(i,j,k) = k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                        R_om1_o2(i,j,k) = k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                        R_om2_o2(i,j,k) = k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                        R_om3_o2(i,j,k) = k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_o2/(ks_o2 + cbed%f_o2(i,j,k)))
                         ! NO₃ reaction rates
-                        R.om1.no3(i,j,k) = k_adj_denit*k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                        R.om2.no3(i,j,k) = k_adj_denit*k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                        R.om3.no3(i,j,k) = k_adj_denit*k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                        R_om1_no3(i,j,k) = k_adj_denit*k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                        R_om2_no3(i,j,k) = k_adj_denit*k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                        R_om3_no3(i,j,k) = k_adj_denit*k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
                         ! ODU reaction rates
-                        R.om1.odu(i,j,k) = k_adj_anoxia*k1(i,j)*cbed%f_om1(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                        R.om2.odu(i,j,k) = k_adj_anoxia*k2(i,j)*cbed%f_om2(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                        R.om3.odu(i,j,k) = k_adj_anoxia*k3(i,j)*cbed%f_om3(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                        R_om1_odu(i,j,k) = k_adj_anoxia*k1(i,j)*cbed%f_om1(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                        R_om2_odu(i,j,k) = k_adj_anoxia*k2(i,j)*cbed%f_om2(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                        R_om3_odu(i,j,k) = k_adj_anoxia*k3(i,j)*cbed%f_om3(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
 
                         ! dic
-                        R.dic.om1(i,j,k) = R.om1.o2(i,j,k) + R.om1.no3(i,j,k) + R.om1.odu(i,j,k)
-                        R.dic.om2(i,j,k) = R.om2.o2(i,j,k) + R.om2.no3(i,j,k) + R.om2.odu(i,j,k)
-                        R.dic.om3(i,j,k) = R.om3.o2(i,j,k) + R.om3.no3(i,j,k) + R.om3.odu(i,j,k)
+                        R_dic_om1(i,j,k) = R.om1.o2(i,j,k) + R.om1.no3(i,j,k) + R.om1.odu(i,j,k)
+                        R_dic_om2(i,j,k) = R.om2.o2(i,j,k) + R.om2.no3(i,j,k) + R.om2.odu(i,j,k)
+                        R_dic_om3(i,j,k) = R.om3.o2(i,j,k) + R.om3.no3(i,j,k) + R.om3.odu(i,j,k)
                         ! nitrification
-                        R.nox(i,j,k) = k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k)
+                        R_nox(i,j,k) = k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k)
                         ! anammox
-                        R.ana(i,j,k) = k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k)
+                        R_ana(i,j,k) = k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k)
                         ! ODU oxidation
-                        R.oduox(i,j,k) = k_oduox*cbed%f_odu(i,j,k)*cbed%f_o2(i,j,k)
+                        R_oduox(i,j,k) = k_oduox*cbed%f_odu(i,j,k)*cbed%f_o2(i,j,k)
 
                      endif
                   enddo
@@ -713,22 +717,22 @@ contains
                      if (grid_kmt(i,j) .gt. 0) then
                         cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
-                        cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - svf(i,j,k)*(R.om1.o2(i,j,k) + R.om2.o2(i,j,k) + R.om3.o2(i,j,k)) - &
-                           por(i,j,k)*(2.0*R.nox(i,j,k) + R.oduox(i,j,k))
+                        cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - svf(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
+                           por(i,j,k)*(2.0*R_nox(i,j,k) + R_oduox(i,j,k))
 
-                        cbed%f_om1(i,j,k) = cobalt%f_om1(i,j,k) - svf(i,j,k)*(R.om1.o2(i,j,k) + R.om1.no3(i,j,k) + R.om1.odu(i,j,k))
+                        cbed%f_om1(i,j,k) = cobalt%f_om1(i,j,k) - svf(i,j,k)*(R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
 
-                        cbed%f_om2(i,j,k) = cobalt%f_om2(i,j,k) - svf(i,j,k)*(R.om2.o2(i,j,k) + R.om2.no3(i,j,k) + R.om2.odu(i,j,k))
+                        cbed%f_om2(i,j,k) = cobalt%f_om2(i,j,k) - svf(i,j,k)*(R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
 
-                        cbed%f_om3(i,j,k) = cobalt%f_om3(i,j,k) - svf(i,j,k)*(R.om3.o2(i,j,k) + R.om3.no3(i,j,k) + R.om3.odu(i,j,k))
+                        cbed%f_om3(i,j,k) = cobalt%f_om3(i,j,k) - svf(i,j,k)*(R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
 
-                        cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + svf(i,j,k)*cobalt%c_2_n*(R.dic.om1(i,j,k) + R.dic.om2(i,j,k) + R.dic.om3(i,j,k)) + &
-                           por(i,j,k)*(-R.nox(i,j,k) - R.ana(i,j,k))
+                        cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + svf(i,j,k)*cobalt%c_2_n*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
+                           por(i,j,k)* ( - R_nox(i,j,k) - R_ana(i,j,k))
 
-                        cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) - svf(i,j,k)*0.8*(R.om1.no3(i,j,k) + R.om2.no3(i,j,k) + R.om3.no3(i,j,k)) + &
-                           por(i,j,k)*(R.nox(i,j,k) - R.ana(i,j,k))
+                        cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) - svf(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
+                           por(i,j,k)*(R_nox(i,j,k) - R_ana(i,j,k))
 
-                        cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + svf(i,j,k)*(R.dic.om1(i,j,k) + R.dic.om2(i,j,k) + R.dic.om3(i,j,k))
+                        cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + svf(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))
 
                      endif
 
