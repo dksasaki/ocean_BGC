@@ -145,7 +145,7 @@ contains
       allocate(k2(isc:iec,jsc:jec)); k2=0.0
       allocate(k3(isc:iec,jsc:jec)); k3=0.0
 
-   
+
       ! Grid does not change with time, so can be define only once.
       ! define uniform sediment grid
       dz_cbed = l_cbed / real(nk_cbed)
@@ -403,6 +403,14 @@ contains
 
          ! a, b, c, f_old
          do j = jsc, jec; do i = isc, iec
+
+!! NEED TO TAKE CARE OF THE TOP AND BOTTOM FLUXES
+               ! sfc_src = 0.0 ; btm_src = 0.0
+               ! if (_ALLOCATED(g_tracer%stf)) sfc_src = (g_tracer%stf(i,j)*dt)*kg_m2_to_H
+               ! if (_ALLOCATED(g_tracer%btf)) btm_src = (-g_tracer%btf(i,j)*dt)*kg_m2_to_H
+               ! g_tracer%field(i,j,1,tau)  = g_tracer%field(i,j,1,tau)  + sfc_src/h_old(i,j,1)
+               ! g_tracer%field(i,j,nz,tau) = g_tracer%field(i,j,nz,tau) + btm_src/h_old(i,j,nz)
+
                do k=1,nk_cbed
                   if (grid_kmt(i,j) .gt. 0) then
 
@@ -416,14 +424,14 @@ contains
 
                   endif
 
-                  call tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:,tau),nk_cbed)
+                  call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:,tau),nk_cbed)
 
                enddo; enddo
 
          end subroutine vertdiff_CBED
 
 !!!! Copied from Niki's code.
-         subroutine tridag_solver_Press_et_al(a,b,c,r,u,n)
+         subroutine CBED_tridag_solver_Press_et_al(a,b,c,r,u,n)
             integer, intent(in) :: n
             real,    intent(in) :: a(n),b(n),c(n),r(n)
             real,    intent(inout) :: u(n)
@@ -439,7 +447,7 @@ contains
             do k=n-1,1,-1
                u(k)=u(k)-gam(k+1)*u(k+1)
             enddo
-         end subroutine tridag_solver_Press_et_al
+         end subroutine CBED_tridag_solver_Press_et_al
 
 
 
@@ -573,8 +581,8 @@ contains
 
 
 
-               ! ! calculate reaction rates
-               do j = jsc, jec; do i = isc, iec
+            ! ! calculate reaction rates
+            do j = jsc, jec; do i = isc, iec
                   do k = 1, nk_cbed
                      if (grid_kmt(i,j) .gt. 0) then
 
@@ -590,8 +598,8 @@ contains
                         R.om1.odu(i,j,k) = k_adj_anoxia*k1(i,j)*cbed%f_om1(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
                         R.om2.odu(i,j,k) = k_adj_anoxia*k2(i,j)*cbed%f_om2(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
                         R.om3.odu(i,j,k) = k_adj_anoxia*k3(i,j)*cbed%f_om3(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                        
-                        ! dic 
+
+                        ! dic
                         R.dic.om1(i,j,k) = R.om1.o2(i,j,k) + R.om1.no3(i,j,k) + R.om1.odu(i,j,k)
                         R.dic.om2(i,j,k) = R.om2.o2(i,j,k) + R.om2.no3(i,j,k) + R.om2.odu(i,j,k)
                         R.dic.om3(i,j,k) = R.om3.o2(i,j,k) + R.om3.no3(i,j,k) + R.om3.odu(i,j,k)
@@ -705,22 +713,22 @@ contains
                      if (grid_kmt(i,j) .gt. 0) then
                         cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
-                        cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) + svf(i,j,k)*(R.om1.o2(i,j,k) + R.om2.o2(i,j,k) + R.om3.o2(i,j,k)) + &
-                         por(i,j,k)*(2.0*R.nox(i,j,k) + R.oduox(i,j,k))
+                        cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - svf(i,j,k)*(R.om1.o2(i,j,k) + R.om2.o2(i,j,k) + R.om3.o2(i,j,k)) - &
+                           por(i,j,k)*(2.0*R.nox(i,j,k) + R.oduox(i,j,k))
 
-                        cbed%f_om1(i,j,k) = cobalt%f_om1(i,j,k) + svf(i,j,k)*(R.om1.o2(i,j,k) + R.om1.no3(i,j,k) + R.om1.odu(i,j,k))
+                        cbed%f_om1(i,j,k) = cobalt%f_om1(i,j,k) - svf(i,j,k)*(R.om1.o2(i,j,k) + R.om1.no3(i,j,k) + R.om1.odu(i,j,k))
 
-                        cbed%f_om2(i,j,k) = cobalt%f_om2(i,j,k) + svf(i,j,k)*(R.om2.o2(i,j,k) + R.om2.no3(i,j,k) + R.om2.odu(i,j,k))
+                        cbed%f_om2(i,j,k) = cobalt%f_om2(i,j,k) - svf(i,j,k)*(R.om2.o2(i,j,k) + R.om2.no3(i,j,k) + R.om2.odu(i,j,k))
 
-                        cbed%f_om3(i,j,k) = cobalt%f_om3(i,j,k) + svf(i,j,k)*(R.om3.o2(i,j,k) + R.om3.no3(i,j,k) + R.om3.odu(i,j,k))
+                        cbed%f_om3(i,j,k) = cobalt%f_om3(i,j,k) - svf(i,j,k)*(R.om3.o2(i,j,k) + R.om3.no3(i,j,k) + R.om3.odu(i,j,k))
 
                         cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + svf(i,j,k)*cobalt%c_2_n*(R.dic.om1(i,j,k) + R.dic.om2(i,j,k) + R.dic.om3(i,j,k)) + &
-                         por(i,j,k)*(-R.nox(i,j,k) - R.ana(i,j,k))
+                           por(i,j,k)*(-R.nox(i,j,k) - R.ana(i,j,k))
 
                         cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) - svf(i,j,k)*0.8*(R.om1.no3(i,j,k) + R.om2.no3(i,j,k) + R.om3.no3(i,j,k)) + &
-                         por(i,j,k)*(R.nox(i,j,k) - R.ana(i,j,k)) 
+                           por(i,j,k)*(R.nox(i,j,k) - R.ana(i,j,k))
 
-                        cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + svf(i,j,k)*(R.dic.om1(i,j,k) + R.dic.om2(i,j,k) + R.dic.om3(i,j,k)) 
+                        cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + svf(i,j,k)*(R.dic.om1(i,j,k) + R.dic.om2(i,j,k) + R.dic.om3(i,j,k))
 
                      endif
 
