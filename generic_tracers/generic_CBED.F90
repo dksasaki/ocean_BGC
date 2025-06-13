@@ -369,25 +369,31 @@ contains
    !   end subroutine calc_sedimentation_rate
 
 
-   subroutine vertdiff_CBED(cbed_field, D, w, VF, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+   subroutine vertdiff_CBED(cobalt_tracer_list,cobalt, cbed_field, D, w, VF, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      type(g_tracer_type),          pointer       :: cobalt_tracer_list
+      type(generic_COBALT_type),    intent(inout) :: cobalt
       real, dimension(:,:,:),       intent(inout) :: cbed_field  ! cbed tracer concentration field
       real, dimension(:,:,:),       intent(in)    :: D   ! diffustion
       real, dimension(:,:,:),       intent(in)    :: w   !sinking velocity or sedimentation rate
       real, dimension(:,:,:),       intent(in)    :: VF    ! volumn fraction
-      !real, dimension(:),       intent(out)    :: a
-      !real, dimension(:),       intent(out)    :: b
-      !real, dimension(:),       intent(out)    :: c
       integer, dimension(:,:),      intent(in)    :: grid_kmt
       real,                         intent(in)    :: dt
       !integer,                      intent(in)    :: tau
       integer,                      intent(in)    :: isc,iec,jsc,jec,isd,jsd,nk, nk_cbed
 
+      !Locals
       integer :: i, j, k
 
-      !local
       real, dimension(nk_cbed) :: a,b,c,f_old,h_old
       real, dimension(isc:iec,jsc:jec,nk_cbed) :: ea,eb
+      real, dimension(nk_cbed+1) :: sink
 
+      real :: sfc_src, btm_src
+
+      ! local parameters for bgc reactions
+      real, parameter :: frac_OM1 = 0.70
+      real, parameter :: frac_OM2 = 0.20
+      real, parameter :: frac_OM3 = 0.10
 
 
 
@@ -407,6 +413,15 @@ contains
             enddo
          enddo; enddo
 
+      ! sink(k+1)
+      do j = jsc, jec; do i = isc, iec
+            do k=1,nk_cbed+1
+               if (grid_kmt(i,j) .gt. 0) then
+                  sink(i,j,k) = w(i,j,k)*dt
+               endif
+            enddo
+         enddo; enddo
+
       ! a, b, c, f_old
       do j = jsc, jec; do i = isc, iec
 
@@ -417,12 +432,51 @@ contains
             ! g_tracer%field(i,j,1,tau)  = g_tracer%field(i,j,1,tau)  + sfc_src/h_old(i,j,1)
             ! g_tracer%field(i,j,nz,tau) = g_tracer%field(i,j,nz,tau) + btm_src/h_old(i,j,nz)
 
+            sfc_src = 0.0
+
+            if ((trim(cbed_field) == "f_o2")) then
+               sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt_field(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2))*dt ! top flux
+               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+
+            else if ((trim(cbed_field) == "f_nh4")) then
+               sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2))*dt ! top flux
+               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+
+            else if ((trim(cbed_field) == "f_no3")) then
+               sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_no3(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2))*dt ! top flux
+               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+
+            else if ((trim(cbed_field) == "f_dic") ) then
+               sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%dic(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2))*dt ! top flux
+               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+
+            else if ((trim(cbed_field) == "f_om1")) then
+               sfc_src = frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
+               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+
+            else if ((trim(cbed_field) == "f_om2")) then
+               sfc_src = frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
+               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+
+            else if ((trim(cbed_field) == "f_om3")) then
+               sfc_src = frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
+               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+
+            endif
+
+            ! bottom flux
+            btm_src = 0.0
+            btm_src = -(cbed_field(i,j,nk_cbed)*VF(i,j,nk_cbed)*w(i,j,nk_cbed+1)*dt) ! bottom flux
+            cbed_field(i,j,nk_cbed) = cbed_field(i,j,nk_cbed) + btm_src/h_old(nk_cbed)
+
+
+
             do k=1,nk_cbed
                if (grid_kmt(i,j) .gt. 0) then
 
-                  a(k)= -(ea(i,j,k)+w(i,j,k))/(VF(i,j,k)*h_old(k))
+                  a(k)= -(ea(i,j,k)+sink(i,j,k))/(VF(i,j,k)*h_old(k))
 
-                  b(k)=  (VF(i,j,k)*h_old(k)+eb(i,j,k)+ea(i,j,k)+w(i,j,k+1))/(VF(i,j,k)*h_old(k))
+                  b(k)=  (VF(i,j,k)*h_old(k)+eb(i,j,k)+ea(i,j,k)+sink(i,j,k+1))/(VF(i,j,k)*h_old(k))
 
                   c(k)= -eb(i,j,k)/(VF(i,j,k)*h_old(k))
 
@@ -669,33 +723,33 @@ contains
 !        z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
 !    end do
 
-      ! update upper boundary condition
-      do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) .gt. 0)  cbed%f_om1(i,j,1) = frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
-         enddo;enddo
+      !! update upper boundary condition
+      !do j = jsc, jec; do i = isc, iec
+      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_om1(i,j,1) = frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
+      !   enddo;enddo
 
-      do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) .gt. 0)  cbed%f_om2(i,j,1) = frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
-         enddo;enddo
+      !do j = jsc, jec; do i = isc, iec
+      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_om2(i,j,1) = frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
+      !   enddo;enddo
 
-      do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) .gt. 0)  cbed%f_om3(i,j,1) = frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
-         enddo;enddo
+      !do j = jsc, jec; do i = isc, iec
+      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_om3(i,j,1) = frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
+      !   enddo;enddo
 
-      do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) .gt. 0)  cbed%f_o2(i,j,1) = cobalt%f_o2(i,j,nk)
-         enddo;enddo
+      !do j = jsc, jec; do i = isc, iec
+      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_o2(i,j,1) = cobalt%f_o2(i,j,nk)
+      !   enddo;enddo
 
-      do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) .gt. 0)  cbed%f_nh4(i,j,1) = cobalt%f_nh4(i,j,nk)
-         enddo;enddo
+      !do j = jsc, jec; do i = isc, iec
+      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_nh4(i,j,1) = cobalt%f_nh4(i,j,nk)
+      !   enddo;enddo
 
-      do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) .gt. 0)  cbed%f_no3(i,j,1) = cobalt%f_no3(i,j,nk)
-         enddo;enddo
-      do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) .gt. 0)  cbed%f_dic(i,j,1) = cobalt%f_dic(i,j,nk)
-         enddo;enddo
+      !do j = jsc, jec; do i = isc, iec
+      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_no3(i,j,1) = cobalt%f_no3(i,j,nk)
+      !   enddo;enddo
+      !do j = jsc, jec; do i = isc, iec
+      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_dic(i,j,1) = cobalt%f_dic(i,j,nk)
+      !   enddo;enddo
 
       !deallocate(dz_cbed)
       !deallocate(z_cbed)
@@ -742,15 +796,15 @@ contains
             enddo
          enddo;enddo
 
-      call vertdiff_CBED(cbed%f_om1, Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cbed%f_om2, Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cbed%f_om3, Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cbed%f_o2,  D_o2,  w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cbed%f_nh4, D_nh4, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cbed%f_no3, D_no3, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cbed%f_dic, D_dic, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  D_o2,  w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, D_nh4, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_no3, D_no3, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, D_dic, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
 
-      
+
 
       !!==================================================================================================================
       !!The rest of this subrouine that follows is a copy of the COBALT code.
