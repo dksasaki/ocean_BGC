@@ -386,7 +386,7 @@ contains
 
       !local
       real, dimension(nk_cbed) :: a,b,c,f_old,h_old
-      real, dimension(isd:ied,jsd:jed,nk_cbed) :: ea,eb
+      real, dimension(isc:iec,jsc:jec,nk_cbed) :: ea,eb
 
 
 
@@ -497,11 +497,11 @@ contains
       real, parameter :: Q10 = 1.88
 
       ! Reaction rates
-      real, dimension(isd:ied,jsd:jed,nk_cbed) :: R_om1_o2, R_om2_o2, R_om3_o2
-      real, dimension(isd:ied,jsd:jed,nk_cbed) :: R_om1_no3, R_om2_no3, R_om3_no3
-      real, dimension(isd:ied,jsd:jed,nk_cbed) :: R_om1_odu, R_om2_odu, R_om3_odu
-      real, dimension(isd:ied,jsd:jed,nk_cbed) :: R_dic_om1, R_dic_om2, R_dic_om3
-      real, dimension(isd:ied,jsd:jed,nk_cbed) :: R_nox, R_ana, R_oduox
+      real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_om1_o2, R_om2_o2, R_om3_o2
+      real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_om1_no3, R_om2_no3, R_om3_no3
+      real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_om1_odu, R_om2_odu, R_om3_odu
+      real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_dic_om1, R_dic_om2, R_dic_om3
+      real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_nox, R_ana, R_oduox
 
 
       !call grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
