@@ -448,7 +448,7 @@ contains
                cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
             else if ((trim(field_name) == "f_dic") ) then
-               sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_dic*(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2))*dt ! top flux
+               sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_dic(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2))*dt ! top flux
                cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
             else if ((trim(field_name) == "f_om1")) then
