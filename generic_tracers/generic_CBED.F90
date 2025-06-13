@@ -369,7 +369,7 @@ contains
    !   end subroutine calc_sedimentation_rate
 
 
-   subroutine vertdiff_CBED(cbed_field, D, w, VF, grid_kmt, dt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+   subroutine vertdiff_CBED(cbed_field, D, w, VF, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       real, dimension(:,:,:),       intent(inout) :: cbed_field  ! cbed tracer concentration field
       real, dimension(:,:,:),       intent(in)    :: D   ! diffustion
       real, dimension(:,:,:),       intent(in)    :: w   !sinking velocity or sedimentation rate
@@ -380,7 +380,7 @@ contains
       integer, dimension(:,:),      intent(in)    :: grid_kmt
       real,                         intent(in)    :: dt
       !integer,                      intent(in)    :: tau
-      integer,                      intent(in)    :: isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed
+      integer,                      intent(in)    :: isc,iec,jsc,jec,isd,jsd,nk, nk_cbed
 
       integer :: i, j, k
 
@@ -742,13 +742,13 @@ contains
             enddo
          enddo;enddo
 
-      call vertdiff_CBED(cbed%f_om1, Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cbed%f_om2, Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cbed%f_om3, Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cbed%f_o2,  D_o2,  w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cbed%f_nh4, D_nh4, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cbed%f_no3, D_no3, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cbed%f_dic, D_dic, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+      call vertdiff_CBED(cbed%f_om1, Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cbed%f_om2, Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cbed%f_om3, Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cbed%f_o2,  D_o2,  w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cbed%f_nh4, D_nh4, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cbed%f_no3, D_no3, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cbed%f_dic, D_dic, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
 
       
 
