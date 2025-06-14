@@ -22,7 +22,7 @@ module generic_CBED
    public generic_CBED_init, generic_CBED_end
    public generic_CBED_reg_diagnostics, generic_CBED_send_diagnostics
 
-   integer, parameter :: nk_cbed = 10 ! Number of benthic layers
+   integer, parameter :: nk_cbed = 100 ! Number of benthic layers
 
    type generic_CBED_type
       real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
@@ -649,26 +649,26 @@ contains
                if (grid_kmt(i,j) .gt. 0) then
 
                   ! O₂ reaction rates
-                  R_om1_o2(i,j,k) = k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om2_o2(i,j,k) = k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om3_o2(i,j,k) = k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om1_o2(i,j,k) = 0.0* k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om2_o2(i,j,k) = 0.0* k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om3_o2(i,j,k) = 0.0* k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
                   ! NO₃ reaction rates
-                  R_om1_no3(i,j,k) = k_adj_denit*k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om2_no3(i,j,k) = k_adj_denit*k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om3_no3(i,j,k) = k_adj_denit*k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om1_no3(i,j,k) = 0.0* k_adj_denit*k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om2_no3(i,j,k) = 0.0* k_adj_denit*k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om3_no3(i,j,k) = 0.0* k_adj_denit*k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
                   ! ODU reaction rates
-                  R_om1_odu(i,j,k) = k_adj_anoxia*k1(i,j)*cbed%f_om1(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om2_odu(i,j,k) = k_adj_anoxia*k2(i,j)*cbed%f_om2(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om3_odu(i,j,k) = k_adj_anoxia*k3(i,j)*cbed%f_om3(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om1_odu(i,j,k) = 0.0* k_adj_anoxia*k1(i,j)*cbed%f_om1(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om2_odu(i,j,k) = 0.0* k_adj_anoxia*k2(i,j)*cbed%f_om2(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om3_odu(i,j,k) = 0.0* k_adj_anoxia*k3(i,j)*cbed%f_om3(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
 
                   ! dic
-                  R_dic_om1(i,j,k) = R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k)
-                  R_dic_om2(i,j,k) = R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k)
-                  R_dic_om3(i,j,k) = R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k)
+                  R_dic_om1(i,j,k) = 0.0* (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
+                  R_dic_om2(i,j,k) = 0.0* (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
+                  R_dic_om3(i,j,k) = 0.0* (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
                   ! nitrification
-                  R_nox(i,j,k) = k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k)
+                  R_nox(i,j,k) = 0.0* k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k)
                   ! anammox
-                  R_ana(i,j,k) = k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k)
+                  R_ana(i,j,k) = 0.0* k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k)
                   ! ODU oxidation (need to include ODU in the cbed)
                   !R_oduox(i,j,k) = k_oduox*cbed%f_odu(i,j,k)*cbed%f_o2(i,j,k)
 
