@@ -475,13 +475,21 @@ contains
             do k=1,nk_cbed
                if (grid_kmt(i,j) .gt. 0) then
 
-                  a(k)= -(ea(i,j,k)+sink(i,j,k))/(VF(i,j,k)*h_old(k))
+                  !a(k)= -(ea(i,j,k)+sink(i,j,k))/(VF(i,j,k)*h_old(k))
 
-                  b(k)=  (VF(i,j,k)*h_old(k)+eb(i,j,k)+ea(i,j,k)+sink(i,j,k+1))/(VF(i,j,k)*h_old(k))
+                  !b(k)=  (VF(i,j,k)*h_old(k)+eb(i,j,k)+ea(i,j,k)+sink(i,j,k+1))/(VF(i,j,k)*h_old(k))
 
-                  c(k)= -eb(i,j,k)/(VF(i,j,k)*h_old(k))
+                  !c(k)= -eb(i,j,k)/(VF(i,j,k)*h_old(k))
+
+                  a(k)= (-ea(i,j,k)-sink(i,j,k))/(h_old(k))
+
+                  b(k)=  (h_old(k)+eb(i,j,k)+ea(i,j,k)+sink(i,j,k+1))/(h_old(k))
+
+                  c(k)= -eb(i,j,k)/(h_old(k))
 
                   f_old(k)= cbed_field(i,j,k)
+
+
 
                endif
             enddo
