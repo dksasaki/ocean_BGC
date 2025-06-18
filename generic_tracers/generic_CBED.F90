@@ -406,74 +406,74 @@ contains
 
       ! ea , eb
       do j = jsc, jec; do i = isc, iec
-            do k=1,nk_cbed
-               if (grid_kmt(i,j) .gt. 0) then
+            if (grid_kmt(i,j) .gt. 0) then
+               do k=1,nk_cbed
                   ea(i,j,k) = D(i,j,k)*dt/h_old(k)
                   eb(i,j,k) = D(i,j,k+1)*dt/h_old(k)
-               endif
-            enddo
+               enddo
+            endif
          enddo; enddo
 
       ! sink(k+1)
       do j = jsc, jec; do i = isc, iec
-            do k=1,nk_cbed+1
-               if (grid_kmt(i,j) .gt. 0) then
+            if (grid_kmt(i,j) .gt. 0) then
+               do k=1,nk_cbed+1
                   sink(i,j,k) = w(i,j,k)*dt
-               endif
-            enddo
+               enddo
+            endif
          enddo; enddo
 
       ! a, b, c, f_old
       do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
 
-            !! NEED TO TAKE CARE OF THE TOP AND BOTTOM FLUXES
-            ! sfc_src = 0.0 ; btm_src = 0.0
-            ! if (_ALLOCATED(g_tracer%stf)) sfc_src = (g_tracer%stf(i,j)*dt)*kg_m2_to_H
-            ! if (_ALLOCATED(g_tracer%btf)) btm_src = (-g_tracer%btf(i,j)*dt)*kg_m2_to_H
-            ! g_tracer%field(i,j,1,tau)  = g_tracer%field(i,j,1,tau)  + sfc_src/h_old(i,j,1)
-            ! g_tracer%field(i,j,nz,tau) = g_tracer%field(i,j,nz,tau) + btm_src/h_old(i,j,nz)
+               !! NEED TO TAKE CARE OF THE TOP AND BOTTOM FLUXES
+               ! sfc_src = 0.0 ; btm_src = 0.0
+               ! if (_ALLOCATED(g_tracer%stf)) sfc_src = (g_tracer%stf(i,j)*dt)*kg_m2_to_H
+               ! if (_ALLOCATED(g_tracer%btf)) btm_src = (-g_tracer%btf(i,j)*dt)*kg_m2_to_H
+               ! g_tracer%field(i,j,1,tau)  = g_tracer%field(i,j,1,tau)  + sfc_src/h_old(i,j,1)
+               ! g_tracer%field(i,j,nz,tau) = g_tracer%field(i,j,nz,tau) + btm_src/h_old(i,j,nz)
 
-            sfc_src = 0.0
+               sfc_src = 0.0
 
-            if ((trim(field_name) == "f_o2")) then
-               sfc_src = 0.0 !VF(i,j,1)*D(i,j,1)*((cobalt%f_o2(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
-               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+               if ((trim(field_name) == "f_o2")) then
+                  sfc_src = 0.0 !VF(i,j,1)*D(i,j,1)*((cobalt%f_o2(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
-            else if ((trim(field_name) == "f_nh4")) then
-               sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
-               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+               else if ((trim(field_name) == "f_nh4")) then
+                  sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
-            else if ((trim(field_name) == "f_no3")) then
-               sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_no3(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
-               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+               else if ((trim(field_name) == "f_no3")) then
+                  sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_no3(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
-            else if ((trim(field_name) == "f_dic") ) then
-               sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_dic(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
-               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+               else if ((trim(field_name) == "f_dic") ) then
+                  sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_dic(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
-            else if ((trim(field_name) == "f_om1")) then
-               sfc_src = 0.0 ! frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+               else if ((trim(field_name) == "f_om1")) then
+                  sfc_src = 0.0 ! frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
-            else if ((trim(field_name) == "f_om2")) then
-               sfc_src = 0.0 !frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+               else if ((trim(field_name) == "f_om2")) then
+                  sfc_src = 0.0 !frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
-            else if ((trim(field_name) == "f_om3")) then
-               sfc_src = 0.0 !frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-               cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+               else if ((trim(field_name) == "f_om3")) then
+                  sfc_src = 0.0 !frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
-            endif
+               endif
 
-            ! bottom flux
-            btm_src = 0.0
-            btm_src = 0.0 ! -(cbed_field(i,j,nk_cbed)*VF(i,j,nk_cbed)*w(i,j,nk_cbed+1)*dt) ! bottom flux
-            cbed_field(i,j,nk_cbed) = cbed_field(i,j,nk_cbed) + btm_src/h_old(nk_cbed)
+               ! bottom flux
+               btm_src = 0.0
+               btm_src = 0.0 ! -(cbed_field(i,j,nk_cbed)*VF(i,j,nk_cbed)*w(i,j,nk_cbed+1)*dt) ! bottom flux
+               cbed_field(i,j,nk_cbed) = cbed_field(i,j,nk_cbed) + btm_src/h_old(nk_cbed)
 
 
 
-            do k=1,nk_cbed
-               if (grid_kmt(i,j) .gt. 0) then
+               do k=1,nk_cbed
 
                   !a(k)= -(ea(i,j,k)+sink(i,j,k))/(VF(i,j,k)*h_old(k))
 
@@ -489,13 +489,10 @@ contains
 
                   f_old(k)= cbed_field(i,j,k)
 
+               enddo
 
-
-               endif
-            enddo
-
-            call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:),nk_cbed)
-
+               call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:),nk_cbed)
+            endif
          enddo; enddo
 
    end subroutine vertdiff_CBED
@@ -808,7 +805,7 @@ contains
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, "f_om2", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  "f_o2", D_o2,  w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  "f_o2", D_o2,  w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, "f_nh4", D_nh4, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_no3, "f_no3", D_no3, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
