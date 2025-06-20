@@ -118,7 +118,7 @@ contains
 
       !Allocate and initialize CBED arrays for tracer concentrations and other workarrays
       allocate(cbed%f_tr1(isd:ied,jsd:jed,nk_cbed));cbed%f_tr1=0.0
-      allocate(cbed%f_o2(isd:ied,jsd:jed,nk_cbed));cbed%f_o2=0.0
+      allocate(cbed%f_o2(isd:ied,jsd:jed,nk_cbed));cbed%f_o2=300.0
       allocate(cbed%f_om1(isd:ied,jsd:jed,nk_cbed));cbed%f_om1=0.0
       allocate(cbed%f_om2(isd:ied,jsd:jed,nk_cbed));cbed%f_om2=0.0
       allocate(cbed%f_om3(isd:ied,jsd:jed,nk_cbed));cbed%f_om3=0.0
@@ -654,26 +654,26 @@ contains
                if (grid_kmt(i,j) .gt. 0) then
 
                   ! O₂ reaction rates
-                  R_om1_o2(i,j,k) = 0.0* k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om2_o2(i,j,k) = 0.0* k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om3_o2(i,j,k) = 0.0* k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om1_o2(i,j,k) = 0.0 !* k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om2_o2(i,j,k) = 0.0 !* k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om3_o2(i,j,k) = 0.0 !* k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
                   ! NO₃ reaction rates
-                  R_om1_no3(i,j,k) = 0.0* k_adj_denit*k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om2_no3(i,j,k) = 0.0* k_adj_denit*k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om3_no3(i,j,k) = 0.0* k_adj_denit*k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om1_no3(i,j,k) = 0.0 !* k_adj_denit*k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om2_no3(i,j,k) = 0.0 !* k_adj_denit*k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om3_no3(i,j,k) = 0.0 !* k_adj_denit*k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
                   ! ODU reaction rates
-                  R_om1_odu(i,j,k) = 0.0* k_adj_anoxia*k1(i,j)*cbed%f_om1(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om2_odu(i,j,k) = 0.0* k_adj_anoxia*k2(i,j)*cbed%f_om2(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om3_odu(i,j,k) = 0.0* k_adj_anoxia*k3(i,j)*cbed%f_om3(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om1_odu(i,j,k) = 0.0 !* k_adj_anoxia*k1(i,j)*cbed%f_om1(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om2_odu(i,j,k) = 0.0 !* k_adj_anoxia*k2(i,j)*cbed%f_om2(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om3_odu(i,j,k) = 0.0 !* k_adj_anoxia*k3(i,j)*cbed%f_om3(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
 
                   ! dic
-                  R_dic_om1(i,j,k) = 0.0* (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
-                  R_dic_om2(i,j,k) = 0.0* (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
-                  R_dic_om3(i,j,k) = 0.0* (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
+                  R_dic_om1(i,j,k) = 0.0 !* (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
+                  R_dic_om2(i,j,k) = 0.0 !* (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
+                  R_dic_om3(i,j,k) = 0.0 !* (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
                   ! nitrification
-                  R_nox(i,j,k) = 0.0* k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k)
+                  R_nox(i,j,k) = 0.0 !* k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k)
                   ! anammox
-                  R_ana(i,j,k) = 0.0* k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k)
+                  R_ana(i,j,k) = 0.0 !* k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k)
                   ! ODU oxidation (need to include ODU in the cbed)
                   !R_oduox(i,j,k) = k_oduox*cbed%f_odu(i,j,k)*cbed%f_o2(i,j,k)
 
@@ -780,35 +780,35 @@ contains
                if (grid_kmt(i,j) .gt. 0) then
                   cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
-                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - svf(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
-                     por(i,j,k)*(2.0*R_nox(i,j,k))
+                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) !- svf(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
+                    ! por(i,j,k)*(2.0*R_nox(i,j,k))
 
-                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) - svf(i,j,k)*(R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
+                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) !- svf(i,j,k)*(R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
 
-                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) - svf(i,j,k)*(R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
+                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) !- svf(i,j,k)*(R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
 
-                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) - svf(i,j,k)*(R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
+                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) !- svf(i,j,k)*(R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
 
-                  cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + svf(i,j,k)*cobalt%c_2_n*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     por(i,j,k)* ( - R_nox(i,j,k) - R_ana(i,j,k))
+                  cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) !+ svf(i,j,k)*cobalt%c_2_n*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
+                     !por(i,j,k)* ( - R_nox(i,j,k) - R_ana(i,j,k))
 
-                  cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) - svf(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                     por(i,j,k)*(R_nox(i,j,k) - R_ana(i,j,k))
+                  cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) !- svf(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
+                     !por(i,j,k)*(R_nox(i,j,k) - R_ana(i,j,k))
 
-                  cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + svf(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))
+                  cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) !+ svf(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))
 
                endif
 
             enddo
          enddo;enddo
 
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, "f_om2", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, "f_om2", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  "f_o2", D_o2,  w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, "f_nh4", D_nh4, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_no3, "f_no3", D_no3, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, "f_nh4", D_nh4, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_no3, "f_no3", D_no3, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
 
 
 
