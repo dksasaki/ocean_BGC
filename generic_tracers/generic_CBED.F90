@@ -491,7 +491,7 @@ contains
 
                enddo
 
-               call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:),nk_cbed)
+               !call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:),nk_cbed)
             endif
          enddo; enddo
 
