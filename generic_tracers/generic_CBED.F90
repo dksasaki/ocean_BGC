@@ -22,7 +22,7 @@ module generic_CBED
    public generic_CBED_init, generic_CBED_end
    public generic_CBED_reg_diagnostics, generic_CBED_send_diagnostics
 
-   integer, parameter :: nk_cbed = 100 ! Number of benthic layers
+   integer, parameter :: nk_cbed = 10    ! Number of benthic layers
 
    type generic_CBED_type
       real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
@@ -437,7 +437,7 @@ contains
                sfc_src = 0.0
 
                if ((trim(field_name) == "f_o2")) then
-                  sfc_src = 0.0 !VF(i,j,1)*D(i,j,1)*((cobalt%f_o2(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_o2(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_nh4")) then
@@ -805,7 +805,7 @@ contains
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, "f_om2", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  "f_o2", D_o2,  w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  "f_o2", D_o2,  w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, "f_nh4", D_nh4, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_no3, "f_no3", D_no3, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
