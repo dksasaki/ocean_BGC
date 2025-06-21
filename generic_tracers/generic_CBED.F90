@@ -519,7 +519,7 @@ contains
 
 
    subroutine generic_CBED_sediments_update_from_source(cobalt_tracer_list, cobalt, phyto, ilb, jlb, mask_coast, &
-      grid_tmask, grid_dat, grid_kmt, isc,iec, jsc,jec, isd, jsd, nk, r_dt, dt, frunoff, rho_dzt, dzt, internal_heat)
+      grid_tmask, grid_dat, grid_kmt, isc,iec, jsc,jec, isd,ied, jsd,jed, nk, r_dt, dt, frunoff, rho_dzt, dzt, internal_heat)
 
       type(g_tracer_type),          pointer       :: cobalt_tracer_list
       type(generic_COBALT_type),    intent(inout) :: cobalt
@@ -528,7 +528,7 @@ contains
       real, dimension(ilb:,jlb:),   intent(in)    :: grid_dat
       real, dimension(:,:,:),       intent(in)    :: grid_tmask
       integer, dimension(:,:),      intent(in)    :: mask_coast, grid_kmt
-      integer,                      intent(in)    :: isc,iec, jsc,jec, isd, jsd, nk
+      integer,                      intent(in)    :: isc,iec, jsc,jec, isd,ied, jsd,jed, nk
       real,                         intent(in)    :: r_dt, dt
       real, dimension(ilb:,jlb:),   intent(in)    :: frunoff
       real, dimension(ilb:,jlb:,:), intent(in)    :: rho_dzt, dzt
