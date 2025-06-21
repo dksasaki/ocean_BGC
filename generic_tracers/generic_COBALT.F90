@@ -4768,7 +4768,7 @@ contains
     if (do_CBED) then
       !Note that CBED subroutine MUST set the '_btm' fluxes
       call generic_CBED_sediments_update_from_source(tracer_list, cobalt, phyto, ilb, jlb, mask_coast, &
-           grid_tmask, grid_dat, grid_kmt, isc,iec, jsc,jec, isd,ied, jsd,jed, nk, r_dt, dt, frunoff, rho_dzt, dzt, internal_heat)
+           grid_tmask, grid_dat, grid_kmt, isc,iec, jsc,jec, isd,ied, jsd,jed, nk, r_dt, dt, tau, frunoff, rho_dzt, dzt, internal_heat)
     else
 
     ! Calculate the bottom conditions and the fluxes to the bottom for diagnostics and benthic flux calculations.

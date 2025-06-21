@@ -369,17 +369,17 @@ contains
    !   end subroutine calc_sedimentation_rate
 
 
-   subroutine vertdiff_CBED(cobalt_tracer_list,cobalt, cbed_field, field_name, D, w, VF, grid_kmt, dt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+   subroutine vertdiff_CBED(cobalt_tracer_list,cobalt, cbed_field, field_name, D, w, VF, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
       type(g_tracer_type),          pointer       :: cobalt_tracer_list
       type(generic_COBALT_type),    intent(inout) :: cobalt
-      real, dimension(:,:,:),       intent(inout) :: cbed_field  ! cbed tracer concentration field
+      real, dimension(:,:,:,:),       intent(inout) :: cbed_field  ! cbed tracer concentration field and tau
       character(len=*),             intent(in)    :: field_name   !Name of the cbed field (e.g., "f_o2" or "f_nh4")
       real, dimension(:,:,:),       intent(in)    :: D   ! diffustion
       real, dimension(:,:,:),       intent(in)    :: w   !sinking velocity or sedimentation rate
       real, dimension(:,:,:),       intent(in)    :: VF    ! volumn fraction
       integer, dimension(:,:),      intent(in)    :: grid_kmt
       real,                         intent(in)    :: dt
-      !integer,                      intent(in)    :: tau
+      integer,                      intent(in)    :: tau
       integer,                      intent(in)    :: isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed
 
       !Locals
@@ -437,8 +437,8 @@ contains
                sfc_src = 0.0
 
                if ((trim(field_name) == "f_o2")) then
-                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_o2(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
-                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_o2(i,j,nk)-cbed_field(i,j,1,tau))/(dz_cbed(1)/2.0))*dt ! top flux
+                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_nh4")) then
                   sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
@@ -454,7 +454,7 @@ contains
 
                else if ((trim(field_name) == "f_om1")) then
                   sfc_src = frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_om2")) then
                   sfc_src = 0.0 !frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
@@ -469,7 +469,7 @@ contains
                ! bottom flux
                btm_src = 0.0
                btm_src = 0.0 ! -(cbed_field(i,j,nk_cbed)*VF(i,j,nk_cbed)*w(i,j,nk_cbed+1)*dt) ! bottom flux
-               cbed_field(i,j,nk_cbed) = cbed_field(i,j,nk_cbed) + btm_src/h_old(nk_cbed)
+               cbed_field(i,j,nk_cbed,tau) = cbed_field(i,j,nk_cbed,tau) + btm_src/h_old(nk_cbed)
 
 
 
@@ -487,11 +487,11 @@ contains
 
                   c(k)= -eb(i,j,k)/(h_old(k))
 
-                  f_old(k)= cbed_field(i,j,k)
+                  f_old(k)= cbed_field(i,j,k,tau)
 
                enddo
 
-               call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:),nk_cbed)
+               call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:,tau),nk_cbed)
             endif
          enddo; enddo
 
@@ -519,7 +519,7 @@ contains
 
 
    subroutine generic_CBED_sediments_update_from_source(cobalt_tracer_list, cobalt, phyto, ilb, jlb, mask_coast, &
-      grid_tmask, grid_dat, grid_kmt, isc,iec, jsc,jec, isd,ied, jsd,jed, nk, r_dt, dt, frunoff, rho_dzt, dzt, internal_heat)
+      grid_tmask, grid_dat, grid_kmt, isc,iec, jsc,jec, isd,ied, jsd,jed, nk, r_dt, dt, tau, frunoff, rho_dzt, dzt, internal_heat)
 
       type(g_tracer_type),          pointer       :: cobalt_tracer_list
       type(generic_COBALT_type),    intent(inout) :: cobalt
@@ -530,6 +530,7 @@ contains
       integer, dimension(:,:),      intent(in)    :: mask_coast, grid_kmt
       integer,                      intent(in)    :: isc,iec, jsc,jec, isd,ied, jsd,jed, nk
       real,                         intent(in)    :: r_dt, dt
+      integer,                      intent(in)    :: tau
       real, dimension(ilb:,jlb:),   intent(in)    :: frunoff
       real, dimension(ilb:,jlb:,:), intent(in)    :: rho_dzt, dzt
       real, dimension(ilb:,jlb:),   intent(in), optional :: internal_heat
@@ -802,10 +803,10 @@ contains
             enddo
          enddo;enddo
 
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
       !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, "f_om2", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  "f_o2", D_o2,  w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  "f_o2", D_o2,  w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
       !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, "f_nh4", D_nh4, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_no3, "f_no3", D_no3, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
