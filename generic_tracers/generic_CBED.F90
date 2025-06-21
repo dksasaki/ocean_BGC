@@ -442,15 +442,15 @@ contains
 
                else if ((trim(field_name) == "f_nh4")) then
                   sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
-                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_no3")) then
                   sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_no3(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
-                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_dic") ) then
                   sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_dic(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
-                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_om1")) then
                   sfc_src = frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
@@ -458,11 +458,11 @@ contains
 
                else if ((trim(field_name) == "f_om2")) then
                   sfc_src = 0.0 !frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_om3")) then
                   sfc_src = 0.0 !frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
 
                endif
 
