@@ -22,7 +22,7 @@ module generic_CBED
    public generic_CBED_init, generic_CBED_end
    public generic_CBED_reg_diagnostics, generic_CBED_send_diagnostics
 
-   integer, parameter :: nk_cbed = 10    ! Number of benthic layers
+   integer, parameter :: nk_cbed = 100    ! Number of benthic layers
 
    type generic_CBED_type
       real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
@@ -418,7 +418,7 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                do k=1,nk_cbed+1
-                  sink(i,j,k) = w(i,j,k)*dt
+                  sink(i,j,k) = 0.0 ! w(i,j,k)*dt
                enddo
             endif
          enddo; enddo
@@ -481,11 +481,11 @@ contains
 
                   !c(k)= -eb(i,j,k)/(VF(i,j,k)*h_old(k))
 
-                  a(k)= 1.0 !(-ea(i,j,k)-sink(i,j,k))/(h_old(k))
+                  a(k)= (-ea(i,j,k)-sink(i,j,k))/(h_old(k))
 
-                  b(k)= 1.0 !(h_old(k)+eb(i,j,k)+ea(i,j,k)+sink(i,j,k+1))/(h_old(k))
+                  b(k)= (h_old(k)+eb(i,j,k)+ea(i,j,k)+sink(i,j,k+1))/(h_old(k))
 
-                  c(k)= 1.0 !-eb(i,j,k)/(h_old(k))
+                  c(k)= -eb(i,j,k)/(h_old(k))
 
                   f_old(k)= cbed_field(i,j,k)
 
