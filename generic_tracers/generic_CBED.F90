@@ -126,8 +126,8 @@ contains
       allocate(cbed%f_no3(isd:ied,jsd:jed,nk_cbed));cbed%f_no3=0.0
       allocate(cbed%f_dic(isd:ied,jsd:jed,nk_cbed));cbed%f_dic=0.0
 
-      allocate(por(isc:iec,jsc:jec,nk_cbed));        por=0.8  !porosity=0.8 assumed constant for whole seafloor.
-      allocate(svf(isc:iec,jsc:jec,nk_cbed));        svf=0.2 !solid volume fraction
+      allocate(por(isc:iec,jsc:jec,nk_cbed+1));        por=0.8  !porosity=0.8 assumed constant for whole seafloor.
+      allocate(svf(isc:iec,jsc:jec,nk_cbed+1));        svf=0.2 !solid volume fraction
 
       allocate(w(isc:iec,jsc:jec,nk_cbed+1));        w=0.0      !adding sedimentation rate initalize
       allocate(Db_0(isc:iec,jsc:jec));               Db_0=0.0   !bioturbation_0 init.
@@ -418,7 +418,7 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                do k=1,nk_cbed+1
-                  sink(i,j,k) = 0.0 ! max(0.0, w(i,j,k)*dt )
+                  sink(i,j,k) = max(0.0, w(i,j,k)*dt )
                enddo
             endif
          enddo; enddo
@@ -596,7 +596,7 @@ contains
             do k = 1, nk_cbed+1
                if (grid_kmt(i,j) .gt. 0) then
                   ! relation from Archer. POC flux unit in umol cm-2 y-1.
-                  Db(i,j,k) = 0.0 ! max(0.0, Db_0(i,j)*exp(-(z_cbed_int(k)/Db_l)**2)*(cobalt%btm_o2(i,j)/(cobalt%btm_o2(i,j)+(20/1e6))) )
+                  Db(i,j,k) = max(0.0, Db_0(i,j)*exp(-(z_cbed_int(k)/Db_l)**2)*(cobalt%btm_o2(i,j)/(cobalt%btm_o2(i,j)+(20/1e6))) )
                endif
             enddo
          enddo;enddo
