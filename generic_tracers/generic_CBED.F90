@@ -372,7 +372,7 @@ contains
    subroutine vertdiff_CBED(cobalt_tracer_list,cobalt, cbed_field, field_name, D, w, VF, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
       type(g_tracer_type),          pointer       :: cobalt_tracer_list
       type(generic_COBALT_type),    intent(inout) :: cobalt
-      real, dimension(:,:,:,:),       intent(inout) :: cbed_field  ! cbed tracer concentration field and tau
+      real, dimension(:,:,:),       intent(inout) :: cbed_field  ! cbed tracer concentration field 
       character(len=*),             intent(in)    :: field_name   !Name of the cbed field (e.g., "f_o2" or "f_nh4")
       real, dimension(:,:,:),       intent(in)    :: D   ! diffustion
       real, dimension(:,:,:),       intent(in)    :: w   !sinking velocity or sedimentation rate
@@ -437,39 +437,39 @@ contains
                sfc_src = 0.0
 
                if ((trim(field_name) == "f_o2")) then
-                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_o2(i,j,nk)-cbed_field(i,j,1,tau))/(dz_cbed(1)/2.0))*dt ! top flux
-                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
+                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_o2(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_nh4")) then
                   sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
-                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_no3")) then
                   sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_no3(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
-                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_dic") ) then
                   sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_dic(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
-                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_om1")) then
                   sfc_src = frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_om2")) then
                   sfc_src = 0.0 !frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_om3")) then
                   sfc_src = 0.0 !frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-                  cbed_field(i,j,1,tau)  = cbed_field(i,j,1,tau)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                endif
 
                ! bottom flux
                btm_src = 0.0
                btm_src = 0.0 ! -(cbed_field(i,j,nk_cbed)*VF(i,j,nk_cbed)*w(i,j,nk_cbed+1)*dt) ! bottom flux
-               cbed_field(i,j,nk_cbed,tau) = cbed_field(i,j,nk_cbed,tau) + btm_src/h_old(nk_cbed)
+               cbed_field(i,j,nk_cbed) = cbed_field(i,j,nk_cbed) + btm_src/h_old(nk_cbed)
 
 
 
@@ -481,17 +481,17 @@ contains
 
                   !c(k)= -eb(i,j,k)/(VF(i,j,k)*h_old(k))
 
-                  a(k)= (-ea(i,j,k)-sink(i,j,k))/(h_old(k))
+                  a(k)= 1.0 !(-ea(i,j,k)-sink(i,j,k))/(h_old(k))
 
-                  b(k)=  (h_old(k)+eb(i,j,k)+ea(i,j,k)+sink(i,j,k+1))/(h_old(k))
+                  b(k)= 1.0 !(h_old(k)+eb(i,j,k)+ea(i,j,k)+sink(i,j,k+1))/(h_old(k))
 
-                  c(k)= -eb(i,j,k)/(h_old(k))
+                  c(k)= 1.0 !-eb(i,j,k)/(h_old(k))
 
-                  f_old(k)= cbed_field(i,j,k,tau)
+                  f_old(k)= cbed_field(i,j,k)
 
                enddo
 
-               call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:,tau),nk_cbed)
+               call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:),nk_cbed)
             endif
          enddo; enddo
 
