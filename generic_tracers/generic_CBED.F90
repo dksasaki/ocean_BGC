@@ -441,15 +441,15 @@ contains
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_nh4")) then
-                  sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src =  VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_no3")) then
-                  sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_no3(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_no3(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_dic") ) then
-                  sfc_src = 0.0 ! VF(i,j,1)*D(i,j,1)*((cobalt%f_dic(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_dic(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_om1")) then
@@ -457,11 +457,11 @@ contains
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_om2")) then
-                  sfc_src = 0.0 !frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
+                  sfc_src = frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_om3")) then
-                  sfc_src = 0.0 !frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
+                  sfc_src = frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                endif
@@ -804,12 +804,12 @@ contains
          enddo;enddo
 
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, "f_om2", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, "f_om2", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  "f_o2", D_o2,  w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, "f_nh4", D_nh4, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_no3, "f_no3", D_no3, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
-      !call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, "f_nh4", D_nh4, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_no3, "f_no3", D_no3, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt, isc,iec,jsc,jec,isd,jsd,nk, nk_cbed)
 
 
 
