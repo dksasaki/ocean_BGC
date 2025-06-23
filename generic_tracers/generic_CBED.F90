@@ -418,7 +418,7 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                do k=1,nk_cbed+1
-                  sink(i,j,k) = max(0.0, w(i,j,k)*dt )
+                  sink(i,j,k) = 0.0 ! max(0.0, w(i,j,k)*dt )
                enddo
             endif
          enddo; enddo
