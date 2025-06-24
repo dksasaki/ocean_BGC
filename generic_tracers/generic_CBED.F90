@@ -317,57 +317,6 @@ contains
    end subroutine generic_CBED_end
 
 
-   ! subroutine grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
-   !   real,          intent(in)     :: nk_cbed
-   !   real,          intent(out)  :: dz_cbed(nk_cbed)
-   !   real,          intent(out)  :: z_cbed_mid(nk_cbed)
-   !   real,          intent(out)  :: z_cbed_int(nk_cbed+1)
-   !   integer :: i, j, k
-
-   !   ! define uniform sediment grid
-   !   dz_cbed = l_cbed / real(nk_cbed)
-   !   z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
-   !   do k = 1, nk_cbed
-   !       z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
-   !   end do
-
-   !   z_cbed_mid(1) = dz_cbed(1)/2   ! first layer mid point
-   !   do k = 1, nk_cbed-1
-   !       z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
-   !   end do
-
-   ! end subroutine grid_cbed
-
-
-   ! subroutine calc_sedimentation_rate(cobalt_tracer_list, cobalt,ilb, jlb, grid_dat, grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, &
-   !                 mask_coast, grid_kmt, w)
-   !   type(g_tracer_type),          pointer       :: cobalt_tracer_list
-   !   type(generic_COBALT_type),    intent(inout) :: cobalt
-   !   integer,                      intent(in)    :: ilb, jlb
-   !   real, dimension(ilb:,jlb:),   intent(in)    :: grid_dat
-   !   real, dimension(:,:,:),       intent(in)    :: grid_tmask
-   !   integer,                      intent(in)    :: isc,iec, jsc,jec, isd, jsd, nk
-   !   integer, dimension(:,:),      intent(in)    :: mask_coast, grid_kmt
-   !   real,   dimension(:,:),       intent(out) :: w  !sedimentation rate
-
-   !   integer :: i, j, k
-   !   ! now write the calculation.
-
-   !  do j = jsc, jec; do i = isc, iec
-   !         if (grid_kmt(i,j) .gt. 0) then
-   !              ! w (sedimentation rate, cm/year)
-   !              w(i,j) = (cobalt%fcadet_arag_btm(i,j)*100/2.71 + &
-   !                      cobalt%fcadet_calc_btm(i,j)*100/2.94 + &
-   !                      cobalt%fsitot_btm(i,j)*60/2.65 + &
-   !                      cobalt%flithdet_btm(i,j)/2.65 + &
-   !                      cobalt%ffetot_btm(i,j)*160/5.24 + &
-   !                      cobalt%fptot_btm(i,j)*120/2.3 + &
-   !                      cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000*3600*24*365/(1-por)
-   !      endif
-   !      enddo;enddo
-
-   !   end subroutine calc_sedimentation_rate
-
 
    subroutine vertdiff_CBED(cobalt_tracer_list,cobalt, cbed_field, field_name, D, w, VF, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
       type(g_tracer_type),          pointer       :: cobalt_tracer_list
@@ -565,10 +514,7 @@ contains
       real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_nox, R_ana, R_oduox
 
 
-      !call grid_cbed(dz_cbed, z_cbed_mid, z_cbed_int)
-      !call calc_sedimentation_rate(cobalt_tracer_list, cobalt,ilb, jlb, grid_dat, grid_tmask,isc,iec, jsc,jec, isd, jsd, nk, &
-      !    mask_coast, grid_kmt, w)
-
+      ! Sedimentation rate calculation
       do j = jsc, jec; do i = isc, iec
             do k = 1, nk_cbed+1
                if (grid_kmt(i,j) .gt. 0) then
@@ -684,119 +630,28 @@ contains
 
 
 
-! calculations for tridiag. Press et al. Calc ea, eb, h_old.
-
-
-!    ! grid
-!    ! local parameters
-!    real, parameter :: l_cbed = 20             ! length of sediment domain | sediment depth (cm, 20 cm)
-!    real, parameter :: rho_s = 2.5             ! solid density (g/cm³)
-
-      ! sediment grid and state variables (to be allocated)
-      !real, allocatable :: dz_cbed(:)                ! sediment layer thickness (m)
-      !real, allocatable :: z_cbed(:)              ! sediment depth points (m)
-!    real :: dz_cbed(nk_cbed)              ! thickness of each cbed layers (m)
-!    real :: z_cbed_int(nk_cbed+1)         ! layer interfaces (m)
-!    real :: z_cbed_mid(nk_cbed)           ! layer mid points (m)
-
-      ! grid param end.
-
-      ! other required parameters
-!    real, parameter :: por = 0.8                 ! porosity
-!    real, parameter :: w = 1.0 /100.0/spery      ! m/s ! sedimentation rate (1 cm/year)
-!    real, parameter :: Do2_0 =  1.0e-9           ! o₂ diffusion coefficient at ideal (m²/s)
-!    real, dimension(isc:iec,jsc:jec,1:(nk_cbed+1)) :: Do2          ! o₂ diffusion coefficient real (3D) (m²/s)
-
-!    real, dimension(isc:iec,jsc:jec,:) :: ea
-!    real, dimension(isc:iec,jsc:jec,:) :: eb
-!    real :: h_old(nk_cbed)
-
-
-      !end other required parameters
-
-
-      !allocate(dz_cbed(nk_cbed))
-      !allocate(z_cbed(nk_cbed+1))
-
-!    ! define uniform sediment grid
-!    dz_cbed = l_cbed / real(nk_cbed)
-!    z_cbed_int(1) = 0.0   !this is likely the interface. dimention of z_cbed is nk_cbed+1. z_int_cbed. might need z_mid_cbed
-!    do k = 1, nk_cbed
-!        z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
-!    end do
-
-!    z_cbed_mid(1) = dz_cbed(1)/2   ! first layer mid point
-!    do k = 1, nk_cbed-1
-!        z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
-!    end do
-
-      !! update upper boundary condition
-      !do j = jsc, jec; do i = isc, iec
-      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_om1(i,j,1) = frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
-      !   enddo;enddo
-
-      !do j = jsc, jec; do i = isc, iec
-      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_om2(i,j,1) = frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
-      !   enddo;enddo
-
-      !do j = jsc, jec; do i = isc, iec
-      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_om3(i,j,1) = frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/dz_cbed(1)
-      !   enddo;enddo
-
-      !do j = jsc, jec; do i = isc, iec
-      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_o2(i,j,1) = cobalt%f_o2(i,j,nk)
-      !   enddo;enddo
-
-      !do j = jsc, jec; do i = isc, iec
-      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_nh4(i,j,1) = cobalt%f_nh4(i,j,nk)
-      !   enddo;enddo
-
-      !do j = jsc, jec; do i = isc, iec
-      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_no3(i,j,1) = cobalt%f_no3(i,j,nk)
-      !   enddo;enddo
-      !do j = jsc, jec; do i = isc, iec
-      !      if (grid_kmt(i,j) .gt. 0)  cbed%f_dic(i,j,1) = cobalt%f_dic(i,j,nk)
-      !   enddo;enddo
-
-      !deallocate(dz_cbed)
-      !deallocate(z_cbed)
-
-!    ! Tridiag calculation
-!    do k = 1, nk_cbed
-!        h_old(k) = dz_cbed(k)
-!    enddo
-!
-!    do j = jsc, jec; do i = isc, iec
-!      do k=1,nk_cbed
-!        if (grid_kmt(i,j) .gt. 0) then
-!                ea(i,j,k) = Do2(i,j,k)*dt/h_old(k)
-!                eb(i,j,k) = Do2(i,j,k+1)*dt/h_old(k)
-!        endif
-!        enddo; enddo
-
-
       !Test that we can change the value of concentration field of a CBED tracer
       do j = jsc, jec; do i = isc, iec  !{
             do k=1,nk_cbed
                if (grid_kmt(i,j) .gt. 0) then
                   cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
-                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - svf(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
-                     por(i,j,k)*(2.0*R_nox(i,j,k))
+                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - (R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k))/por(i,j,k) - &
+                     (2.0*R_nox(i,j,k))
 
-                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) - svf(i,j,k)*(R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
+                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
 
-                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) - svf(i,j,k)*(R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
+                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
 
-                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) - svf(i,j,k)*(R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
+                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
 
-                  cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + svf(i,j,k)*cobalt%c_2_n*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     por(i,j,k)* ( - R_nox(i,j,k) - R_ana(i,j,k))
+                  cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + cobalt%c_2_n*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))/por(i,j,k) + &
+                     ( - R_nox(i,j,k) - R_ana(i,j,k))
 
-                  cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) - svf(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                     por(i,j,k)*(R_nox(i,j,k) - R_ana(i,j,k))
+                  cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) - 0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k))/por(i,j,k) + &
+                     (R_nox(i,j,k) - R_ana(i,j,k))
 
-                  cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + svf(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))
+                  cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + (R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))/por(i,j,k)
 
                endif
 
