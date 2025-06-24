@@ -468,7 +468,7 @@ contains
 
                ! bottom flux
                btm_src = 0.0
-               btm_src = -(cbed_field(i,j,nk_cbed)*VF(i,j,nk_cbed+1)*w(i,j,nk_cbed+1)*dt) ! bottom flux
+               btm_src = -(cbed_field(i,j,nk_cbed)*VF(i,j,nk_cbed)*w(i,j,nk_cbed+1)*dt) ! bottom flux
                cbed_field(i,j,nk_cbed) = cbed_field(i,j,nk_cbed) + btm_src/h_old(nk_cbed)
 
 
