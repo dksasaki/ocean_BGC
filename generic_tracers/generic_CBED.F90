@@ -781,22 +781,22 @@ contains
                if (grid_kmt(i,j) .gt. 0) then
                   cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
-                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) !- svf(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
-                    ! por(i,j,k)*(2.0*R_nox(i,j,k))
+                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - svf(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
+                     por(i,j,k)*(2.0*R_nox(i,j,k))
 
-                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) !- svf(i,j,k)*(R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
+                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) - svf(i,j,k)*(R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
 
-                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) !- svf(i,j,k)*(R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
+                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) - svf(i,j,k)*(R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
 
-                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) !- svf(i,j,k)*(R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
+                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) - svf(i,j,k)*(R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
 
-                  cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) !+ svf(i,j,k)*cobalt%c_2_n*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     !por(i,j,k)* ( - R_nox(i,j,k) - R_ana(i,j,k))
+                  cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + svf(i,j,k)*cobalt%c_2_n*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
+                     por(i,j,k)* ( - R_nox(i,j,k) - R_ana(i,j,k))
 
-                  cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) !- svf(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                     !por(i,j,k)*(R_nox(i,j,k) - R_ana(i,j,k))
+                  cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) - svf(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
+                     por(i,j,k)*(R_nox(i,j,k) - R_ana(i,j,k))
 
-                  cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) !+ svf(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))
+                  cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + svf(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))
 
                endif
 
