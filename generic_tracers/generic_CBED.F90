@@ -668,13 +668,13 @@ contains
                   R_om3_odu(i,j,k) = 0.0 !* k_adj_anoxia*k3(i,j)*cbed%f_om3(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
 
                   ! dic
-                  R_dic_om1(i,j,k) = 0.0 !* (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
-                  R_dic_om2(i,j,k) = 0.0 !* (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
-                  R_dic_om3(i,j,k) = 0.0 !* (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
+                  R_dic_om1(i,j,k) = (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
+                  R_dic_om2(i,j,k) = (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
+                  R_dic_om3(i,j,k) = (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
                   ! nitrification
-                  R_nox(i,j,k) = 0.0 !* k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k)
+                  R_nox(i,j,k) = k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k)
                   ! anammox
-                  R_ana(i,j,k) = 0.0 !* k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k)
+                  R_ana(i,j,k) = k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k)
                   ! ODU oxidation (need to include ODU in the cbed)
                   !R_oduox(i,j,k) = k_oduox*cbed%f_odu(i,j,k)*cbed%f_o2(i,j,k)
 
