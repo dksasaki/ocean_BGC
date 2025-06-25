@@ -321,7 +321,7 @@ contains
    subroutine vertdiff_CBED(cobalt_tracer_list,cobalt, cbed_field, field_name, D, w, VF, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
       type(g_tracer_type),          pointer       :: cobalt_tracer_list
       type(generic_COBALT_type),    intent(inout) :: cobalt
-      real, dimension(:,:,:),       intent(inout) :: cbed_field  ! cbed tracer concentration field 
+      real, dimension(:,:,:),       intent(inout) :: cbed_field  ! cbed tracer concentration field
       character(len=*),             intent(in)    :: field_name   !Name of the cbed field (e.g., "f_o2" or "f_nh4")
       real, dimension(:,:,:),       intent(in)    :: D   ! diffustion
       real, dimension(:,:,:),       intent(in)    :: w   !sinking velocity or sedimentation rate
@@ -637,7 +637,7 @@ contains
                   cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
                   cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - (R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k))/por(i,j,k) - &
-                     (2.0*R_nox(i,j,k))
+                     (2.0*R_nox(i,j,k)) + bioirri(i,j,k)*(cobalt%f_o2(i,j,nk) - cbed%f_o2(i,j,k))
 
                   cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
 
@@ -646,12 +646,13 @@ contains
                   cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
 
                   cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + cobalt%c_2_n*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))/por(i,j,k) + &
-                     ( - R_nox(i,j,k) - R_ana(i,j,k))
+                     ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk) - cbed%f_nh4(i,j,k))
 
                   cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) - 0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k))/por(i,j,k) + &
-                     (R_nox(i,j,k) - R_ana(i,j,k))
+                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_no3(i,j,nk) - cbed%f_no3(i,j,k))
 
-                  cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + (R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))/por(i,j,k)
+                  cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + (R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))/por(i,j,k) + &
+                     bioirri(i,j,k)*(cobalt%f_dic(i,j,nk) - cbed%f_dic(i,j,k))
 
                endif
 
