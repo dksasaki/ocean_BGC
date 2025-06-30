@@ -992,23 +992,22 @@ contains
                cobalt%f_cased(i,j,k) = 0.0
             enddo; enddo ; enddo  !} i,j,k
 
+
+
+      ! set the cobalt%b_* terms. These are used in some other places in COBALT as well. So just "b_o2" might not work.
+      cobalt%b_dic = b_dic
+      cobalt%b_o2 = b_o2
+      cobalt%b_nh4 = b_nh4
+      cobalt%b_no3 = b_no3
+
       call g_tracer_set_values(cobalt_tracer_list,'alk',  'btf', cobalt%b_alk ,isd,jsd)
-      call g_tracer_set_values(cobalt_tracer_list,'dic',  'btf', b_dic ,isd,jsd)
+      call g_tracer_set_values(cobalt_tracer_list,'dic',  'btf', cobalt%b_dic ,isd,jsd)
       call g_tracer_set_values(cobalt_tracer_list,'fed',  'btf', cobalt%b_fed ,isd,jsd)
-      call g_tracer_set_values(cobalt_tracer_list,'nh4',  'btf', b_nh4 ,isd,jsd)
-      call g_tracer_set_values(cobalt_tracer_list,'no3',  'btf', b_no3 ,isd,jsd)
-      call g_tracer_set_values(cobalt_tracer_list,'o2',   'btf', b_o2  ,isd,jsd)
+      call g_tracer_set_values(cobalt_tracer_list,'nh4',  'btf', cobalt%b_nh4 ,isd,jsd)
+      call g_tracer_set_values(cobalt_tracer_list,'no3',  'btf', cobalt%b_no3 ,isd,jsd)
+      call g_tracer_set_values(cobalt_tracer_list,'o2',   'btf', cobalt%b_o2  ,isd,jsd)
       call g_tracer_set_values(cobalt_tracer_list,'po4',  'btf', cobalt%b_po4 ,isd,jsd)
       call g_tracer_set_values(cobalt_tracer_list,'sio4', 'btf', cobalt%b_sio4,isd,jsd)
-
-      !call g_tracer_set_values(cobalt_tracer_list,'alk',  'btf', cobalt%b_alk ,isd,jsd)
-      !call g_tracer_set_values(cobalt_tracer_list,'dic',  'btf', cobalt%b_dic ,isd,jsd)
-      !call g_tracer_set_values(cobalt_tracer_list,'fed',  'btf', cobalt%b_fed ,isd,jsd)
-      !call g_tracer_set_values(cobalt_tracer_list,'nh4',  'btf', cobalt%b_nh4 ,isd,jsd)
-      !call g_tracer_set_values(cobalt_tracer_list,'no3',  'btf', cobalt%b_no3 ,isd,jsd)
-      !call g_tracer_set_values(cobalt_tracer_list,'o2',   'btf', cobalt%b_o2  ,isd,jsd)
-      !call g_tracer_set_values(cobalt_tracer_list,'po4',  'btf', cobalt%b_po4 ,isd,jsd)
-      !call g_tracer_set_values(cobalt_tracer_list,'sio4', 'btf', cobalt%b_sio4,isd,jsd)
 
    end subroutine generic_CBED_sediments_update_from_source
 
