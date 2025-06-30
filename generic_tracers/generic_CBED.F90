@@ -513,6 +513,9 @@ contains
       real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_dic_om1, R_dic_om2, R_dic_om3
       real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_nox, R_ana, R_oduox
 
+      ! b terms
+      real, dimension(isc:iec,jsc:jec) :: b_o2, b_dic, b_nh4, b_no3
+
 
       ! Sedimentation rate calculation
       do j = jsc, jec; do i = isc, iec
@@ -562,7 +565,7 @@ contains
             do k = 1, nk_cbed
                if (grid_kmt(i,j) .gt. 0) then
                   ! relation from Archer. POC flux unit in umol cm-2 y-1.
-                  bioirri(i,j,k) = max(0.0, bioirri_0(i,j)*exp(-(z_cbed_mid(k)/bioirri_l)**2) )
+                  bioirri(i,j,k) = 0.0 ! max(0.0, bioirri_0(i,j)*exp(-(z_cbed_mid(k)/bioirri_l)**2) )
                endif
             enddo
          enddo;enddo
@@ -628,6 +631,22 @@ contains
             enddo
          enddo;enddo
 
+      ! Calculate the "b terms" to feed into cobalt.
+      ! The b terms are calulated based on the t-1 time step. This is to maintain mass balance
+      ! with cobalt-cbed. The surface flux calculated in the vertdiff_CBED subroutine
+      ! is the flux at t-1, so we need to use the t-1 concentration field to calculate the b term,
+      ! which will update the bottom flux as the verdiff_G is not yet called for cobalt.
+      ! The CBED reaction rates however are calculated based on the t time step, so they will be
+      ! calculated after source sink calculation and call to vertdiff_CBED.
+      !
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%f_o2(i,j,nk)-cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0))*dt
+               b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0))*dt
+               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%f_no3(i,j,nk)-cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0))*dt
+               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%f_dic(i,j,nk)-cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0))*dt
+            endif
+         enddo;enddo
 
 
       !Test that we can change the value of concentration field of a CBED tracer
@@ -974,13 +993,22 @@ contains
             enddo; enddo ; enddo  !} i,j,k
 
       call g_tracer_set_values(cobalt_tracer_list,'alk',  'btf', cobalt%b_alk ,isd,jsd)
-      call g_tracer_set_values(cobalt_tracer_list,'dic',  'btf', cobalt%b_dic ,isd,jsd)
+      call g_tracer_set_values(cobalt_tracer_list,'dic',  'btf', b_dic ,isd,jsd)
       call g_tracer_set_values(cobalt_tracer_list,'fed',  'btf', cobalt%b_fed ,isd,jsd)
-      call g_tracer_set_values(cobalt_tracer_list,'nh4',  'btf', cobalt%b_nh4 ,isd,jsd)
-      call g_tracer_set_values(cobalt_tracer_list,'no3',  'btf', cobalt%b_no3 ,isd,jsd)
-      call g_tracer_set_values(cobalt_tracer_list,'o2',   'btf', cobalt%b_o2  ,isd,jsd)
+      call g_tracer_set_values(cobalt_tracer_list,'nh4',  'btf', b_nh4 ,isd,jsd)
+      call g_tracer_set_values(cobalt_tracer_list,'no3',  'btf', b_no3 ,isd,jsd)
+      call g_tracer_set_values(cobalt_tracer_list,'o2',   'btf', b_o2  ,isd,jsd)
       call g_tracer_set_values(cobalt_tracer_list,'po4',  'btf', cobalt%b_po4 ,isd,jsd)
       call g_tracer_set_values(cobalt_tracer_list,'sio4', 'btf', cobalt%b_sio4,isd,jsd)
+
+      !call g_tracer_set_values(cobalt_tracer_list,'alk',  'btf', cobalt%b_alk ,isd,jsd)
+      !call g_tracer_set_values(cobalt_tracer_list,'dic',  'btf', cobalt%b_dic ,isd,jsd)
+      !call g_tracer_set_values(cobalt_tracer_list,'fed',  'btf', cobalt%b_fed ,isd,jsd)
+      !call g_tracer_set_values(cobalt_tracer_list,'nh4',  'btf', cobalt%b_nh4 ,isd,jsd)
+      !call g_tracer_set_values(cobalt_tracer_list,'no3',  'btf', cobalt%b_no3 ,isd,jsd)
+      !call g_tracer_set_values(cobalt_tracer_list,'o2',   'btf', cobalt%b_o2  ,isd,jsd)
+      !call g_tracer_set_values(cobalt_tracer_list,'po4',  'btf', cobalt%b_po4 ,isd,jsd)
+      !call g_tracer_set_values(cobalt_tracer_list,'sio4', 'btf', cobalt%b_sio4,isd,jsd)
 
    end subroutine generic_CBED_sediments_update_from_source
 
