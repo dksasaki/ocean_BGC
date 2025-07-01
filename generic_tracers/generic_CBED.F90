@@ -22,7 +22,7 @@ module generic_CBED
    public generic_CBED_init, generic_CBED_end
    public generic_CBED_reg_diagnostics, generic_CBED_send_diagnostics
 
-   integer, parameter :: nk_cbed = 100    ! Number of benthic layers
+   integer, parameter :: nk_cbed = 20    ! Number of benthic layers
 
    type generic_CBED_type
       real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
