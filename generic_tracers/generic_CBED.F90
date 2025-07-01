@@ -386,7 +386,7 @@ contains
                sfc_src = 0.0
 
                if ((trim(field_name) == "f_o2")) then
-                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_o2(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_nh4")) then
@@ -394,11 +394,11 @@ contains
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_no3")) then
-                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_no3(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%btm_no3(i,j)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_dic") ) then
-                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%f_dic(i,j,nk)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%btm_dic(i,j)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_om1")) then
@@ -641,10 +641,10 @@ contains
       !
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
-               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%f_o2(i,j,nk)-cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0))*dt
+               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)-cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0))*dt
                b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0))*dt
-               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%f_no3(i,j,nk)-cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0))*dt
-               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%f_dic(i,j,nk)-cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0))*dt
+               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)-cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0))*dt
+               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)-cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0))*dt
             endif
          enddo;enddo
 
@@ -656,7 +656,7 @@ contains
                   cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
                   cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - (R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k))/por(i,j,k) - &
-                     (2.0*R_nox(i,j,k)) + bioirri(i,j,k)*(cobalt%f_o2(i,j,nk) - cbed%f_o2(i,j,k))
+                     (2.0*R_nox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k))
 
                   cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
 
@@ -668,10 +668,10 @@ contains
                      ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk) - cbed%f_nh4(i,j,k))
 
                   cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) - 0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k))/por(i,j,k) + &
-                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_no3(i,j,nk) - cbed%f_no3(i,j,k))
+                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j) - cbed%f_no3(i,j,k))
 
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + (R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))/por(i,j,k) + &
-                     bioirri(i,j,k)*(cobalt%f_dic(i,j,nk) - cbed%f_dic(i,j,k))
+                     bioirri(i,j,k)*(cobalt%btm_dic(i,j) - cbed%f_dic(i,j,k))
 
                endif
 
