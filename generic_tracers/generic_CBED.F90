@@ -995,10 +995,15 @@ contains
 
 
       ! set the cobalt%b_* terms. These are used in some other places in COBALT as well. So just "b_o2" might not work.
-      !cobalt%b_dic = b_dic
-      !cobalt%b_o2 = b_o2
-      cobalt%b_nh4 = b_nh4
-      !cobalt%b_no3 = b_no3
+      do j = jsc, jec; do i = isc, iec 
+          if (grid_kmt(i,j) .gt. 0) then 
+              cobalt%b_dic(i,j) = b_dic(i,j)
+              cobalt%b_o2(i,j)  = b_o2(i,j)
+              cobalt%b_nh4(i,j) = b_nh4(i,j)
+              cobalt%b_no3(i,j) = b_no3(i,j)
+          endif
+       enddo; enddo
+
 
       call g_tracer_set_values(cobalt_tracer_list,'alk',  'btf', cobalt%b_alk ,isd,jsd)
       call g_tracer_set_values(cobalt_tracer_list,'dic',  'btf', cobalt%b_dic ,isd,jsd)
