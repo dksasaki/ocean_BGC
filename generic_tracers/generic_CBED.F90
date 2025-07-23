@@ -641,10 +641,10 @@ contains
       !
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
-               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)-cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0))*dt
-               b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0))*dt
-               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)-cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0))*dt
-               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)-cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0))*dt
+               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)-cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0))
+               b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0))
+               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)-cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0))
+               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)-cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0))
             endif
          enddo;enddo
 
