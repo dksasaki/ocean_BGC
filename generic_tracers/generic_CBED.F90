@@ -677,7 +677,8 @@ contains
 
             enddo
          enddo;enddo
-
+      
+      ! call vertdiff_CBED. This updates the fields. 
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, "f_om2", Db,    w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
@@ -995,14 +996,14 @@ contains
 
 
       ! set the cobalt%b_* terms. These are used in some other places in COBALT as well. So just "b_o2" might not work.
-      do j = jsc, jec; do i = isc, iec 
-          if (grid_kmt(i,j) .gt. 0) then 
-              cobalt%b_dic(i,j) = b_dic(i,j)
-              cobalt%b_o2(i,j)  = b_o2(i,j)
-              cobalt%b_nh4(i,j) = b_nh4(i,j)
-              cobalt%b_no3(i,j) = b_no3(i,j)
-          endif
-       enddo; enddo
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               cobalt%b_dic(i,j) = b_dic(i,j)
+               cobalt%b_o2(i,j)  = b_o2(i,j)
+               cobalt%b_nh4(i,j) = b_nh4(i,j)
+               cobalt%b_no3(i,j) = b_no3(i,j)
+            endif
+         enddo; enddo
 
 
       call g_tracer_set_values(cobalt_tracer_list,'alk',  'btf', cobalt%b_alk ,isd,jsd)
