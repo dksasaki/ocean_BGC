@@ -721,10 +721,10 @@ contains
 
 
                   ! calculations for diagnostics
-                  R_om_o2(i,j,k) = R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)
-                  R_om_no3(i,j,k) = R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)
-                  R_om_anaerobic(i,j,k) = R_om1_odu(i,j,k) + R_om2_odu(i,j,k) + R_om3_odu(i,j,k)
-                  R_dic(i,j,k) = R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)
+                  cbed%R_om_o2(i,j,k) = R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)
+                  cbed%R_om_no3(i,j,k) = R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)
+                  cbed%R_om_anaerobic(i,j,k) = R_om1_odu(i,j,k) + R_om2_odu(i,j,k) + R_om3_odu(i,j,k)
+                  cbed%R_dic(i,j,k) = R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)
 
 
                endif
