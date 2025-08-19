@@ -33,6 +33,8 @@ module generic_CBED
       real, dimension(:,:,:), allocatable :: f_nh4   ! tracer nh4 (ammonium) concentration field
       real, dimension(:,:,:), allocatable :: f_no3   ! tracer no3 (nitrate) concentration field
       real, dimension(:,:,:), allocatable :: f_dic   ! tracer dic (dissolved inorganic carbon) concentration field
+      real, dimension(:,:,:), allocatable :: f_odu   ! tracer odu (oxygen deficit unit) concentration field
+      real, dimension(:,:,:), allocatable :: f_talk   ! tracer talk (total alkalinity) concentration field
       ! Diagnostics
       ! 3D diags
       real, dimension(:,:,:), allocatable :: R_om_o2          ! OM resep via aerobic process
@@ -58,6 +60,8 @@ module generic_CBED
       integer :: id_nh4                              ! tracer nh4 diagnostics id
       integer :: id_no3                              ! tracer no3 diagnostics id
       integer :: id_dic                              ! tracer dic diagnostics id
+      integer :: id_odu                              ! tracer odu diagnostics id
+      integer :: id_talk                             ! tracer talk diagnostics id
       ! 3D diags
       integer :: id_R_om_o2
       integer :: id_R_om_no3
@@ -160,6 +164,8 @@ contains
       allocate(cbed%f_nh4(isd:ied,jsd:jed,nk_cbed));cbed%f_nh4=0.0
       allocate(cbed%f_no3(isd:ied,jsd:jed,nk_cbed));cbed%f_no3=0.0
       allocate(cbed%f_dic(isd:ied,jsd:jed,nk_cbed));cbed%f_dic=0.0
+      allocate(cbed%f_odu(isd:ied,jsd:jed,nk_cbed));cbed%f_odu=0.0
+      allocate(cbed%f_talk(isd:ied,jsd:jed,nk_cbed));cbed%f_talk=0.0
       !Diagnostics
       ! 3D diags
       allocate(cbed%R_om_o2(isd:ied,jsd:jed,nk_cbed));cbed%R_om_o2=0.0
@@ -246,6 +252,8 @@ contains
          call register_restart_field(fileobj, "cbed_nh4", cbed%f_nh4, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_no3", cbed%f_no3, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_dic", cbed%f_dic, (/"x","y","lev"/))
+         call register_restart_field(fileobj, "cbed_odu", cbed%f_odu, (/"x","y","lev"/))
+         call register_restart_field(fileobj, "cbed_talk", cbed%f_talk, (/"x","y","lev"/))
          !diags
          ! 3D diags
          call register_restart_field(fileobj, "cbed_R_om_o2", cbed%R_om_o2, (/"x","y","lev"/))
@@ -289,7 +297,10 @@ contains
          'cbed nitrate concentration', 'mol/kg', missing_value = missing_value1)
       cbed%id_dic = register_diag_field(package_name, 'cbed_dic_conc', (/axes(1),axes(2),id_layer/), init_time,&
          'cbed DIC concentration', 'mol/kg', missing_value = missing_value1)
-
+      cbed%id_odu = register_diag_field(package_name, 'cbed_odu_conc', (/axes(1),axes(2),id_layer/), init_time,&
+         'cbed ODU concentration', 'mol/kg', missing_value = missing_value1)
+      cbed%id_talk = register_diag_field(package_name, 'cbed_talk_conc', (/axes(1),axes(2),id_layer/), init_time,&
+         'cbed total alkalinity concentration', 'mol/kg', missing_value = missing_value1)
       ! diags
       ! 3D diags
       cbed%id_R_om_o2 = register_diag_field(package_name, 'cbed_R_om_o2', (/axes(1),axes(2),id_layer/), init_time,&
@@ -352,6 +363,10 @@ contains
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
       used = send_data(cbed%id_dic, cbed%f_dic, model_time, rmask = cbed_tmask,&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+      used = send_data(cbed%id_odu, cbed%f_odu, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+      used = send_data(cbed%id_talk, cbed%f_talk, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
 
       ! diags
       ! 3D diags
@@ -398,6 +413,8 @@ contains
          call register_restart_field(fileobj, "cbed_nh4", cbed%f_nh4, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_no3", cbed%f_no3, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_dic", cbed%f_dic, (/"x","y","lev"/))
+         call register_restart_field(fileobj, "cbed_odu", cbed%f_odu, (/"x","y","lev"/))
+         call register_restart_field(fileobj, "cbed_talk", cbed%f_talk, (/"x","y","lev"/))
          ! diags
          ! 3D diags
          call register_restart_field(fileobj, "cbed_R_om_o2", cbed%R_om_o2, (/"x","y","lev"/))
@@ -425,6 +442,8 @@ contains
       deallocate(cbed%f_nh4)
       deallocate(cbed%f_no3)
       deallocate(cbed%f_dic)
+      deallocate(cbed%f_odu)
+      deallocate(cbed%f_talk)
 
       deallocate(cbed%R_om_o2)
       deallocate(cbed%R_om_no3)
@@ -542,6 +561,14 @@ contains
                   sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%btm_dic(i,j)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
+               else if ((trim(field_name) == "f_odu") ) then
+                  sfc_src = VF(i,j,1)*D(i,j,1)*((0.0-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+
+               else if ((trim(field_name) == "f_talk") ) then
+                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%btm_alk(i,j)-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+
                else if ((trim(field_name) == "f_om1")) then
                   sfc_src = frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
@@ -650,9 +677,10 @@ contains
       ! Reaction rates
       real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_om1_o2, R_om2_o2, R_om3_o2
       real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_om1_no3, R_om2_no3, R_om3_no3
-      real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_om1_odu, R_om2_odu, R_om3_odu
+      real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_om1_anoxic, R_om2_anoxic, R_om3_anoxic
       real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_dic_om1, R_dic_om2, R_dic_om3
-      real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_nox, R_ana, R_oduox
+      real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_nox, R_ana, R_oduox, odu_depo
+      real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_talk
 
       ! b terms
       real, dimension(isc:iec,jsc:jec) :: b_o2, b_dic, b_nh4, b_no3
@@ -753,26 +781,32 @@ contains
                   R_om2_no3(i,j,k) = k_adj_denit*k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
                   R_om3_no3(i,j,k) = k_adj_denit*k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
                   ! ODU reaction rates
-                  R_om1_odu(i,j,k) = k_adj_anoxia*k1(i,j)*cbed%f_om1(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om2_odu(i,j,k) = k_adj_anoxia*k2(i,j)*cbed%f_om2(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om3_odu(i,j,k) = k_adj_anoxia*k3(i,j)*cbed%f_om3(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om1_anoxic(i,j,k) = k_adj_anoxia*k1(i,j)*cbed%f_om1(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om2_anoxic(i,j,k) = k_adj_anoxia*k2(i,j)*cbed%f_om2(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om3_anoxic(i,j,k) = k_adj_anoxia*k3(i,j)*cbed%f_om3(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
 
                   ! dic
-                  R_dic_om1(i,j,k) = (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
-                  R_dic_om2(i,j,k) = (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
-                  R_dic_om3(i,j,k) = (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
+                  R_dic_om1(i,j,k) = (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k))
+                  R_dic_om2(i,j,k) = (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k))
+                  R_dic_om3(i,j,k) = (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k))
                   ! nitrification
                   R_nox(i,j,k) = k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k)
                   ! anammox
                   R_ana(i,j,k) = k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k)
-                  ! ODU oxidation (need to include ODU in the cbed)
-                  !R_oduox(i,j,k) = k_oduox*cbed%f_odu(i,j,k)*cbed%f_o2(i,j,k)
+                  ! ODU oxidation
+                  R_oduox(i,j,k) = k_oduox*cbed%f_odu(i,j,k)*cbed%f_o2(i,j,k)
+                  odu_depo(i,j,k) = (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))*min(1, 0.233*(w(i,j,k)*100.0*spery)**0.336)
 
+                  ! TA calculation
+                  R_talk(i,j,k) = (1.0/cobalt%c_2_n)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k))/por(i,j,k) + &
+                     (0.8+1.0/cobalt%c_2_n)*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k))/por(i,j,k) + &
+                     (1.0+1.0/cobalt%c_2_n)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))/por(i,j,k) - &
+                     2.0*R_nox(i,j,k) - 2.0*R_oduox(i,j,k)
 
                   ! calculations for diagnostics
                   cbed%R_om_o2(i,j,k) = R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)
                   cbed%R_om_no3(i,j,k) = R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)
-                  cbed%R_om_anaerobic(i,j,k) = R_om1_odu(i,j,k) + R_om2_odu(i,j,k) + R_om3_odu(i,j,k)
+                  cbed%R_om_anaerobic(i,j,k) = R_om1_anoxic(i,j,k) + R_om2_anoxic(i,j,k) + R_om3_anoxic(i,j,k)
                   cbed%R_dic(i,j,k) = R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)
 
 
@@ -815,15 +849,15 @@ contains
                   cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
                   cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - (R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k))/por(i,j,k) - &
-                     (2.0*R_nox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k))
+                     (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k))
 
-                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_odu(i,j,k))
+                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k))
 
-                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_odu(i,j,k))
+                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k))
 
-                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_odu(i,j,k))
+                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k))
 
-                  cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + cobalt%c_2_n*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))/por(i,j,k) + &
+                  cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + (1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))/por(i,j,k) + &
                      ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk) - cbed%f_nh4(i,j,k))
 
                   cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) - 0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k))/por(i,j,k) + &
@@ -831,6 +865,12 @@ contains
 
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + (R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))/por(i,j,k) + &
                      bioirri(i,j,k)*(cobalt%btm_dic(i,j) - cbed%f_dic(i,j,k))
+
+                  cbed%f_odu(i,j,k) = cbed%f_odu(i,j,k) + (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))/por(i,j,k) - &
+                     R_oduox(i,j,k) - odu_depo(i,j,k)/por(i,j,k)  + bioirri(i,j,k)*(0.0 - cbed%f_odu(i,j,k))
+
+                  cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j) - cbed%f_talk(i,j,k))
+
 
                endif
 
@@ -845,6 +885,8 @@ contains
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, "f_nh4", D_nh4, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_no3, "f_no3", D_no3, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_odu, "f_odu", D_odu, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_talk, "f_talk", D_dic, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
 
 
 
