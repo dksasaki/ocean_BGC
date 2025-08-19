@@ -795,7 +795,7 @@ contains
                   R_ana(i,j,k) = k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k)
                   ! ODU oxidation
                   R_oduox(i,j,k) = k_oduox*cbed%f_odu(i,j,k)*cbed%f_o2(i,j,k)
-                  odu_depo(i,j,k) = (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))*min(1, 0.233*(w(i,j,k)*100.0*spery)**0.336)
+                  odu_depo(i,j,k) = (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))*min(1.0, 0.233*(w(i,j,k)*100.0*spery)**0.336)
 
                   ! TA calculation
                   R_talk(i,j,k) = (1.0/cobalt%c_2_n)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k))/por(i,j,k) + &
