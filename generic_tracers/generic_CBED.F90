@@ -37,6 +37,7 @@ module generic_CBED
       real, dimension(:,:,:), allocatable :: f_talk   ! tracer talk (total alkalinity) concentration field
       ! Diagnostics
       ! 3D diags
+      real, dimension(:,:,:), allocatable :: TOC              ! total organic carbon (wt %) in sediment
       real, dimension(:,:,:), allocatable :: R_om_o2          ! OM resep via aerobic process
       real, dimension(:,:,:), allocatable :: R_om_no3         ! OM resep via denitrification
       real, dimension(:,:,:), allocatable :: R_om_anaerobic   ! OM resep via other anaerobic process
@@ -63,6 +64,7 @@ module generic_CBED
       integer :: id_odu                              ! tracer odu diagnostics id
       integer :: id_talk                             ! tracer talk diagnostics id
       ! 3D diags
+      integer :: id_TOC
       integer :: id_R_om_o2
       integer :: id_R_om_no3
       integer :: id_R_om_anaerobic
@@ -168,6 +170,7 @@ contains
       allocate(cbed%f_talk(isd:ied,jsd:jed,nk_cbed));cbed%f_talk=0.0
       !Diagnostics
       ! 3D diags
+      allocate(cbed%TOC(isd:ied,jsd:jed,nk_cbed));cbed%TOC=0.0
       allocate(cbed%R_om_o2(isd:ied,jsd:jed,nk_cbed));cbed%R_om_o2=0.0
       allocate(cbed%R_om_no3(isd:ied,jsd:jed,nk_cbed));cbed%R_om_no3=0.0
       allocate(cbed%R_om_anaerobic(isd:ied,jsd:jed,nk_cbed));cbed%R_om_anaerobic=0.0
@@ -256,6 +259,7 @@ contains
          call register_restart_field(fileobj, "cbed_talk", cbed%f_talk, (/"x","y","lev"/))
          !diags
          ! 3D diags
+         call register_restart_field(fileobj, "cbed_TOC", cbed%TOC, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_R_om_o2", cbed%R_om_o2, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_R_om_no3", cbed%R_om_no3, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_R_om_anaerobic", cbed%R_om_anaerobic, (/"x","y","lev"/))
@@ -303,6 +307,8 @@ contains
          'cbed total alkalinity concentration', 'mol/kg', missing_value = missing_value1)
       ! diags
       ! 3D diags
+      cbed%id_TOC = register_diag_field(package_name, 'cbed_TOC', (/axes(1),axes(2),id_layer/), init_time,&
+         'Total Organic Carbon in sediment', 'wt %', missing_value = missing_value1)
       cbed%id_R_om_o2 = register_diag_field(package_name, 'cbed_R_om_o2', (/axes(1),axes(2),id_layer/), init_time,&
          'aerobic respiration in sediment 3D field', 'mol C/kg', missing_value = missing_value1)
       cbed%id_R_om_no3 = register_diag_field(package_name, 'cbed_R_om_no3', (/axes(1),axes(2),id_layer/), init_time,&
@@ -370,6 +376,8 @@ contains
 
       ! diags
       ! 3D diags
+      used = send_data(cbed%id_TOC, cbed%TOC, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
       used = send_data(cbed%id_R_om_o2, cbed%R_om_o2, model_time, rmask = cbed_tmask,&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
       used = send_data(cbed%id_R_om_no3, cbed%R_om_no3, model_time, rmask = cbed_tmask,&
@@ -417,6 +425,7 @@ contains
          call register_restart_field(fileobj, "cbed_talk", cbed%f_talk, (/"x","y","lev"/))
          ! diags
          ! 3D diags
+         call register_restart_field(fileobj, "cbed_TOC", cbed%TOC, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_R_om_o2", cbed%R_om_o2, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_R_om_no3", cbed%R_om_no3, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_R_om_anaerobic", cbed%R_om_anaerobic, (/"x","y","lev"/))
@@ -445,6 +454,8 @@ contains
       deallocate(cbed%f_odu)
       deallocate(cbed%f_talk)
 
+      ! diags
+      deallocate(cbed%TOC)
       deallocate(cbed%R_om_o2)
       deallocate(cbed%R_om_no3)
       deallocate(cbed%R_om_anaerobic)
@@ -841,6 +852,15 @@ contains
             endif
          enddo;enddo
 
+
+      !TOC (total organic carbon) diagnostics
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               do k = 1, nk_cbed
+                  cbed%TOC(i,j,k)  = (cbed%om1(i,j,k)+cbed%om2(i,j,k)+cbed%om3(i,j,k))/1000.0*12.0/rho_s*100.0/svf(i,j,k)
+               enddo
+            endif
+         enddo;enddo
 
       !Test that we can change the value of concentration field of a CBED tracer
       do j = jsc, jec; do i = isc, iec  !{
