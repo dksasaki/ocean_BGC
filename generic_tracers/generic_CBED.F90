@@ -48,8 +48,8 @@ module generic_CBED
       real, dimension(:,:), allocatable :: nh4_flux !benthic nh4 flux
       real, dimension(:,:), allocatable :: no3_flux !benthic no3 flux
       real, dimension(:,:), allocatable :: dic_flux !benthic dic flux
-      !real, dimension(:,:), allocatable :: burial_om !organic matter burial at the bottom of sediment column
-      !real, dimension(:,:), allocatable :: cbed_denit
+      real, dimension(:,:), allocatable :: burial_om !organic matter burial at the bottom of sediment column
+      real, dimension(:,:), allocatable :: denit
       !real, dimension(:,:), allocatable :: cbed_anammox
       !real, dimension(:,:), allocatable :: cbed_o2resp
       !real, dimension(:,:), allocatable :: cbed_no3resp
@@ -74,8 +74,8 @@ module generic_CBED
       integer :: id_nh4_flux
       integer :: id_no3_flux
       integer :: id_dic_flux
-      !integer :: id_burial_om
-      !integer :: id_cbed_denit
+      integer :: id_burial_om
+      integer :: id_denit
       !integer :: id_cbed_anammox
       !integer :: id_cbed_o2resp
       !integer :: id_cbed_no3resp
@@ -180,8 +180,8 @@ contains
       allocate(cbed%nh4_flux(isd:ied,jsd:jed)); cbed%nh4_flux=0.0
       allocate(cbed%no3_flux(isd:ied,jsd:jed)); cbed%no3_flux=0.0
       allocate(cbed%dic_flux(isd:ied,jsd:jed)); cbed%dic_flux=0.0
-      !allocate(cbed%burial_om(isd:ied,jsd:jed));cbed%burial_om=0.0
-      !allocate(cbed%cbed_denit(isd:ied,jsd:jed));cbed%cbed_denit=0.0
+      allocate(cbed%burial_om(isd:ied,jsd:jed));cbed%burial_om=0.0
+      allocate(cbed%denit(isd:ied,jsd:jed));cbed%denit=0.0
       !allocate(cbed%cbed_anammox(isd:ied,jsd:jed));cbed%cbed_anammox=0.0
       !allocate(cbed%cbed_o2resp(isd:ied,jsd:jed));cbed%cbed_o2resp=0.0
       !allocate(cbed%cbed_no3resp(isd:ied,jsd:jed));cbed%cbed_no3resp=0.0
@@ -269,8 +269,8 @@ contains
          call register_restart_field(fileobj, "cbed_nh4_flux", cbed%nh4_flux, (/"x","y"/))
          call register_restart_field(fileobj, "cbed_no3_flux", cbed%no3_flux, (/"x","y"/))
          call register_restart_field(fileobj, "cbed_dic_flux", cbed%dic_flux, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_burial_om", cbed%burial_om, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_denit", cbed%cbed_denit, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_burial_om", cbed%burial_om, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_denit", cbed%denit, (/"x","y"/))
          !call register_restart_field(fileobj, "cbed_anammox", cbed%cbed_anammox, (/"x","y"/))
          !call register_restart_field(fileobj, "cbed_o2resp", cbed%cbed_o2resp, (/"x","y"/))
          !call register_restart_field(fileobj, "cbed_no3resp", cbed%cbed_no3resp, (/"x","y"/))
@@ -327,11 +327,10 @@ contains
          'benthic no3 flux', 'mol/m2/s', missing_value = missing_value1)
       cbed%id_dic_flux = register_diag_field(package_name, 'cbed_dic_flux', (/axes(1),axes(2)/), init_time,&
          'benthic dic flux', 'mol/m2/s', missing_value = missing_value1)
-
-      !cbed%id_burial_om = register_diag_field(package_name, 'cbed_burial_om', (/axes(1),axes(2)/), init_time,&
-      !   'cbed organic carbon burial', 'mol/m2/s', missing_value = missing_value1)
-      !cbed%id_cbed_denit = register_diag_field(package_name, 'cbed_denit', (/axes(1),axes(2)/), init_time,&
-      !   'cbed denitrification', 'mol/m2/s', missing_value = missing_value1)
+      cbed%id_burial_om = register_diag_field(package_name, 'cbed_burial_om', (/axes(1),axes(2)/), init_time,&
+         'cbed organic carbon burial', 'mol C/m2/s', missing_value = missing_value1)
+      cbed%id_denit = register_diag_field(package_name, 'cbed_denit', (/axes(1),axes(2)/), init_time,&
+         'cbed total denitrification (denit + anammox)', 'mol N/m2/s', missing_value = missing_value1)
       !cbed%id_cbed_anammox = register_diag_field(package_name, 'cbed_anammox', (/axes(1),axes(2)/), init_time,&
       !   'cbed anammox', 'mol/m2/s', missing_value = missing_value1)
       !cbed%id_cbed_o2resp = register_diag_field(package_name, 'cbed_o2resp', (/axes(1),axes(2)/), init_time,&
@@ -395,6 +394,10 @@ contains
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
       used = send_data(cbed%id_dic_flux, cbed%dic_flux, model_time, rmask = grid_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_burial_om, cbed%burial_om, model_time, rmask = grid_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_denit, cbed%denit, model_time, rmask = grid_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
    end subroutine generic_CBED_send_diagnostics
 
    subroutine generic_CBED_end()
@@ -435,6 +438,8 @@ contains
          call register_restart_field(fileobj, "cbed_nh4_flux", cbed%nh4_flux, (/"x","y"/))
          call register_restart_field(fileobj, "cbed_no3_flux", cbed%no3_flux, (/"x","y"/))
          call register_restart_field(fileobj, "cbed_dic_flux", cbed%dic_flux, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_burial_om", cbed%burial_om, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_denit", cbed%denit, (/"x","y"/))
 
          call write_restart(fileobj)
          call close_file(fileobj)
@@ -455,15 +460,19 @@ contains
       deallocate(cbed%f_talk)
 
       ! diags
+      ! 3D diags
       deallocate(cbed%TOC)
       deallocate(cbed%R_om_o2)
       deallocate(cbed%R_om_no3)
       deallocate(cbed%R_om_anaerobic)
       deallocate(cbed%R_dic)
+      !2D diags
       deallocate(cbed%o2_flux)
       deallocate(cbed%nh4_flux)
       deallocate(cbed%no3_flux)
       deallocate(cbed%dic_flux)
+      deallocate(cbed%burial_om)
+      deallocate(cbed%denit)
 
       deallocate(por)
       deallocate(svf)
@@ -765,8 +774,7 @@ contains
          enddo;enddo
 
 
-      ! calculate k1,k2,k3
-
+      !Calculate k1,k2,k3
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                ! POC flux unit in umol cm-2 y-1. Unit of k is y-1
@@ -862,6 +870,21 @@ contains
             endif
          enddo;enddo
 
+      ! some other diags
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+
+               cbed%burial_om(i,j)  = (cbed%f_om1(i,j,nk_cbed)+cbed%f_om2(i,j,nk_cbed)+cbed%f_om3(i,j,nk_cbed))*w(i,j,nk_cbed+1)
+               
+               cbed%denit(i,j) = sum(dz_cbed(:)*(0.8*cbed%R_om_no3(i,j,:) + 2.0*R_ana(i,j,:)))
+
+            endif
+         enddo;enddo
+
+
+
+
+      ! Source-sink calculations
       !Test that we can change the value of concentration field of a CBED tracer
       do j = jsc, jec; do i = isc, iec  !{
             do k=1,nk_cbed
