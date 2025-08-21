@@ -876,7 +876,7 @@ contains
 
                cbed%burial_om(i,j)  = (cbed%f_om1(i,j,nk_cbed)+cbed%f_om2(i,j,nk_cbed)+cbed%f_om3(i,j,nk_cbed))*w(i,j,nk_cbed+1)
                
-               cbed%denit(i,j) = sum(dz_cbed(:)*(0.8*cbed%R_om_no3(i,j,:) + 2.0*R_ana(i,j,:)))
+               cbed%denit(i,j) = sum(dz_cbed(:)*(0.8*cbed%R_om_no3(i,j,:) + por(i,j,1:nk_cbed)*2.0*R_ana(i,j,:)))
 
             endif
          enddo;enddo
