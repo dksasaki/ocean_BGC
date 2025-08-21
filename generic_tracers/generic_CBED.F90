@@ -857,7 +857,7 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                do k = 1, nk_cbed
-                  cbed%TOC(i,j,k)  = (cbed%om1(i,j,k)+cbed%om2(i,j,k)+cbed%om3(i,j,k))/1000.0*12.0/rho_s*100.0/svf(i,j,k)
+                  cbed%TOC(i,j,k)  = (cbed%f_om1(i,j,k)+cbed%f_om2(i,j,k)+cbed%f_om3(i,j,k))/1000.0*12.0/rho_s*100.0/svf(i,j,k)
                enddo
             endif
          enddo;enddo
