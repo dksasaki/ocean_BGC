@@ -310,13 +310,13 @@ contains
       cbed%id_TOC = register_diag_field(package_name, 'cbed_TOC', (/axes(1),axes(2),id_layer/), init_time,&
          'Total Organic Carbon in sediment', 'wt %', missing_value = missing_value1)
       cbed%id_R_om_o2 = register_diag_field(package_name, 'cbed_R_om_o2', (/axes(1),axes(2),id_layer/), init_time,&
-         'aerobic respiration in sediment 3D field', 'mol C/kg', missing_value = missing_value1)
+         'aerobic respiration in sediment 3D field', 'mol C/kg/s', missing_value = missing_value1)
       cbed%id_R_om_no3 = register_diag_field(package_name, 'cbed_R_om_no3', (/axes(1),axes(2),id_layer/), init_time,&
-         'OM respiration via denitrification in sediment 3D field', 'mol C/kg', missing_value = missing_value1)
+         'OM respiration via denitrification in sediment 3D field', 'mol C/kg/s', missing_value = missing_value1)
       cbed%id_R_om_anaerobic = register_diag_field(package_name, 'cbed_R_om_anaerobic', (/axes(1),axes(2),id_layer/), init_time,&
-         'OM respiration via other anaerobic processes in sediment 3D field', 'mol C/kg', missing_value = missing_value1)
+         'OM respiration via other anaerobic processes in sediment 3D field', 'mol C/kg/s', missing_value = missing_value1)
       cbed%id_R_dic = register_diag_field(package_name, 'cbed_R_dic', (/axes(1),axes(2),id_layer/), init_time,&
-         'DIC produced in sediment via OM remineralization 3D field', 'mol C/kg', missing_value = missing_value1)
+         'DIC produced in sediment via OM remineralization 3D field', 'mol C/kg/s', missing_value = missing_value1)
 
       ! 2D diags
       cbed%id_o2_flux = register_diag_field(package_name, 'cbed_o2_flux', (/axes(1),axes(2)/), init_time,&
@@ -591,15 +591,15 @@ contains
 
                else if ((trim(field_name) == "f_om1")) then
                   sfc_src = frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)/cobalt%Rho_0
 
                else if ((trim(field_name) == "f_om2")) then
                   sfc_src = frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)/cobalt%Rho_0
 
                else if ((trim(field_name) == "f_om3")) then
                   sfc_src = frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+                  cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)/cobalt%Rho_0
 
                endif
 
@@ -688,9 +688,9 @@ contains
       real, parameter :: ks_o2 = 0.008 /1e3   ! O2 half saturation constant (mol/kg)
       real, parameter :: ks_no3 = 0.001 /1e3  ! NO3 half saturation constant (mol/kg)
 
-      real, parameter :: k_nox = 1e6 /1e3/spery    ! mol/kg/s (mol/L/s) !nitrification rate constant
-      real, parameter :: k_ana = 1e5 /1e3/spery    !                    !anammox rate constant
-      real, parameter :: k_oduox = 1e6 /1e3/spery  !                    !ODU oxidation rate constant
+      real, parameter :: k_nox = 1e6 *1e3/spery    ! mol-1 kg s-1 (mol-1 L s-1) (mmol-1 L yr-1) !nitrification rate constant
+      real, parameter :: k_ana = 1e5 *1e3/spery    !                    !anammox rate constant
+      real, parameter :: k_oduox = 1e6 *1e3/spery  !                    !ODU oxidation rate constant
 
       real, parameter :: Q10 = 1.88
 
@@ -843,10 +843,10 @@ contains
       !
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
-               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)-cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0))
-               b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0))
-               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)-cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0))
-               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)-cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0))
+               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)-cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0))*cobalt%Rho_0
+               b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0))*cobalt%Rho_0
+               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)-cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0))*cobalt%Rho_0
+               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)-cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0))*cobalt%Rho_0
             endif
          enddo;enddo
 
@@ -865,7 +865,7 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                do k = 1, nk_cbed
-                  cbed%TOC(i,j,k)  = (cbed%f_om1(i,j,k)+cbed%f_om2(i,j,k)+cbed%f_om3(i,j,k))/1000.0*12.0/rho_s*100.0/svf(i,j,k)
+                  cbed%TOC(i,j,k)  = (cbed%f_om1(i,j,k)+cbed%f_om2(i,j,k)+cbed%f_om3(i,j,k))*12.0*cobalt%Rho_0/1000000.0/rho_s*100.0/svf(i,j,k)
                enddo
             endif
          enddo;enddo
@@ -874,9 +874,9 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
 
-               cbed%burial_om(i,j)  = (cbed%f_om1(i,j,nk_cbed)+cbed%f_om2(i,j,nk_cbed)+cbed%f_om3(i,j,nk_cbed))*w(i,j,nk_cbed+1)
+               cbed%burial_om(i,j)  = (cbed%f_om1(i,j,nk_cbed)+cbed%f_om2(i,j,nk_cbed)+cbed%f_om3(i,j,nk_cbed))*w(i,j,nk_cbed+1)*cobalt%Rho_0
                
-               cbed%denit(i,j) = sum(dz_cbed(:)*(0.8*cbed%R_om_no3(i,j,:) + por(i,j,1:nk_cbed)*2.0*R_ana(i,j,:)))
+               cbed%denit(i,j) = sum(dz_cbed(:)*(0.8*cbed%R_om_no3(i,j,:) + por(i,j,1:nk_cbed)*2.0*R_ana(i,j,:)))*cobalt%Rho_0
 
             endif
          enddo;enddo
