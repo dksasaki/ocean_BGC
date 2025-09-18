@@ -53,10 +53,9 @@ module generic_CBED
       !real, dimension(:,:), allocatable :: cbed_anammox
       !real, dimension(:,:), allocatable :: cbed_o2resp
       !real, dimension(:,:), allocatable :: cbed_no3resp
-      ! 1D diags, CBED grid
-      real, dimension(:), allocatable :: dz_cbed             ! cbed grid thickness
-      real, dimension(:), allocatable :: z_cbed_int          ! cbed layer interfaces
-      real, dimension(:), allocatable :: z_cbed_mid          ! cbed layer mid points
+      ! 3D diags, CBED grid
+      real, dimension(:,:,:), allocatable :: dz_cbed             ! cbed grid thickness
+      real, dimension(:,:,:), allocatable :: z_cbed_mid          ! cbed layer mid points
 
       integer :: id_tr1                              ! tracer 1 diagnostics id
       integer :: id_o2                               ! tracer o2 diagnostics id
@@ -84,9 +83,8 @@ module generic_CBED
       !integer :: id_cbed_anammox
       !integer :: id_cbed_o2resp
       !integer :: id_cbed_no3resp
-      ! 1D diag
+      ! 3D diag, CBED grid
       integer :: id_dz_cbed
-      integer :: id_z_cbed_int
       integer :: id_z_cbed_mid
 
 
@@ -223,10 +221,9 @@ contains
       !allocate(cbed%cbed_anammox(isd:ied,jsd:jed));cbed%cbed_anammox=0.0
       !allocate(cbed%cbed_o2resp(isd:ied,jsd:jed));cbed%cbed_o2resp=0.0
       !allocate(cbed%cbed_no3resp(isd:ied,jsd:jed));cbed%cbed_no3resp=0.0
-      ! 1D diag
-      allocate(cbed%dz_cbed(nk_cbed));cbed%dz_cbed=0.0
-      allocate(cbed%z_cbed_int(nk_cbed+1));cbed%z_cbed_int=0.0
-      allocate(cbed%z_cbed_mid(nk_cbed));cbed%z_cbed_mid=0.0
+      ! 3D diag, CBED grid
+      allocate(cbed%dz_cbed(isd:ied,jsd:jed,nk_cbed));cbed%dz_cbed=0.0
+      allocate(cbed%z_cbed_mid(isd:ied,jsd:jed,nk_cbed));cbed%z_cbed_mid=0.0
 
       allocate(por(isc:iec,jsc:jec,nk_cbed+1));        por=0.8  !porosity=0.8 assumed constant for whole seafloor.
       allocate(svf(isc:iec,jsc:jec,nk_cbed+1));        svf=0.2 !solid volume fraction
@@ -342,10 +339,9 @@ contains
          !call register_restart_field(fileobj, "cbed_anammox", cbed%cbed_anammox, (/"x","y"/))
          !call register_restart_field(fileobj, "cbed_o2resp", cbed%cbed_o2resp, (/"x","y"/))
          !call register_restart_field(fileobj, "cbed_no3resp", cbed%cbed_no3resp, (/"x","y"/))
-         ! 1D diags
-         call register_restart_field(fileobj, "cbed_dz_cbed", cbed%dz_cbed, (/"lev"/))
-         call register_restart_field(fileobj, "cbed_z_cbed_int", cbed%z_cbed_int, (/"lev"/))
-         call register_restart_field(fileobj, "cbed_z_cbed_mid", cbed%z_cbed_mid, (/"lev"/))
+         ! 3D diags, CBED grid
+         call register_restart_field(fileobj, "cbed_dz_cbed", cbed%dz_cbed, (/"x","y","lev"/))
+         call register_restart_field(fileobj, "cbed_z_cbed_mid", cbed%z_cbed_mid, (/"x","y","lev"/))
 
          call read_restart(fileobj)
       endif
@@ -409,12 +405,10 @@ contains
       !   'cbed OM respiration by O2', 'mol/m2/s', missing_value = missing_value1)
       !cbed%id_cbed_no3resp = register_diag_field(package_name, 'cbed_no3resp', (/axes(1),axes(2)/), init_time,&
       !   'cbed OM respiration by NO3', 'mol/m2/s', missing_value = missing_value1)
-      ! 1D diags
-      cbed%id_dz_cbed = register_diag_field(package_name, 'cbed_dz_cbed', (/id_layer/), init_time,&
+      ! 3D diags, CBED grid
+      cbed%id_dz_cbed = register_diag_field(package_name, 'cbed_dz_cbed', (/axes(1),axes(2),id_layer/), init_time,&
          'CBED grid layer thickess', 'm', missing_value = missing_value1)
-      cbed%id_z_cbed_int = register_diag_field(package_name, 'cbed_z_cbed_int', (/id_layer/), init_time,&
-         'CBED grid layer interfaces', 'm', missing_value = missing_value1)
-      cbed%id_z_cbed_mid = register_diag_field(package_name, 'cbed_z_cbed_mid', (/id_layer/), init_time,&
+      cbed%id_z_cbed_mid = register_diag_field(package_name, 'cbed_z_cbed_mid', (/axes(1),axes(2),id_layer/), init_time,&
          'CBED grid layer midpoints', 'm', missing_value = missing_value1)
 
    end subroutine generic_CBED_reg_diagnostics
@@ -478,12 +472,10 @@ contains
       used = send_data(cbed%id_denit, cbed%denit, model_time, rmask = grid_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
       ! 1D diags
-      used = send_data(cbed%id_dz_cbed, cbed%dz_cbed, model_time, rmask = cbed_tmask(1,1,:),&
-         ks_in=1, ke_in=nk_cbed)
-      used = send_data(cbed%id_z_cbed_int, cbed%z_cbed_int, model_time, rmask = cbed_tmask(1,1,:),&
-         ks_in=1, ke_in=nk_cbed+1)
-      used = send_data(cbed%id_z_cbed_mid, cbed%z_cbed_mid, model_time, rmask = cbed_tmask(1,1.:),&
-         ks_in=1, ke_in=nk_cbed)
+      used = send_data(cbed%id_dz_cbed, cbed%dz_cbed, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+      used = send_data(cbed%id_z_cbed_mid, cbed%z_cbed_mid, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
    end subroutine generic_CBED_send_diagnostics
 
    subroutine generic_CBED_end()
@@ -526,10 +518,9 @@ contains
          call register_restart_field(fileobj, "cbed_dic_flux", cbed%dic_flux, (/"x","y"/))
          call register_restart_field(fileobj, "cbed_burial_om", cbed%burial_om, (/"x","y"/))
          call register_restart_field(fileobj, "cbed_denit", cbed%denit, (/"x","y"/))
-         ! 1D diags
-         call register_restart_field(fileobj, "cbed_dz_cbed", cbed%dz_cbed, (/"lev"/))
-         call register_restart_field(fileobj, "cbed_z_cbed_int", cbed%z_cbed_int, (/"lev"/))
-         call register_restart_field(fileobj, "cbed_z_cbde_mid", cbed%z_cbed_mid, (/"lev"/))
+         ! 3D diags, CBED grid
+         call register_restart_field(fileobj, "cbed_dz_cbed", cbed%dz_cbed, (/"x","y","lev"/))
+         call register_restart_field(fileobj, "cbed_z_cbde_mid", cbed%z_cbed_mid, (/"x","y","lev"/))
 
          call write_restart(fileobj)
          call close_file(fileobj)
@@ -563,9 +554,8 @@ contains
       deallocate(cbed%dic_flux)
       deallocate(cbed%burial_om)
       deallocate(cbed%denit)
-      ! 1D diags
+      ! 3D diags, CBED grid
       deallocate(cbed%dz_cbed)
-      deallocate(cbed%z_cbed_int)
       deallocate(cbed%z_cbed_mid)
 
       deallocate(por)
@@ -801,13 +791,14 @@ contains
 
 
       ! write the grid layers to register as diags
-      do k = 1, nk_cbed
-         cbed%dz_cbed(k) = dz_cbed(k)
-         cbed%z_cbed_mid(k) = z_cbed_mid(k)
-      enddo
-      do k = 1, nk_cbed+1
-         cbed%z_cbed_int(k) = z_cbed_int(k)
-      enddo
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               do k = 1, nk_cbed
+                  cbed%dz_cbed(i,j,k) = dz_cbed(k)
+                  cbed%z_cbed_mid(i,j,k) = z_cbed_mid(k)
+               enddo
+            endif
+         enddo; enddo
 
 
       ! Sedimentation rate calculation
