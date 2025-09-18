@@ -478,11 +478,11 @@ contains
       used = send_data(cbed%id_denit, cbed%denit, model_time, rmask = grid_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
       ! 1D diags
-      used = send_data(cbed%id_dz_cbed, cbed%dz_cbed, model_time, rmask = grid_tmask(1,1,:),&
+      used = send_data(cbed%id_dz_cbed, cbed%dz_cbed, model_time, rmask = cbed_tmask,&
          ks_in=1, ke_in=nk_cbed)
-      used = send_data(cbed%id_z_cbed_int, cbed%z_cbed_int, model_time, rmask = grid_tmask(1,1,:),&
+      used = send_data(cbed%id_z_cbed_int, cbed%z_cbed_int, model_time, rmask = cbed_tmask,&
          ks_in=1, ke_in=nk_cbed+1)
-      used = send_data(cbed%id_z_cbed_mid, cbed%z_cbed_mid, model_time, rmask = grid_tmask(1,1,:),&
+      used = send_data(cbed%id_z_cbed_mid, cbed%z_cbed_mid, model_time, rmask = cbed_tmask,&
          ks_in=1, ke_in=nk_cbed)
    end subroutine generic_CBED_send_diagnostics
 
