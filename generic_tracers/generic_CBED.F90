@@ -102,6 +102,7 @@ module generic_CBED
    ! grid
    ! local parameters
    real, parameter :: l_cbed = 0.20           ! length of sediment domain | sediment depth (m, 20 cm)
+   real, parameter :: dz1_cbed = 0.005        ! thickness of the first layer (m). For increasing thickness
    real, parameter :: rho_s = 2.5             ! solid density (g/cm³)
    real, parameter :: Db_l = 0.08             ! bioturbation length scale (m) 8 cm.
    real, parameter :: bioirri_l = 0.018       ! bioirrigation length scale (m) 1.8 cm.
@@ -154,34 +155,34 @@ module generic_CBED
 
 contains
 
-!!! To make increasing thickness CBED grid
-!! Function to find the common ratio r using bisection method
-!   function find_r(nk_cbed, dz_first, total_height) result(r)
-!      integer, intent(in) :: nk_cbed
-!      real, intent(in) :: dz_first, total_height
-!      real :: r
-!      real :: r_low, r_high, r_mid
-!      real :: power, sum_geom
-!      integer :: i, j
-!
-!      r_low = 1.0001
-!      r_high = 10.0
-!      do i = 1, 100
-!         r_mid = (r_low + r_high) / 2.0
-!         ! Compute r_mid**nk_cbed using iterative multiplication to avoid overflow
-!         power = 1.0
-!         do j = 1, nk_cbed
-!            power = power * r_mid
-!         end do
-!         sum_geom = dz_first * (power - 1.0) / (r_mid - 1.0)
-!         if (sum_geom < total_height) then
-!            r_low = r_mid
-!         else
-!            r_high = r_mid
-!         end if
-!      end do
-!      r = r_mid
-!   end function find_r
+!! To make increasing thickness CBED grid
+! Function to find the common ratio r using bisection method
+   function find_r(nk_cbed, dz_first, total_height) result(r)
+      integer, intent(in) :: nk_cbed
+      real, intent(in) :: dz_first, total_height
+      real :: r
+      real :: r_low, r_high, r_mid
+      real :: power, sum_geom
+      integer :: i, j
+
+      r_low = 1.0001
+      r_high = 10.0
+      do i = 1, 100
+         r_mid = (r_low + r_high) / 2.0
+         ! Compute r_mid**nk_cbed using iterative multiplication to avoid overflow
+         power = 1.0
+         do j = 1, nk_cbed
+            power = power * r_mid
+         end do
+         sum_geom = dz_first * (power - 1.0) / (r_mid - 1.0)
+         if (sum_geom < total_height) then
+            r_low = r_mid
+         else
+            r_high = r_mid
+         end if
+      end do
+      r = r_mid
+   end function find_r
 
    subroutine generic_CBED_init(isc,iec,jsc,jec,isd,ied,jsd,jed,nk)
       integer,     intent(in) :: isc,iec,jsc,jec,isd,ied,jsd,jed,nk
@@ -192,6 +193,7 @@ contains
       logical                     :: file_open_success ! result returned by call to fms2_open_file
 
       integer :: k !for grid.
+      real    :: r ! for grid
 
       !Allocate and initialize CBED arrays for tracer concentrations and other workarrays
       allocate(cbed%f_tr1(isd:ied,jsd:jed,nk_cbed));cbed%f_tr1=0.0
@@ -259,23 +261,24 @@ contains
       !   z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
       !end do
 
-      !!! grid with increasing thickness. Values are copied from R model (20 layers)
-      dz_cbed = (/ 0.001999965, 0.002295888, 0.002635596, 0.003025570, 0.003473245, 0.003987160, &
-       0.004577116, 0.005254364, 0.006031821, 0.006924313, 0.007948862, 0.009125008, &
-       0.010475180, 0.012025129, 0.013804415, 0.015846971, 0.018191752, 0.020883476, &
-       0.023973478, 0.027520689 /)
-
-      z_cbed_int = (/ 0.0, 0.001999965, 0.004295853, 0.006931449, 0.009957019, 0.013430264,&
-      0.017417424, 0.021994540, 0.027248904, 0.033280725, 0.040205039, 0.048153901, &
-      0.057278909, 0.067754089, 0.079779218, 0.093583633, 0.109430604, 0.127622356, &
-      0.148505832, 0.172479311, 0.2 /)
-
-      z_cbed_mid = (/ 0.0009999825, 0.0031479088, 0.0056136508, 0.0084442338, 0.0116936411, &
-      0.0154238436, 0.0197059818, 0.0246217221, 0.0302648149, 0.0367428821, &
-      0.0441794700, 0.0527164049, 0.0625164986, 0.0737666532, 0.0866814254, &
-      0.1015071186, 0.1185264802, 0.1380640944, 0.1604925715, 0.1862396553 /)
-
       !!!! grid with increasing thickness. Values are copied from R model (20 layers)
+      !dz_cbed = (/ 0.001999965, 0.002295888, 0.002635596, 0.003025570, 0.003473245, 0.003987160, &
+      !   0.004577116, 0.005254364, 0.006031821, 0.006924313, 0.007948862, 0.009125008, &
+      !   0.010475180, 0.012025129, 0.013804415, 0.015846971, 0.018191752, 0.020883476, &
+      !   0.023973478, 0.027520689 /)
+      !
+      !z_cbed_int = (/ 0.0, 0.001999965, 0.004295853, 0.006931449, 0.009957019, 0.013430264,&
+      !   0.017417424, 0.021994540, 0.027248904, 0.033280725, 0.040205039, 0.048153901, &
+      !   0.057278909, 0.067754089, 0.079779218, 0.093583633, 0.109430604, 0.127622356, &
+      !   0.148505832, 0.172479311, 0.2 /)
+      !
+      !z_cbed_mid = (/ 0.0009999825, 0.0031479088, 0.0056136508, 0.0084442338, 0.0116936411, &
+      !   0.0154238436, 0.0197059818, 0.0246217221, 0.0302648149, 0.0367428821, &
+      !   0.0441794700, 0.0527164049, 0.0625164986, 0.0737666532, 0.0866814254, &
+      !   0.1015071186, 0.1185264802, 0.1380640944, 0.1604925715, 0.1862396553 /)
+
+
+      !!!! grid with increasing thickness. Values are copied from R model (20 layers) (works)
       !dz_cbed = (/ 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01 /)
 
       !z_cbed_int = (/ 0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20 /)
@@ -283,6 +286,33 @@ contains
       !z_cbed_mid = (/ 0.005, 0.015, 0.025, 0.035, 0.045, 0.055, 0.065, 0.075, 0.085, 0.095, 0.105, 0.115, 0.125, 0.135, 0.145, 0.155, 0.165, 0.175, 0.185, 0.195 /)
 
 
+      ! generate grid automatically according to supplied values (length of sediment column, number of layers and thicness of the first layer)
+      ! Compute the common ratio r
+      r = find_r(nk_cbed, dz1_cbed, l_cbed)
+
+      ! Generate dz_cbed as geometric progression
+      dz_cbed(1) = dz1_cbed
+      do k = 2, nk_cbed
+         dz_cbed(k) = dz_cbed(k-1) * r
+      end do
+
+      ! Optional: Scale to ensure exact total sum (due to floating-point precision)
+      ! real :: actual_sum
+      ! actual_sum = sum(dz_cbed)
+      ! if (abs(actual_sum - l_cbed) > 1e-10) then
+      !   dz_cbed = dz_cbed * l_cbed / actual_sum
+      ! end if
+
+      ! Compute layer interfaces
+      z_cbed_int(1) = 0.0
+      do k = 1, nk_cbed
+         z_cbed_int(k+1) = z_cbed_int(k) + dz_cbed(k)
+      end do
+
+      ! Compute layer midpoints
+      do k = 1, nk_cbed
+         z_cbed_mid(k) = (z_cbed_int(k) + z_cbed_int(k+1)) / 2.0
+      end do
 
 
    end subroutine generic_CBED_init
