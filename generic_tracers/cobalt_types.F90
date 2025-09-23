@@ -28,7 +28,7 @@ module cobalt_types
   !
   logical, public :: do_vertfill_pre = .false.             !< Returns tracer arrays with sensible values
   logical, public :: debug           = .false.             !< not use   
-  real, public    :: imbalance_tolerance=1.0e-6           !< the tolerance for non-conservation in C,N,P,Sc,Fe
+  real, public    :: imbalance_tolerance=1.0e20           !< the tolerance for non-conservation in C,N,P,Sc,Fe
 
   integer, public :: scheme_no3_nh4_lim = 2 !< Nitrate and ammonia limitation scheme options
                                             !! 1-Frost and Franzen (1992)
