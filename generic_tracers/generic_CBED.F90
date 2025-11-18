@@ -22,10 +22,10 @@ module generic_CBED
    public generic_CBED_init, generic_CBED_end
    public generic_CBED_reg_diagnostics, generic_CBED_send_diagnostics
 
-   integer, parameter :: nk_cbed = 20    ! Number of benthic layers   !!! random comment, delete later
+   integer, parameter :: nk_cbed = 20    ! Number of benthic layers
 
    type generic_CBED_type
-      real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
+      !real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
       real, dimension(:,:,:), allocatable :: f_o2   ! tracer o2 concentration field
       real, dimension(:,:,:), allocatable :: f_om1   ! tracer organic matter 1 (fast reacting) concentration field
       real, dimension(:,:,:), allocatable :: f_om2   ! tracer organic matter 2 (medium reacting) concentration field
@@ -57,7 +57,7 @@ module generic_CBED
       real, dimension(:,:,:), allocatable :: dz_cbed             ! cbed grid thickness
       real, dimension(:,:,:), allocatable :: z_cbed_mid          ! cbed layer mid points
 
-      integer :: id_tr1                              ! tracer 1 diagnostics id
+      !integer :: id_tr1                              ! tracer 1 diagnostics id
       integer :: id_o2                               ! tracer o2 diagnostics id
       integer :: id_om1                              ! tracer om1 diagnostics id
       integer :: id_om2                              ! tracer om2 diagnostics id
@@ -196,7 +196,7 @@ contains
       real    :: r ! for grid
 
       !Allocate and initialize CBED arrays for tracer concentrations and other workarrays
-      allocate(cbed%f_tr1(isd:ied,jsd:jed,nk_cbed));cbed%f_tr1=0.0
+      !allocate(cbed%f_tr1(isd:ied,jsd:jed,nk_cbed));cbed%f_tr1=0.0
       allocate(cbed%f_o2(isd:ied,jsd:jed,nk_cbed));cbed%f_o2=0.0
       allocate(cbed%f_om1(isd:ied,jsd:jed,nk_cbed));cbed%f_om1=0.0
       allocate(cbed%f_om2(isd:ied,jsd:jed,nk_cbed));cbed%f_om2=0.0
@@ -342,7 +342,7 @@ contains
          call register_axis(fileobj,'y','y')
          call register_axis(fileobj,'lev',nk_cbed)
          ! register the restart variables
-         call register_restart_field(fileobj, "cbed_tr1", cbed%f_tr1, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_tr1", cbed%f_tr1, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_o2", cbed%f_o2, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_om1", cbed%f_om1, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_om2", cbed%f_om2, (/"x","y","lev"/))
@@ -354,24 +354,24 @@ contains
          call register_restart_field(fileobj, "cbed_talk", cbed%f_talk, (/"x","y","lev"/))
          !diags
          ! 3D diags
-         call register_restart_field(fileobj, "cbed_TOC", cbed%TOC, (/"x","y","lev"/))
-         call register_restart_field(fileobj, "cbed_R_om_o2", cbed%R_om_o2, (/"x","y","lev"/))
-         call register_restart_field(fileobj, "cbed_R_om_no3", cbed%R_om_no3, (/"x","y","lev"/))
-         call register_restart_field(fileobj, "cbed_R_om_anaerobic", cbed%R_om_anaerobic, (/"x","y","lev"/))
-         call register_restart_field(fileobj, "cbed_R_dic", cbed%R_dic, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_TOC", cbed%TOC, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_R_om_o2", cbed%R_om_o2, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_R_om_no3", cbed%R_om_no3, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_R_om_anaerobic", cbed%R_om_anaerobic, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_R_dic", cbed%R_dic, (/"x","y","lev"/))
          ! 2D diags
-         call register_restart_field(fileobj, "cbed_o2_flux", cbed%o2_flux, (/"x","y"/))
-         call register_restart_field(fileobj, "cbed_nh4_flux", cbed%nh4_flux, (/"x","y"/))
-         call register_restart_field(fileobj, "cbed_no3_flux", cbed%no3_flux, (/"x","y"/))
-         call register_restart_field(fileobj, "cbed_dic_flux", cbed%dic_flux, (/"x","y"/))
-         call register_restart_field(fileobj, "cbed_burial_om", cbed%burial_om, (/"x","y"/))
-         call register_restart_field(fileobj, "cbed_denit", cbed%denit, (/"x","y"/))
+         !call register_restart_field(fileobj, "cbed_o2_flux", cbed%o2_flux, (/"x","y"/))
+         !call register_restart_field(fileobj, "cbed_nh4_flux", cbed%nh4_flux, (/"x","y"/))
+         !call register_restart_field(fileobj, "cbed_no3_flux", cbed%no3_flux, (/"x","y"/))
+         !call register_restart_field(fileobj, "cbed_dic_flux", cbed%dic_flux, (/"x","y"/))
+         !call register_restart_field(fileobj, "cbed_burial_om", cbed%burial_om, (/"x","y"/))
+         !call register_restart_field(fileobj, "cbed_denit", cbed%denit, (/"x","y"/))
          !call register_restart_field(fileobj, "cbed_anammox", cbed%cbed_anammox, (/"x","y"/))
          !call register_restart_field(fileobj, "cbed_o2resp", cbed%cbed_o2resp, (/"x","y"/))
          !call register_restart_field(fileobj, "cbed_no3resp", cbed%cbed_no3resp, (/"x","y"/))
          ! 3D diags, CBED grid
-         call register_restart_field(fileobj, "cbed_dz_cbed", cbed%dz_cbed, (/"x","y","lev"/))
-         call register_restart_field(fileobj, "cbed_z_cbed_mid", cbed%z_cbed_mid, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_dz_cbed", cbed%dz_cbed, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_z_cbed_mid", cbed%z_cbed_mid, (/"x","y","lev"/))
 
          call read_restart(fileobj)
       endif
@@ -383,8 +383,8 @@ contains
       do k=1,nk_cbed; cbed_layers(k) = k; enddo
       id_layer = diag_axis_init('cbedlayer', cbed_layers, 'None', 'z', long_name='Benthos Layer', direction=-1)
 
-      cbed%id_tr1 = register_diag_field(package_name, 'cbed_tr1_conc', (/axes(1),axes(2),id_layer/), init_time,&
-         'cbed tracer1 concentration', 'unknown units', missing_value = missing_value1)
+      !cbed%id_tr1 = register_diag_field(package_name, 'cbed_tr1_conc', (/axes(1),axes(2),id_layer/), init_time,&
+      !   'cbed tracer1 concentration', 'unknown units', missing_value = missing_value1)
       cbed%id_o2 = register_diag_field(package_name, 'cbed_o2_conc', (/axes(1),axes(2),id_layer/), init_time,&
          'cbed oxygen concentration', 'mol/kg', missing_value = missing_value1)
       cbed%id_om1 = register_diag_field(package_name, 'cbed_om1_conc', (/axes(1),axes(2),id_layer/), init_time,&
@@ -455,8 +455,8 @@ contains
       !Make a cbed mask. Note: it seems grid_tmask(:,:,k) does not depend on k
       do k=1,nk_cbed ; cbed_tmask(:,:,k) = grid_tmask(:,:,nk) ; enddo
 
-      used = send_data(cbed%id_tr1, cbed%f_tr1, model_time, rmask = cbed_tmask,&
-         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+      !used = send_data(cbed%id_tr1, cbed%f_tr1, model_time, rmask = cbed_tmask,&
+      !   is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
       used = send_data(cbed%id_o2, cbed%f_o2, model_time, rmask = cbed_tmask,&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
       used = send_data(cbed%id_om1, cbed%f_om1, model_time, rmask = cbed_tmask,&
@@ -524,7 +524,7 @@ contains
          call register_axis(fileobj,'y','y')
          call register_axis(fileobj,'lev',nk_cbed)
          ! register the restart variables
-         call register_restart_field(fileobj, "cbed_tr1", cbed%f_tr1, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_tr1", cbed%f_tr1, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_o2", cbed%f_o2, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_om1", cbed%f_om1, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_om2", cbed%f_om2, (/"x","y","lev"/))
@@ -536,21 +536,21 @@ contains
          call register_restart_field(fileobj, "cbed_talk", cbed%f_talk, (/"x","y","lev"/))
          ! diags
          ! 3D diags
-         call register_restart_field(fileobj, "cbed_TOC", cbed%TOC, (/"x","y","lev"/))
-         call register_restart_field(fileobj, "cbed_R_om_o2", cbed%R_om_o2, (/"x","y","lev"/))
-         call register_restart_field(fileobj, "cbed_R_om_no3", cbed%R_om_no3, (/"x","y","lev"/))
-         call register_restart_field(fileobj, "cbed_R_om_anaerobic", cbed%R_om_anaerobic, (/"x","y","lev"/))
-         call register_restart_field(fileobj, "cbed_R_dic", cbed%R_dic, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_TOC", cbed%TOC, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_R_om_o2", cbed%R_om_o2, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_R_om_no3", cbed%R_om_no3, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_R_om_anaerobic", cbed%R_om_anaerobic, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_R_dic", cbed%R_dic, (/"x","y","lev"/))
          ! 2D diags
-         call register_restart_field(fileobj, "cbed_o2_flux", cbed%o2_flux, (/"x","y"/))
-         call register_restart_field(fileobj, "cbed_nh4_flux", cbed%nh4_flux, (/"x","y"/))
-         call register_restart_field(fileobj, "cbed_no3_flux", cbed%no3_flux, (/"x","y"/))
-         call register_restart_field(fileobj, "cbed_dic_flux", cbed%dic_flux, (/"x","y"/))
-         call register_restart_field(fileobj, "cbed_burial_om", cbed%burial_om, (/"x","y"/))
-         call register_restart_field(fileobj, "cbed_denit", cbed%denit, (/"x","y"/))
+         !call register_restart_field(fileobj, "cbed_o2_flux", cbed%o2_flux, (/"x","y"/))
+         !call register_restart_field(fileobj, "cbed_nh4_flux", cbed%nh4_flux, (/"x","y"/))
+         !call register_restart_field(fileobj, "cbed_no3_flux", cbed%no3_flux, (/"x","y"/))
+         !call register_restart_field(fileobj, "cbed_dic_flux", cbed%dic_flux, (/"x","y"/))
+         !call register_restart_field(fileobj, "cbed_burial_om", cbed%burial_om, (/"x","y"/))
+         !call register_restart_field(fileobj, "cbed_denit", cbed%denit, (/"x","y"/))
          ! 3D diags, CBED grid
-         call register_restart_field(fileobj, "cbed_dz_cbed", cbed%dz_cbed, (/"x","y","lev"/))
-         call register_restart_field(fileobj, "cbed_z_cbde_mid", cbed%z_cbed_mid, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_dz_cbed", cbed%dz_cbed, (/"x","y","lev"/))
+         !call register_restart_field(fileobj, "cbed_z_cbde_mid", cbed%z_cbed_mid, (/"x","y","lev"/))
 
          call write_restart(fileobj)
          call close_file(fileobj)
@@ -559,7 +559,7 @@ contains
       endif
 
       !Deallocate arrays
-      deallocate(cbed%f_tr1)
+      !deallocate(cbed%f_tr1)
       deallocate(cbed%f_o2)
       deallocate(cbed%f_om1)
       deallocate(cbed%f_om2)
@@ -1014,7 +1014,7 @@ contains
       do j = jsc, jec; do i = isc, iec  !{
             do k=1,nk_cbed
                if (grid_kmt(i,j) .gt. 0) then
-                  cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
+                  !cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
                   cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - (R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k))/por(i,j,k) - &
                      (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k))
