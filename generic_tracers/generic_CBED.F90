@@ -386,49 +386,49 @@ contains
       !cbed%id_tr1 = register_diag_field(package_name, 'cbed_tr1_conc', (/axes(1),axes(2),id_layer/), init_time,&
       !   'cbed tracer1 concentration', 'unknown units', missing_value = missing_value1)
       cbed%id_o2 = register_diag_field(package_name, 'cbed_o2_conc', (/axes(1),axes(2),id_layer/), init_time,&
-         'cbed oxygen concentration', 'mol/kg', missing_value = missing_value1)
+         'cbed oxygen concentration', 'mol m-3', missing_value = missing_value1)
       cbed%id_om1 = register_diag_field(package_name, 'cbed_om1_conc', (/axes(1),axes(2),id_layer/), init_time,&
-         'cbed OM1 concentration', 'mol/kg', missing_value = missing_value1)
+         'cbed OM1 concentration', 'mol m-3', missing_value = missing_value1)
       cbed%id_om2 = register_diag_field(package_name, 'cbed_om2_conc', (/axes(1),axes(2),id_layer/), init_time,&
-         'cbed OM2 concentration', 'mol/kg', missing_value = missing_value1)
+         'cbed OM2 concentration', 'mol m-3', missing_value = missing_value1)
       cbed%id_om3 = register_diag_field(package_name, 'cbed_om3_conc', (/axes(1),axes(2),id_layer/), init_time,&
-         'cbed OM3 concentration', 'mol/kg', missing_value = missing_value1)
+         'cbed OM3 concentration', 'mol m-3', missing_value = missing_value1)
       cbed%id_nh4 = register_diag_field(package_name, 'cbed_nh4_conc', (/axes(1),axes(2),id_layer/), init_time,&
-         'cbed ammonium concentration', 'mol/kg', missing_value = missing_value1)
+         'cbed ammonium concentration', 'mol m-3', missing_value = missing_value1)
       cbed%id_no3 = register_diag_field(package_name, 'cbed_no3_conc', (/axes(1),axes(2),id_layer/), init_time,&
-         'cbed nitrate concentration', 'mol/kg', missing_value = missing_value1)
+         'cbed nitrate concentration', 'mol m-3', missing_value = missing_value1)
       cbed%id_dic = register_diag_field(package_name, 'cbed_dic_conc', (/axes(1),axes(2),id_layer/), init_time,&
-         'cbed DIC concentration', 'mol/kg', missing_value = missing_value1)
+         'cbed DIC concentration', 'mol m-3', missing_value = missing_value1)
       cbed%id_odu = register_diag_field(package_name, 'cbed_odu_conc', (/axes(1),axes(2),id_layer/), init_time,&
-         'cbed ODU concentration', 'mol/kg', missing_value = missing_value1)
+         'cbed ODU concentration', 'mol m-3', missing_value = missing_value1)
       cbed%id_talk = register_diag_field(package_name, 'cbed_talk_conc', (/axes(1),axes(2),id_layer/), init_time,&
-         'cbed total alkalinity concentration', 'mol/kg', missing_value = missing_value1)
+         'cbed total alkalinity concentration', 'mol m-3', missing_value = missing_value1)
       ! diags
       ! 3D diags
       cbed%id_TOC = register_diag_field(package_name, 'cbed_TOC', (/axes(1),axes(2),id_layer/), init_time,&
          'Total Organic Carbon in sediment', 'wt %', missing_value = missing_value1)
       cbed%id_R_om_o2 = register_diag_field(package_name, 'cbed_R_om_o2', (/axes(1),axes(2),id_layer/), init_time,&
-         'aerobic respiration in sediment 3D field', 'mol C/kg/s', missing_value = missing_value1)
+         'aerobic respiration in sediment 3D field', 'mol C m-3 s-1', missing_value = missing_value1)
       cbed%id_R_om_no3 = register_diag_field(package_name, 'cbed_R_om_no3', (/axes(1),axes(2),id_layer/), init_time,&
-         'OM respiration via denitrification in sediment 3D field', 'mol C/kg/s', missing_value = missing_value1)
+         'OM respiration via denitrification in sediment 3D field', 'mol C m-3 s-1', missing_value = missing_value1)
       cbed%id_R_om_anaerobic = register_diag_field(package_name, 'cbed_R_om_anaerobic', (/axes(1),axes(2),id_layer/), init_time,&
-         'OM respiration via other anaerobic processes in sediment 3D field', 'mol C/kg/s', missing_value = missing_value1)
+         'OM respiration via other anaerobic processes in sediment 3D field', 'mol C m-3 s-1', missing_value = missing_value1)
       cbed%id_R_dic = register_diag_field(package_name, 'cbed_R_dic', (/axes(1),axes(2),id_layer/), init_time,&
-         'DIC produced in sediment via OM remineralization 3D field', 'mol C/kg/s', missing_value = missing_value1)
+         'DIC produced in sediment via OM remineralization 3D field', 'mol C m-3 s-1', missing_value = missing_value1)
 
       ! 2D diags
       cbed%id_o2_flux = register_diag_field(package_name, 'cbed_o2_flux', (/axes(1),axes(2)/), init_time,&
-         'benthic O2 flux', 'mol/m2/s', missing_value = missing_value1)
+         'benthic O2 flux', 'mol m-2 s-1', missing_value = missing_value1)
       cbed%id_nh4_flux = register_diag_field(package_name, 'cbed_nh4_flux', (/axes(1),axes(2)/), init_time,&
-         'benthic nh4 flux', 'mol/m2/s', missing_value = missing_value1)
+         'benthic nh4 flux', 'mol m-2 s-1', missing_value = missing_value1)
       cbed%id_no3_flux = register_diag_field(package_name, 'cbed_no3_flux', (/axes(1),axes(2)/), init_time,&
-         'benthic no3 flux', 'mol/m2/s', missing_value = missing_value1)
+         'benthic no3 flux', 'mol m-2 s-1', missing_value = missing_value1)
       cbed%id_dic_flux = register_diag_field(package_name, 'cbed_dic_flux', (/axes(1),axes(2)/), init_time,&
-         'benthic dic flux', 'mol/m2/s', missing_value = missing_value1)
+         'benthic dic flux', 'mol m-2 s-1', missing_value = missing_value1)
       cbed%id_burial_om = register_diag_field(package_name, 'cbed_burial_om', (/axes(1),axes(2)/), init_time,&
-         'cbed organic carbon burial', 'mol C/m2/s', missing_value = missing_value1)
+         'cbed organic carbon burial', 'mol m-2 s-1', missing_value = missing_value1)
       cbed%id_denit = register_diag_field(package_name, 'cbed_denit', (/axes(1),axes(2)/), init_time,&
-         'cbed total denitrification (denit + anammox)', 'mol N/m2/s', missing_value = missing_value1)
+         'cbed total denitrification (denit + anammox)', 'mol N m-2 s-1', missing_value = missing_value1)
       !cbed%id_cbed_anammox = register_diag_field(package_name, 'cbed_anammox', (/axes(1),axes(2)/), init_time,&
       !   'cbed anammox', 'mol/m2/s', missing_value = missing_value1)
       !cbed%id_cbed_o2resp = register_diag_field(package_name, 'cbed_o2resp', (/axes(1),axes(2)/), init_time,&
@@ -968,10 +968,10 @@ contains
       !
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
-               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)-cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0))*cobalt%Rho_0
-               b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0))*cobalt%Rho_0
-               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)-cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0))*cobalt%Rho_0
-               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)-cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0))*cobalt%Rho_0
+               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)-cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0))
+               b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)-cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0))
+               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)-cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0))
+               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)-cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0))
             endif
          enddo;enddo
 
