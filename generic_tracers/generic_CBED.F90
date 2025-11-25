@@ -340,9 +340,9 @@ contains
       if (file_open_success) then
          call register_axis(fileobj,'x','x')
          call register_axis(fileobj,'y','y')
-         !< Register the domain decomposed dimensions as variables so that the combiner can work correctly
-         call register_field(fileobj, "x", "double", (/"x"/))
-         call register_field(fileobj, "y", "double", (/"y"/))
+         !!< Register the domain decomposed dimensions as variables so that the combiner can work correctly
+         !call register_field(fileobj, "x", "double", (/"x"/))
+         !call register_field(fileobj, "y", "double", (/"y"/))
          call register_axis(fileobj,'lev',nk_cbed)
          ! register the restart variables
          !call register_restart_field(fileobj, "cbed_tr1", cbed%f_tr1, (/"x","y","lev"/))
@@ -525,6 +525,9 @@ contains
       if (file_open_success) then
          call register_axis(fileobj,'x','x')
          call register_axis(fileobj,'y','y')
+         !< Register the domain decomposed dimensions as variables so that the combiner can work correctly
+         call register_field(fileobj, "x", "double", (/"x"/))
+         call register_field(fileobj, "y", "double", (/"y"/))
          call register_axis(fileobj,'lev',nk_cbed)
          ! register the restart variables
          !call register_restart_field(fileobj, "cbed_tr1", cbed%f_tr1, (/"x","y","lev"/))
