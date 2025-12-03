@@ -203,35 +203,35 @@ contains
 
       !Allocate and initialize CBED arrays for tracer concentrations and other workarrays
       !allocate(cbed%f_tr1(isd:ied,jsd:jed,nk_cbed));cbed%f_tr1=0.0
-      allocate(cbed%f_o2(isd:ied,jsd:jed,nk_cbed));cbed%f_o2=0.0
-      allocate(cbed%f_om1(isd:ied,jsd:jed,nk_cbed));cbed%f_om1=0.0
-      allocate(cbed%f_om2(isd:ied,jsd:jed,nk_cbed));cbed%f_om2=0.0
-      allocate(cbed%f_om3(isd:ied,jsd:jed,nk_cbed));cbed%f_om3=0.0
-      allocate(cbed%f_nh4(isd:ied,jsd:jed,nk_cbed));cbed%f_nh4=0.0
-      allocate(cbed%f_no3(isd:ied,jsd:jed,nk_cbed));cbed%f_no3=0.0
-      allocate(cbed%f_dic(isd:ied,jsd:jed,nk_cbed));cbed%f_dic=0.0
-      allocate(cbed%f_odu(isd:ied,jsd:jed,nk_cbed));cbed%f_odu=0.0
-      allocate(cbed%f_talk(isd:ied,jsd:jed,nk_cbed));cbed%f_talk=0.0
+      allocate(cbed%f_o2(isc:iec,jsc:jec,nk_cbed));cbed%f_o2=0.0
+      allocate(cbed%f_om1(isc:iec,jsc:jec,nk_cbed));cbed%f_om1=0.0
+      allocate(cbed%f_om2(isc:iec,jsc:jec,nk_cbed));cbed%f_om2=0.0
+      allocate(cbed%f_om3(isc:iec,jsc:jec,nk_cbed));cbed%f_om3=0.0
+      allocate(cbed%f_nh4(isc:iec,jsc:jec,nk_cbed));cbed%f_nh4=0.0
+      allocate(cbed%f_no3(isc:iec,jsc:jec,nk_cbed));cbed%f_no3=0.0
+      allocate(cbed%f_dic(isc:iec,jsc:jec,nk_cbed));cbed%f_dic=0.0
+      allocate(cbed%f_odu(isc:iec,jsc:jec,nk_cbed));cbed%f_odu=0.0
+      allocate(cbed%f_talk(isc:iec,jsc:jec,nk_cbed));cbed%f_talk=0.0
       !Diagnostics
       ! 3D diags
-      allocate(cbed%TOC(isd:ied,jsd:jed,nk_cbed));cbed%TOC=0.0
-      allocate(cbed%R_om_o2(isd:ied,jsd:jed,nk_cbed));cbed%R_om_o2=0.0
-      allocate(cbed%R_om_no3(isd:ied,jsd:jed,nk_cbed));cbed%R_om_no3=0.0
-      allocate(cbed%R_om_anaerobic(isd:ied,jsd:jed,nk_cbed));cbed%R_om_anaerobic=0.0
-      allocate(cbed%R_dic(isd:ied,jsd:jed,nk_cbed));cbed%R_dic=0.0
+      allocate(cbed%TOC(isc:iec,jsc:jec,nk_cbed));cbed%TOC=0.0
+      allocate(cbed%R_om_o2(isc:iec,jsc:jec,nk_cbed));cbed%R_om_o2=0.0
+      allocate(cbed%R_om_no3(isc:iec,jsc:jec,nk_cbed));cbed%R_om_no3=0.0
+      allocate(cbed%R_om_anaerobic(isc:iec,jsc:jec,nk_cbed));cbed%R_om_anaerobic=0.0
+      allocate(cbed%R_dic(isc:iec,jsc:jec,nk_cbed));cbed%R_dic=0.0
       ! 2D diags
-      allocate(cbed%o2_flux(isd:ied,jsd:jed)); cbed%o2_flux=0.0
-      allocate(cbed%nh4_flux(isd:ied,jsd:jed)); cbed%nh4_flux=0.0
-      allocate(cbed%no3_flux(isd:ied,jsd:jed)); cbed%no3_flux=0.0
-      allocate(cbed%dic_flux(isd:ied,jsd:jed)); cbed%dic_flux=0.0
-      allocate(cbed%burial_om(isd:ied,jsd:jed));cbed%burial_om=0.0
-      allocate(cbed%denit(isd:ied,jsd:jed));cbed%denit=0.0
-      !allocate(cbed%cbed_anammox(isd:ied,jsd:jed));cbed%cbed_anammox=0.0
-      !allocate(cbed%cbed_o2resp(isd:ied,jsd:jed));cbed%cbed_o2resp=0.0
-      !allocate(cbed%cbed_no3resp(isd:ied,jsd:jed));cbed%cbed_no3resp=0.0
+      allocate(cbed%o2_flux(isc:iec,jsc:jec)); cbed%o2_flux=0.0
+      allocate(cbed%nh4_flux(isc:iec,jsc:jec)); cbed%nh4_flux=0.0
+      allocate(cbed%no3_flux(isc:iec,jsc:jec)); cbed%no3_flux=0.0
+      allocate(cbed%dic_flux(isc:iec,jsc:jec)); cbed%dic_flux=0.0
+      allocate(cbed%burial_om(isc:iec,jsc:jec));cbed%burial_om=0.0
+      allocate(cbed%denit(isc:iec,jsc:jec));cbed%denit=0.0
+      !allocate(cbed%cbed_anammox(isc:iec,jsc:jec));cbed%cbed_anammox=0.0
+      !allocate(cbed%cbed_o2resp(isc:iec,jsc:jec));cbed%cbed_o2resp=0.0
+      !allocate(cbed%cbed_no3resp(isc:iec,jsc:jec));cbed%cbed_no3resp=0.0
       ! 3D diag, CBED grid
-      allocate(cbed%dz_cbed(isd:ied,jsd:jed,nk_cbed));cbed%dz_cbed=0.0
-      allocate(cbed%z_cbed_mid(isd:ied,jsd:jed,nk_cbed));cbed%z_cbed_mid=0.0
+      allocate(cbed%dz_cbed(isc:iec,jsc:jec,nk_cbed));cbed%dz_cbed=0.0
+      allocate(cbed%z_cbed_mid(isc:iec,jsc:jec,nk_cbed));cbed%z_cbed_mid=0.0
 
       allocate(por(isc:iec,jsc:jec,nk_cbed+1));        por=0.8  !porosity=0.8 assumed constant for whole seafloor.
       allocate(svf(isc:iec,jsc:jec,nk_cbed+1));        svf=0.2 !solid volume fraction
@@ -462,7 +462,6 @@ contains
       integer :: i,j,k
       real,dimension(isc:iec,jsc:jec,nk_cbed)    :: cbed_tmask
       ! Make a cbed mask. Note: it seems grid_tmask(:,:,k) does not depend on k
-      ! Note that grid_tmask is already on isc:iec, jsc:jec
       ! do k=1,nk_cbed ; cbed_tmask(:,:,k) = grid_tmask(:,:,nk) ; enddo
       do j = jsc, jec; do i = isc, iec; do k=1,nk_cbed ;
                cbed_tmask(i,j,k) = grid_tmask(i,j,nk) ; enddo; enddo; enddo
@@ -645,7 +644,7 @@ contains
       integer :: i, j, k
 
       real, dimension(nk_cbed) :: a,b,c,f_old,h_old
-      real, dimension(isd:ied,jsd:jed,nk_cbed) :: ea,eb
+      real, dimension(isc:iec,jsc:jec,nk_cbed) :: ea,eb
       real, dimension(isc:iec,jsc:jec,nk_cbed+1) :: sink
 
       real :: sfc_src, btm_src
