@@ -459,7 +459,7 @@ contains
       integer,                  intent(in) :: isc,iec,jsc,jec, isd,ied,jsd,jed,nk
       ! local
       logical :: used
-      integer :: k
+      integer :: i,j,k
       real,dimension(isc:iec,jsc:jec,nk_cbed)    :: cbed_tmask
       ! Make a cbed mask. Note: it seems grid_tmask(:,:,k) does not depend on k
       ! Note that grid_tmask is already on isc:iec, jsc:jec
