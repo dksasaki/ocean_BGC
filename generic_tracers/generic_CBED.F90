@@ -184,8 +184,8 @@ contains
       r = r_mid
    end function find_r
 
-   subroutine generic_CBED_init(isc,iec,jsc,jec,isd,ied,jsd,jed,nk,grid_tmask)
-      integer,     intent(in) :: isc,iec,jsc,jec,isd,ied,jsd,jed,nk,grid_tmask
+   subroutine generic_CBED_init(isc,iec,jsc,jec,isd,ied,jsd,jed,nk)
+      integer,     intent(in) :: isc,iec,jsc,jec,isd,ied,jsd,jed,nk
       !Locals
       type(domain2D), pointer :: domain
       type(FmsNetcdfDomainFile_t) :: fileobj ! netCDF file object returned by call to fms2_open_file
@@ -195,11 +195,11 @@ contains
       integer :: i,j,k !for grid.
       real    :: r ! for grid
 
-      real,dimension(isc:iec,jsc:jec,nk_cbed)    :: cbed_tmask
+      !real,dimension(isc:iec,jsc:jec,nk_cbed)    :: cbed_tmask
       ! Make a cbed mask. Note: it seems grid_tmask(:,:,k) does not depend on k
       ! Note that grid_tmask is already on isc:iec, jsc:jec
-      do j = jsc, jec; do i = isc, iec; do k=1,nk_cbed ; 
-         cbed_tmask(i,j,k) = grid_tmask(i,j,nk) ; enddo; enddo; enddo
+      !do j = jsc, jec; do i = isc, iec; do k=1,nk_cbed ;
+      !   cbed_tmask(i,j,k) = grid_tmask(i,j,nk) ; enddo; enddo; enddo
 
       !Allocate and initialize CBED arrays for tracer concentrations and other workarrays
       !allocate(cbed%f_tr1(isd:ied,jsd:jed,nk_cbed));cbed%f_tr1=0.0
@@ -452,18 +452,21 @@ contains
 
    end subroutine generic_CBED_reg_diagnostics
 
-   subroutine generic_CBED_send_diagnostics(model_time, isc,iec,jsc,jec, isd,ied,jsd,jed,nk)
+   subroutine generic_CBED_send_diagnostics(model_time, isc,iec,jsc,jec, isd,ied,jsd,jed,nk, grid_tmask)
       USE diag_manager_mod, ONLY: send_data
       type(time_type),          intent(in) :: model_time
-      ! real, dimension(:,:,:),    pointer   :: grid_tmask
+      real, dimension(:,:,:),    pointer   :: grid_tmask
       integer,                  intent(in) :: isc,iec,jsc,jec, isd,ied,jsd,jed,nk
       ! local
       logical :: used
       integer :: k
-      ! real,dimension(isc:iec,jsc:jec,nk_cbed)    :: cbed_tmask
+      real,dimension(isc:iec,jsc:jec,nk_cbed)    :: cbed_tmask
       ! Make a cbed mask. Note: it seems grid_tmask(:,:,k) does not depend on k
       ! Note that grid_tmask is already on isc:iec, jsc:jec
       ! do k=1,nk_cbed ; cbed_tmask(:,:,k) = grid_tmask(:,:,nk) ; enddo
+      do j = jsc, jec; do i = isc, iec; do k=1,nk_cbed ;
+               cbed_tmask(i,j,k) = grid_tmask(i,j,nk) ; enddo; enddo; enddo
+
 
       !used = send_data(cbed%id_tr1, cbed%f_tr1, model_time, rmask = cbed_tmask,&
       !   is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
