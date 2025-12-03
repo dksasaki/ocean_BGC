@@ -192,13 +192,14 @@ contains
       character(len=64)           :: restart_file
       logical                     :: file_open_success ! result returned by call to fms2_open_file
 
-      integer :: k !for grid.
+      integer :: i,j,k !for grid.
       real    :: r ! for grid
 
       real,dimension(isc:iec,jsc:jec,nk_cbed)    :: cbed_tmask
       ! Make a cbed mask. Note: it seems grid_tmask(:,:,k) does not depend on k
       ! Note that grid_tmask is already on isc:iec, jsc:jec
-      do k=1,nk_cbed ; cbed_tmask(:,:,k) = grid_tmask(:,:,nk) ; enddo
+      do j = jsc, jec; do i = isc, iec; do k=1,nk_cbed ; 
+         cbed_tmask(i,j,k) = grid_tmask(i,j,nk) ; enddo; enddo; enddo
 
       !Allocate and initialize CBED arrays for tracer concentrations and other workarrays
       !allocate(cbed%f_tr1(isd:ied,jsd:jed,nk_cbed));cbed%f_tr1=0.0

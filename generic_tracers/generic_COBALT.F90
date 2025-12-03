@@ -7037,7 +7037,7 @@ contains
 
     call g_tracer_get_common(isc,iec,jsc,jec,isd,ied,jsd,jed,nk,ntau)
 
-    if(do_CBED) call generic_CBED_init(isc,iec,jsc,jec,isd,ied,jsd,jed,nk,grid_tmask(isc:iec,jsc:jec,:)) !This call is here because we have access to domain indices here,
+    if(do_CBED) call generic_CBED_init(isc,iec,jsc,jec,isd,ied,jsd,jed,nk,grid_tmask) !This call is here because we have access to domain indices here,
                                                                            !otherwise, inside generic_COBALT_init would have been a natural choice.
 
     !Allocate all the private arrays.
