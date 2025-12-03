@@ -184,8 +184,8 @@ contains
       r = r_mid
    end function find_r
 
-   subroutine generic_CBED_init(isc,iec,jsc,jec,isd,ied,jsd,jed,nk)
-      integer,     intent(in) :: isc,iec,jsc,jec,isd,ied,jsd,jed,nk
+   subroutine generic_CBED_init(isc,iec,jsc,jec,isd,ied,jsd,jed,nk,grid_tmask)
+      integer,     intent(in) :: isc,iec,jsc,jec,isd,ied,jsd,jed,nk,grid_tmask
       !Locals
       type(domain2D), pointer :: domain
       type(FmsNetcdfDomainFile_t) :: fileobj ! netCDF file object returned by call to fms2_open_file
@@ -194,6 +194,11 @@ contains
 
       integer :: k !for grid.
       real    :: r ! for grid
+
+      real,dimension(isc:iec,jsc:jec,nk_cbed)    :: cbed_tmask
+      ! Make a cbed mask. Note: it seems grid_tmask(:,:,k) does not depend on k
+      ! Note that grid_tmask is already on isc:iec, jsc:jec
+      do k=1,nk_cbed ; cbed_tmask(:,:,k) = grid_tmask(:,:,nk) ; enddo
 
       !Allocate and initialize CBED arrays for tracer concentrations and other workarrays
       !allocate(cbed%f_tr1(isd:ied,jsd:jed,nk_cbed));cbed%f_tr1=0.0
@@ -446,17 +451,18 @@ contains
 
    end subroutine generic_CBED_reg_diagnostics
 
-   subroutine generic_CBED_send_diagnostics(model_time,grid_tmask, isc,iec,jsc,jec, isd,ied,jsd,jed,nk)
+   subroutine generic_CBED_send_diagnostics(model_time, isc,iec,jsc,jec, isd,ied,jsd,jed,nk)
       USE diag_manager_mod, ONLY: send_data
       type(time_type),          intent(in) :: model_time
-      real, dimension(:,:,:),    pointer   :: grid_tmask
+      ! real, dimension(:,:,:),    pointer   :: grid_tmask
       integer,                  intent(in) :: isc,iec,jsc,jec, isd,ied,jsd,jed,nk
       ! local
       logical :: used
       integer :: k
-      real,dimension(isd:ied,jsd:jed,nk_cbed)    :: cbed_tmask
-      !Make a cbed mask. Note: it seems grid_tmask(:,:,k) does not depend on k
-      do k=1,nk_cbed ; cbed_tmask(:,:,k) = grid_tmask(:,:,nk) ; enddo
+      ! real,dimension(isc:iec,jsc:jec,nk_cbed)    :: cbed_tmask
+      ! Make a cbed mask. Note: it seems grid_tmask(:,:,k) does not depend on k
+      ! Note that grid_tmask is already on isc:iec, jsc:jec
+      ! do k=1,nk_cbed ; cbed_tmask(:,:,k) = grid_tmask(:,:,nk) ; enddo
 
       !used = send_data(cbed%id_tr1, cbed%f_tr1, model_time, rmask = cbed_tmask,&
       !   is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
@@ -492,17 +498,17 @@ contains
       used = send_data(cbed%id_R_dic, cbed%R_dic, model_time, rmask = cbed_tmask,&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
       ! 2D diags
-      used = send_data(cbed%id_o2_flux, cbed%o2_flux, model_time, rmask = grid_tmask(:,:,1),&
+      used = send_data(cbed%id_o2_flux, cbed%o2_flux, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
-      used = send_data(cbed%id_nh4_flux, cbed%nh4_flux, model_time, rmask = grid_tmask(:,:,1),&
+      used = send_data(cbed%id_nh4_flux, cbed%nh4_flux, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
-      used = send_data(cbed%id_no3_flux, cbed%no3_flux, model_time, rmask = grid_tmask(:,:,1),&
+      used = send_data(cbed%id_no3_flux, cbed%no3_flux, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
-      used = send_data(cbed%id_dic_flux, cbed%dic_flux, model_time, rmask = grid_tmask(:,:,1),&
+      used = send_data(cbed%id_dic_flux, cbed%dic_flux, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
-      used = send_data(cbed%id_burial_om, cbed%burial_om, model_time, rmask = grid_tmask(:,:,1),&
+      used = send_data(cbed%id_burial_om, cbed%burial_om, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
-      used = send_data(cbed%id_denit, cbed%denit, model_time, rmask = grid_tmask(:,:,1),&
+      used = send_data(cbed%id_denit, cbed%denit, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
       ! 1D diags
       used = send_data(cbed%id_dz_cbed, cbed%dz_cbed, model_time, rmask = cbed_tmask,&
