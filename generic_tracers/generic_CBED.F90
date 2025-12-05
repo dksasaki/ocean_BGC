@@ -666,8 +666,8 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                do k=1,nk_cbed
-                  ea(i,j,k) = D(i,j,k)*dt/h_old(k)
-                  eb(i,j,k) = D(i,j,k+1)*dt/h_old(k)
+                  ea(i,j,k) = VF(i,j,k)*D(i,j,k)*dt/h_old(k)
+                  eb(i,j,k) = VF(i,j,k)* D(i,j,k+1)*dt/h_old(k)
                enddo
             endif
          enddo; enddo
