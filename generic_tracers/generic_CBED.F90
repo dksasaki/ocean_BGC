@@ -233,8 +233,8 @@ contains
       allocate(cbed%dz_cbed(isd:ied,jsd:jed,nk_cbed));cbed%dz_cbed=0.0
       allocate(cbed%z_cbed_mid(isd:ied,jsd:jed,nk_cbed));cbed%z_cbed_mid=0.0
 
-      allocate(por(isc:iec,jsc:jec,nk_cbed+1));        por=1.0  !porosity=0.8 assumed constant for whole seafloor.
-      allocate(svf(isc:iec,jsc:jec,nk_cbed+1));        svf=1.0 !solid volume fraction
+      allocate(por(isc:iec,jsc:jec,nk_cbed+1));        por=0.5  !porosity=0.8 assumed constant for whole seafloor.
+      allocate(svf(isc:iec,jsc:jec,nk_cbed+1));        svf=0.5 !solid volume fraction
 
       allocate(w(isc:iec,jsc:jec,nk_cbed+1));        w=0.0      !adding sedimentation rate initalize
       allocate(Db_0(isc:iec,jsc:jec));               Db_0=0.0   !bioturbation_0 init.
