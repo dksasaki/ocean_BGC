@@ -462,9 +462,9 @@ contains
       integer :: i,j,k
       real,dimension(isd:ied,jsd:jed,nk_cbed)    :: cbed_tmask
       ! Make a cbed mask. Note: it seems grid_tmask(:,:,k) does not depend on k
-      do k=1,nk_cbed ; cbed_tmask(:,:,k) = grid_tmask(:,:,nk) ; enddo
-      ! do j = jsc, jec; do i = isc, iec; do k=1,nk_cbed ;
-      !         cbed_tmask(i,j,k) = grid_tmask(i,j,nk) ; enddo; enddo; enddo
+      !do k=1,nk_cbed ; cbed_tmask(:,:,k) = grid_tmask(:,:,nk) ; enddo
+      do j = jsc, jec; do i = isc, iec; do k=1,nk_cbed ;
+              cbed_tmask(i,j,k) = grid_tmask(i,j,nk) ; enddo; enddo; enddo
 
 
       !used = send_data(cbed%id_tr1, cbed%f_tr1, model_time, rmask = cbed_tmask,&
