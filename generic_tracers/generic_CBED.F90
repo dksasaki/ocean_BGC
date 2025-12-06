@@ -233,8 +233,8 @@ contains
       allocate(cbed%dz_cbed(isd:ied,jsd:jed,nk_cbed));cbed%dz_cbed=0.0
       allocate(cbed%z_cbed_mid(isd:ied,jsd:jed,nk_cbed));cbed%z_cbed_mid=0.0
 
-      allocate(por(isc:iec,jsc:jec,nk_cbed+1));        por=0.5  !porosity=0.8 assumed constant for whole seafloor.
-      allocate(svf(isc:iec,jsc:jec,nk_cbed+1));        svf=0.5 !solid volume fraction
+      allocate(por(isc:iec,jsc:jec,nk_cbed+1));        por=0.8  !porosity=0.8 assumed constant for whole seafloor.
+      allocate(svf(isc:iec,jsc:jec,nk_cbed+1));        svf=0.2  !solid volume fraction
 
       allocate(w(isc:iec,jsc:jec,nk_cbed+1));        w=0.0      !adding sedimentation rate initalize
       allocate(Db_0(isc:iec,jsc:jec));               Db_0=0.0   !bioturbation_0 init.
@@ -666,8 +666,8 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                do k=1,nk_cbed
-                  ea(i,j,k) = VF(i,j,k)*D(i,j,k)*dt/h_old(k)
-                  eb(i,j,k) = VF(i,j,k)* D(i,j,k+1)*dt/h_old(k)
+                  ea(i,j,k) = D(i,j,k)*dt/h_old(k)
+                  eb(i,j,k) = D(i,j,k+1)*dt/h_old(k)
                enddo
             endif
          enddo; enddo
