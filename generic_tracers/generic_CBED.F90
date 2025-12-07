@@ -644,8 +644,8 @@ contains
       integer :: i, j, k
 
       real, dimension(nk_cbed) :: a,b,c,f_old,h_old
-      real, dimension(isd:ied,jsd:jed,nk_cbed) :: ea,eb
-      real, dimension(isd:ied,jsd:jed,nk_cbed+1) :: sink
+      real, dimension(isc:iec,jsc:jec,nk_cbed) :: ea,eb
+      real, dimension(isc:iec,jsc:jec,nk_cbed+1) :: sink
 
       real :: sfc_src, btm_src
 
