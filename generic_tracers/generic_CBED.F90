@@ -817,9 +817,9 @@ contains
       real, parameter :: ks_o2 = 0.008   ! O2 half saturation constant (mol/m3)
       real, parameter :: ks_no3 = 0.001  ! NO3 half saturation constant (mol/m3)
 
-      real, parameter :: k_nox = 1e6 /spery    *0 ! mol-1 m3 s-1 (from the original: mmol-1 L yr-1) !nitrification rate constant
-      real, parameter :: k_ana = 1e5 /spery    *0 !                    !anammox rate constant
-      real, parameter :: k_oduox = 1e6 /spery  *0 !                    !ODU oxidation rate constant
+      real, parameter :: k_nox = 2e5 /spery     ! mol-1 m3 s-1 (from the original: mmol-1 L yr-1) !nitrification rate constant
+      real, parameter :: k_ana = 1e5 /spery     !                    !anammox rate constant
+      real, parameter :: k_oduox = 1e6 /spery   !                    !ODU oxidation rate constant
 
       real, parameter :: Q10 = 1.88
 
@@ -918,9 +918,9 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                ! POC flux unit in umol cm-2 y-1. Unit of k is y-1
-               k1(i,j) = ( 0.15*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery     *0
-               k2(i,j) = ( 0.0023*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery   *0
-               k3(i,j) = ( 0.00013*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery  *0
+               k1(i,j) = ( 0.15*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery     
+               k2(i,j) = ( 0.0023*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery   
+               k3(i,j) = ( 0.00013*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery  
             endif
          enddo;enddo
 
