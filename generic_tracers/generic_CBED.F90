@@ -233,24 +233,24 @@ contains
       allocate(cbed%dz_cbed(isd:ied,jsd:jed,nk_cbed));cbed%dz_cbed=0.0
       allocate(cbed%z_cbed_mid(isd:ied,jsd:jed,nk_cbed));cbed%z_cbed_mid=0.0
 
-      allocate(por(isc:iec,jsc:jec,nk_cbed+1));        por=0.8  !porosity=0.8 assumed constant for whole seafloor.
-      allocate(svf(isc:iec,jsc:jec,nk_cbed+1));        svf=0.2  !solid volume fraction
+      allocate(por(isd:ied,jsd:jed,nk_cbed+1));        por=0.8  !porosity=0.8 assumed constant for whole seafloor.
+      allocate(svf(isd:ied,jsd:jed,nk_cbed+1));        svf=0.2  !solid volume fraction
 
-      allocate(w(isc:iec,jsc:jec,nk_cbed+1));        w=0.0      !adding sedimentation rate initalize
-      allocate(Db_0(isc:iec,jsc:jec));               Db_0=0.0   !bioturbation_0 init.
-      allocate(Db(isc:iec,jsc:jec,nk_cbed+1));       Db=0.0     !bioturbation init.
-      allocate(bioirri_0(isc:iec,jsc:jec));          bioirri_0=0.0   !bioirrigation_0 init.
-      allocate(bioirri(isc:iec,jsc:jec,nk_cbed));    bioirri=0.0     !bioturbation init.
+      allocate(w(isd:ied,jsd:jed,nk_cbed+1));        w=0.0      !adding sedimentation rate initalize
+      allocate(Db_0(isd:ied,jsd:jed));               Db_0=0.0   !bioturbation_0 init.
+      allocate(Db(isd:ied,jsd:jed,nk_cbed+1));       Db=0.0     !bioturbation init.
+      allocate(bioirri_0(isd:ied,jsd:jed));          bioirri_0=0.0   !bioirrigation_0 init.
+      allocate(bioirri(isd:ied,jsd:jed,nk_cbed));    bioirri=0.0     !bioturbation init.
 
-      allocate(D_o2(isc:iec,jsc:jec,nk_cbed+1)); D_o2=0.0     ! D_o2 init.
-      allocate(D_dic(isc:iec,jsc:jec,nk_cbed+1)); D_dic=0.0
-      allocate(D_nh4(isc:iec,jsc:jec,nk_cbed+1)); D_nh4=0.0
-      allocate(D_no3(isc:iec,jsc:jec,nk_cbed+1)); D_no3=0.0
-      allocate(D_odu(isc:iec,jsc:jec,nk_cbed+1)); D_odu=0.0
+      allocate(D_o2(isd:ied,jsd:jed,nk_cbed+1)); D_o2=0.0     ! D_o2 init.
+      allocate(D_dic(isd:ied,jsd:jed,nk_cbed+1)); D_dic=0.0
+      allocate(D_nh4(isd:ied,jsd:jed,nk_cbed+1)); D_nh4=0.0
+      allocate(D_no3(isd:ied,jsd:jed,nk_cbed+1)); D_no3=0.0
+      allocate(D_odu(isd:ied,jsd:jed,nk_cbed+1)); D_odu=0.0
 
-      allocate(k1(isc:iec,jsc:jec)); k1=0.0
-      allocate(k2(isc:iec,jsc:jec)); k2=0.0
-      allocate(k3(isc:iec,jsc:jec)); k3=0.0
+      allocate(k1(isd:ied,jsd:jed)); k1=0.0
+      allocate(k2(isd:ied,jsd:jed)); k2=0.0
+      allocate(k3(isd:ied,jsd:jed)); k3=0.0
 
 
       ! Grid does not change with time, so can be define only once.
