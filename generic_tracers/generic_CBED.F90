@@ -25,6 +25,9 @@ module generic_CBED
    integer, parameter :: nk_cbed = 20    ! Number of benthic layers
 
    type generic_CBED_type
+      ! TODO: change read_porosity_from_file into a namelist variable  
+      logical :: read_porosity_from_file = .true.   ! flag to read porosity from file
+
       !real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
       real, dimension(:,:,:), allocatable :: f_o2   ! tracer o2 concentration field
       real, dimension(:,:,:), allocatable :: f_om1   ! tracer organic matter 1 (fast reacting) concentration field
@@ -233,8 +236,8 @@ contains
       allocate(cbed%dz_cbed(isd:ied,jsd:jed,nk_cbed));cbed%dz_cbed=0.0
       allocate(cbed%z_cbed_mid(isd:ied,jsd:jed,nk_cbed));cbed%z_cbed_mid=0.0
 
-      allocate(por(isd:ied,jsd:jed,nk_cbed+1));        por=0.8  !porosity=0.8 assumed constant for whole seafloor.
-      allocate(svf(isd:ied,jsd:jed,nk_cbed+1));        svf=0.2  !solid volume fraction
+      allocate(por(isd:ied,jsd:jed,nk_cbed+1));        por=0.0  !initialize to zero
+      allocate(svf(isd:ied,jsd:jed,nk_cbed+1));        svf=0.0  !solid volume fraction
 
       allocate(w(isd:ied,jsd:jed,nk_cbed+1));        w=0.0      !adding sedimentation rate initalize
       allocate(Db_0(isd:ied,jsd:jed));               Db_0=0.0   !bioturbation_0 init.
@@ -251,6 +254,14 @@ contains
       allocate(k1(isd:ied,jsd:jed)); k1=0.0
       allocate(k2(isd:ied,jsd:jed)); k2=0.0
       allocate(k3(isd:ied,jsd:jed)); k3=0.0
+
+      if (cbed%read_porosity_from_file) then
+         call data_override('OCN', 'por', por(isc:iec,jsc:jec,nk_cbed+1), model_time, override=.true.)
+         svf(isc:iec,jsc:jec,nk_cbed+1) = 1.0 - por(isc:iec,jsc:jec,nk_cbed+1)
+      else
+         por(isc:iec,jsc:jec,nk_cbed+1) = 0.8
+         svf(isc:iec,jsc:jec,nk_cbed+1) = 0.2
+      endif
 
 
       ! Grid does not change with time, so can be define only once.
@@ -464,7 +475,7 @@ contains
       ! Make a cbed mask. Note: it seems grid_tmask(:,:,k) does not depend on k
       !do k=1,nk_cbed ; cbed_tmask(:,:,k) = grid_tmask(:,:,nk) ; enddo
       do j = jsc, jec; do i = isc, iec; do k=1,nk_cbed ;
-              cbed_tmask(i,j,k) = grid_tmask(i,j,nk) ; enddo; enddo; enddo
+               cbed_tmask(i,j,k) = grid_tmask(i,j,nk) ; enddo; enddo; enddo
 
 
       !used = send_data(cbed%id_tr1, cbed%f_tr1, model_time, rmask = cbed_tmask,&
@@ -918,9 +929,9 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                ! POC flux unit in umol cm-2 y-1. Unit of k is y-1
-               k1(i,j) = ( 0.15*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery     
-               k2(i,j) = ( 0.0023*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery   
-               k3(i,j) = ( 0.00013*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery  
+               k1(i,j) = ( 0.15*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
+               k2(i,j) = ( 0.0023*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
+               k3(i,j) = ( 0.00013*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
             endif
          enddo;enddo
 
