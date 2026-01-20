@@ -9,6 +9,7 @@ module generic_CBED
    use time_manager_mod,  only: time_type
    use field_manager_mod, only: fm_string_len, fm_path_name_len
    use mpp_domains_mod,  only : domain2D,mpp_define_io_domain
+   use data_override_mod, only: data_override
    use fms2_io_mod, only: FmsNetcdfDomainFile_t, open_file, close_file, read_restart, write_restart
    use fms2_io_mod, only: register_restart_field, register_axis, register_field
    use fms_mod, only: error_mesg, NOTE, WARNING, FATAL
@@ -25,7 +26,7 @@ module generic_CBED
    integer, parameter :: nk_cbed = 20    ! Number of benthic layers
 
    type generic_CBED_type
-      ! TODO: change read_porosity_from_file into a namelist variable  
+      ! TODO: change read_porosity_from_file into a namelist variable
       logical :: read_porosity_from_file = .true.   ! flag to read porosity from file
 
       !real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
@@ -255,13 +256,13 @@ contains
       allocate(k2(isd:ied,jsd:jed)); k2=0.0
       allocate(k3(isd:ied,jsd:jed)); k3=0.0
 
-      if (cbed%read_porosity_from_file) then
-         call data_override('OCN', 'por', por(isc:iec,jsc:jec,nk_cbed+1), model_time, override=.true.)
-         svf(isc:iec,jsc:jec,nk_cbed+1) = 1.0 - por(isc:iec,jsc:jec,nk_cbed+1)
-      else
-         por(isc:iec,jsc:jec,nk_cbed+1) = 0.8
-         svf(isc:iec,jsc:jec,nk_cbed+1) = 0.2
-      endif
+      !if (cbed%read_porosity_from_file) then
+      !   call data_override('OCN', 'por', por(isc:iec,jsc:jec,nk_cbed+1), model_time, override=.true.)
+      !   svf(isc:iec,jsc:jec,nk_cbed+1) = 1.0 - por(isc:iec,jsc:jec,nk_cbed+1)
+      !else
+      !   por(isc:iec,jsc:jec,nk_cbed+1) = 0.8
+      !   svf(isc:iec,jsc:jec,nk_cbed+1) = 0.2
+      !endif
 
 
       ! Grid does not change with time, so can be define only once.
@@ -796,7 +797,7 @@ contains
 
 
    subroutine generic_CBED_sediments_update_from_source(cobalt_tracer_list, cobalt, phyto, ilb, jlb, mask_coast, &
-      grid_tmask, grid_dat, grid_kmt, isc,iec, jsc,jec, isd,ied, jsd,jed, nk, r_dt, dt, tau, frunoff, rho_dzt, dzt, internal_heat)
+      grid_tmask, grid_dat, grid_kmt, isc,iec, jsc,jec, isd,ied, jsd,jed, nk, r_dt, dt, tau, model_time, frunoff, rho_dzt, dzt, internal_heat)
 
       type(g_tracer_type),          pointer       :: cobalt_tracer_list
       type(generic_COBALT_type),    intent(inout) :: cobalt
@@ -808,6 +809,7 @@ contains
       integer,                      intent(in)    :: isc,iec, jsc,jec, isd,ied, jsd,jed, nk
       real,                         intent(in)    :: r_dt, dt
       integer,                      intent(in)    :: tau
+      type(time_type),              intent(in)    :: model_time
       real, dimension(ilb:,jlb:),   intent(in)    :: frunoff
       real, dimension(ilb:,jlb:,:), intent(in)    :: rho_dzt, dzt
       real, dimension(ilb:,jlb:),   intent(in), optional :: internal_heat
@@ -856,6 +858,19 @@ contains
             endif
          enddo; enddo
 
+      ! Porosity and solid volume fraction read from file. 
+      if (cbed%read_porosity_from_file) then
+         call data_override('OCN', 'por', por(isc:iec,jsc:jec,1), model_time)
+         do k = 2, nk_cbed+1
+            do j = jsc, jec; do i = isc, iec
+                  por(i,j,k) = por(i,j,1)
+               enddo; enddo
+         enddo
+         svf(isc:iec,jsc:jec,nk_cbed+1) = 1.0 - por(isc:iec,jsc:jec,nk_cbed+1)
+      else
+         por(isc:iec,jsc:jec,nk_cbed+1) = 0.8
+         svf(isc:iec,jsc:jec,nk_cbed+1) = 0.2
+      endif
 
       ! Sedimentation rate calculation
       do j = jsc, jec; do i = isc, iec
