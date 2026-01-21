@@ -27,7 +27,7 @@ module generic_CBED
 
    type generic_CBED_type
       ! TODO: change read_porosity_from_file into a namelist variable
-      logical :: read_porosity_from_file = .true.   ! flag to read porosity from file
+      logical :: read_porosity_from_file = .false.   ! flag to read porosity from file
 
       !real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
       real, dimension(:,:,:), allocatable :: f_o2   ! tracer o2 concentration field
