@@ -27,7 +27,7 @@ module generic_CBED
 
    type generic_CBED_type
       ! TODO: change read_porosity_from_file into a namelist variable
-      logical :: read_porosity_from_file = .false.   ! flag to read porosity from file
+      logical :: read_porosity_from_file = .true.   ! flag to read porosity from file
 
       !real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
       real, dimension(:,:,:), allocatable :: f_o2   ! tracer o2 concentration field
@@ -862,14 +862,18 @@ contains
       if (cbed%read_porosity_from_file) then
          call data_override('OCN', 'por', por(isc:iec,jsc:jec,1), model_time)
          do j = jsc, jec; do i = isc, iec
-               do k = 2, nk_cbed+1
-                  por(i,j,k) = por(i,j,1)
-               enddo
+               if (grid_kmt(i,j) .gt. 0) then
+                  do k = 2, nk_cbed+1
+                     por(i,j,k) = por(i,j,1)
+                  enddo
+               endif
             enddo; enddo
          do j = jsc, jec; do i = isc, iec
-               do k = 1, nk_cbed+1
-                  svf(i,j,k) = 1.0 - por(i,j,k)
-               enddo
+               if (grid_kmt(i,j) .gt. 0) then
+                  do k = 1, nk_cbed+1
+                     svf(i,j,k) = 1.0 - por(i,j,k)
+                  enddo
+               endif
             enddo; enddo
       else
          do j = jsc, jec; do i = isc, iec
