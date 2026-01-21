@@ -867,13 +867,23 @@ contains
                enddo
             enddo; enddo
          do j = jsc, jec; do i = isc, iec
-            do k = 1, nk_cbed+1
-               svf(i,j,k) = 1.0 - por(i,j,k)
-            enddo
-         enddo; enddo
+               do k = 1, nk_cbed+1
+                  svf(i,j,k) = 1.0 - por(i,j,k)
+               enddo
+            enddo; enddo
       else
-         por = 0.8
-         svf = 0.2
+         if (grid_kmt(i,j) .gt. 0) then
+            por(isc:iec,jsc:jec,1:nk_cbed+1) = 0.8
+            svf(isc:iec,jsc:jec,1:nk_cbed+1) = 0.2
+         end if
+         !do j = jsc, jec; do i = isc, iec
+         !   do k = 1, nk_cbed+1
+         !      por(i,j,k) = 0.8
+         !      svf(i,j,k) = 1 - por(i,j,k)
+         !!   enddo
+         !nddo; enddo
+         !por = 0.8
+         !svf = 0.2
       endif
 
       ! Sedimentation rate calculation
