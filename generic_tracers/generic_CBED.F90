@@ -862,6 +862,10 @@ contains
       if (cbed%read_porosity_from_file) then
          call data_override('OCN', 'por', por(isc:iec,jsc:jec,1), model_time)
          do j = jsc, jec; do i = isc, iec
+               print *, "por(", i, ",", j, ",1) = ", por(i,j,1)  !print to the stdout. Use to check if porosity is read correctly.
+            enddo; enddo
+
+         do j = jsc, jec; do i = isc, iec
                if (grid_kmt(i,j) .gt. 0) then
                   do k = 2, nk_cbed+1
                      por(i,j,k) = por(i,j,1)
