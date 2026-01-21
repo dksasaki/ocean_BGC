@@ -868,8 +868,8 @@ contains
          enddo
          svf(isc:iec,jsc:jec,nk_cbed+1) = 1.0 - por(isc:iec,jsc:jec,nk_cbed+1)
       else
-         por(isc:iec,jsc:jec,nk_cbed+1) = 0.8
-         svf(isc:iec,jsc:jec,nk_cbed+1) = 0.2
+         por = 0.8
+         svf = 0.2
       endif
 
       ! Sedimentation rate calculation
