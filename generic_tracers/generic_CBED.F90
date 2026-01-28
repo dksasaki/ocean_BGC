@@ -678,8 +678,8 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                do k=1,nk_cbed
-                  ea(i,j,k) = D(i,j,k)*dt/h_old(k)
-                  eb(i,j,k) = D(i,j,k+1)*dt/h_old(k)
+                  ea(i,j,k) = VF(i,j,k)*D(i,j,k)*dt/h_old(k)
+                  eb(i,j,k) = VF(i,j,k)*D(i,j,k+1)*dt/h_old(k)
                enddo
             endif
          enddo; enddo
@@ -688,7 +688,7 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                do k=1,nk_cbed+1
-                  sink(i,j,k) = max(0.0, w(i,j,k)*dt )
+                  sink(i,j,k) = max(0.0, VF(i,j,k)*w(i,j,k)*dt )
                enddo
             endif
          enddo; enddo
@@ -707,27 +707,27 @@ contains
                sfc_src = 0.0
 
                if ((trim(field_name) == "f_o2")) then
-                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0))*dt ! top flux (diffuvive flux + advective flux)
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_nh4")) then
-                  sfc_src =  VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src =  (VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_no3")) then
-                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0))*dt  ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_dic") ) then
-                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_odu") ) then
-                  sfc_src = VF(i,j,1)*D(i,j,1)*((0.0-cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src = VF(i,j,1)*D(i,j,1)*((0.0-cbed_field(i,j,1))/(dz_cbed(1)/2.0)) *dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_talk") ) then
-                  sfc_src = VF(i,j,1)*D(i,j,1)*((cobalt%btm_alk(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt ! top flux
+                  sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_alk(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_alk(i,j)*cobalt%Rho_0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
                else if ((trim(field_name) == "f_om1")) then
@@ -1000,10 +1000,10 @@ contains
                   odu_depo(i,j,k) = (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))*min(1.0, 0.233*(w(i,j,k)*100.0*spery)**0.336)
 
                   ! TA calculation
-                  R_talk(i,j,k) = (1.0/cobalt%c_2_n)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k))/por(i,j,k) + &
-                     (0.8+1.0/cobalt%c_2_n)*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k))/por(i,j,k) + &
-                     (1.0+1.0/cobalt%c_2_n)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))/por(i,j,k) - &
-                     2.0*R_nox(i,j,k) - 2.0*R_oduox(i,j,k)
+                  R_talk(i,j,k) = svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) + &
+                     svf(i,j,k)/por(i,j,k)*(0.8+1.0/cobalt%c_2_n)*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
+                     svf(i,j,k)/por(i,j,k)*(1.0+1.0/cobalt%c_2_n)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
+                     2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k)
 
                   ! calculations for diagnostics
                   cbed%R_om_o2(i,j,k) = R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)
@@ -1026,10 +1026,10 @@ contains
       !
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
-               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0))
-               b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0))
-               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0))
-               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0))
+               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0)
+               b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0)
+               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0)
+               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0)
             endif
          enddo;enddo
 
@@ -1048,7 +1048,7 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                do k = 1, nk_cbed
-                  cbed%TOC(i,j,k)  = (cbed%f_om1(i,j,k)+cbed%f_om2(i,j,k)+cbed%f_om3(i,j,k))*12.0/1e6/rho_s*100.0/svf(i,j,k)
+                  cbed%TOC(i,j,k)  = (cbed%f_om1(i,j,k)+cbed%f_om2(i,j,k)+cbed%f_om3(i,j,k))*12.0/1e6/rho_s*100.0
                enddo
             endif
          enddo;enddo
@@ -1057,9 +1057,9 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
 
-               cbed%burial_om(i,j)  = (cbed%f_om1(i,j,nk_cbed)+cbed%f_om2(i,j,nk_cbed)+cbed%f_om3(i,j,nk_cbed))*w(i,j,nk_cbed+1)
+               cbed%burial_om(i,j)  = (cbed%f_om1(i,j,nk_cbed)+cbed%f_om2(i,j,nk_cbed)+cbed%f_om3(i,j,nk_cbed))*w(i,j,nk_cbed+1) * svf(i,j,nk_cbed+1) ! mol/m2/s
 
-               cbed%denit(i,j) = sum(dz_cbed(:)*(0.8*cbed%R_om_no3(i,j,:) + por(i,j,1:nk_cbed)*2.0*R_ana(i,j,:)))
+               cbed%denit(i,j) = sum(dz_cbed(:)*(svf(i,j,1:nk_cbed)*0.8*cbed%R_om_no3(i,j,:) + por(i,j,1:nk_cbed)*2.0*R_ana(i,j,:)))
 
             endif
          enddo;enddo
@@ -1074,7 +1074,7 @@ contains
                if (grid_kmt(i,j) .gt. 0) then
                   !cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
-                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - (R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k))/por(i,j,k) - &
+                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
                      (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k))
 
                   cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k))
@@ -1083,17 +1083,17 @@ contains
 
                   cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k))
 
-                  cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + (1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))/por(i,j,k) + &
+                  cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
                      ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk) - cbed%f_nh4(i,j,k))
 
-                  cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) - 0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k))/por(i,j,k) + &
+                  cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
                      (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j) - cbed%f_no3(i,j,k))
 
-                  cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + (R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k))/por(i,j,k) + &
+                  cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
                      bioirri(i,j,k)*(cobalt%btm_dic(i,j) - cbed%f_dic(i,j,k))
 
-                  cbed%f_odu(i,j,k) = cbed%f_odu(i,j,k) + (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))/por(i,j,k) - &
-                     R_oduox(i,j,k) - odu_depo(i,j,k)/por(i,j,k)  + bioirri(i,j,k)*(0.0 - cbed%f_odu(i,j,k))
+                  cbed%f_odu(i,j,k) = cbed%f_odu(i,j,k) + svf(i,j,k)/por(i,j,k)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
+                     R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - cbed%f_odu(i,j,k))
 
                   cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j) - cbed%f_talk(i,j,k))
 
