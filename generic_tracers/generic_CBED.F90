@@ -1234,24 +1234,24 @@ contains
       ! The CBED reaction rates however are calculated based on the t time step, so they will be
       ! calculated after source sink calculation and call to vertdiff_CBED.
       !
-      !do j = jsc, jec; do i = isc, iec
-      !      if (grid_kmt(i,j) .gt. 0) then
-      !         b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0)
-      !         b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0)
-      !         b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0)
-      !         b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0)
-      !      endif
-      !   enddo;enddo
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0)
+               b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0)
+               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0)
+               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0)
+            endif
+         enddo;enddo
 
       ! save the benthic fluxes as diagnostics. 2D diag
-      !do j = jsc, jec; do i = isc, iec
-      !      if (grid_kmt(i,j) .gt. 0) then
-      !         cbed%o2_flux(i,j)  = b_o2(i,j)
-      !         cbed%nh4_flux(i,j) = b_nh4(i,j)
-      !         cbed%no3_flux(i,j) = b_no3(i,j)
-      !         cbed%dic_flux(i,j) = b_dic(i,j)
-      !      endif
-      !   enddo;enddo
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               cbed%o2_flux(i,j)  = b_o2(i,j)
+               cbed%nh4_flux(i,j) = b_nh4(i,j)
+               cbed%no3_flux(i,j) = b_no3(i,j)
+               cbed%dic_flux(i,j) = b_dic(i,j)
+            endif
+         enddo;enddo
 
 
       !TOC (total organic carbon) diagnostics
@@ -1325,25 +1325,6 @@ contains
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_talk, "f_talk", D_dic, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
 
 
-      ! (Moved b_terms after the fields are updated) Calculate the "b terms" to feed into cobalt.
-      do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) .gt. 0) then
-               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed%f_o2(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0)
-               b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0)
-               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0)
-               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0)
-            endif
-         enddo;enddo
-
-      ! save the benthic fluxes as diagnostics. 2D diag
-      do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) .gt. 0) then
-               cbed%o2_flux(i,j)  = b_o2(i,j)
-               cbed%nh4_flux(i,j) = b_nh4(i,j)
-               cbed%no3_flux(i,j) = b_no3(i,j)
-               cbed%dic_flux(i,j) = b_dic(i,j)
-            endif
-         enddo;enddo
 
 
       !!==================================================================================================================
