@@ -54,12 +54,29 @@ module generic_CBED
       real, dimension(:,:), allocatable :: dic_flux !benthic dic flux
       real, dimension(:,:), allocatable :: burial_om !organic matter burial at the bottom of sediment column
       real, dimension(:,:), allocatable :: denit
+      real, dimension(:,:), allocatable :: cbed_k1
+      real, dimension(:,:), allocatable :: cbed_k2
+      real, dimension(:,:), allocatable :: cbed_k3
+      real, dimension(:,:), allocatable :: cbed_w
       !real, dimension(:,:), allocatable :: cbed_anammox
       !real, dimension(:,:), allocatable :: cbed_o2resp
       !real, dimension(:,:), allocatable :: cbed_no3resp
       ! 3D diags, CBED grid
       real, dimension(:,:,:), allocatable :: dz_cbed             ! cbed grid thickness
       real, dimension(:,:,:), allocatable :: z_cbed_mid          ! cbed layer mid points
+
+      ! 3D diags (interfaces)(nk_cbed+1)
+      real, dimension(:,:,:), allocatable :: cbed_Db
+      real, dimension(:,:,:), allocatable :: cbed_bioirri
+      real, dimension(:,:,:), allocatable :: cbed_D_o2
+      real, dimension(:,:,:), allocatable :: cbed_D_dic
+      real, dimension(:,:,:), allocatable :: cbed_D_nh4
+      real, dimension(:,:,:), allocatable :: cbed_D_no3
+      real, dimension(:,:,:), allocatable :: cbed_D_odu
+      real, dimension(:,:,:), allocatable :: cbed_por
+      real, dimension(:,:,:), allocatable :: cbed_svf
+
+      
 
       !integer :: id_tr1                              ! tracer 1 diagnostics id
       integer :: id_o2                               ! tracer o2 diagnostics id
@@ -84,6 +101,10 @@ module generic_CBED
       integer :: id_dic_flux
       integer :: id_burial_om
       integer :: id_denit
+      integer :: id_cbed_k1
+      integer :: id_cbed_k2
+      integer :: id_cbed_k3
+      integer :: id_cbed_w
       !integer :: id_cbed_anammox
       !integer :: id_cbed_o2resp
       !integer :: id_cbed_no3resp
@@ -91,6 +112,16 @@ module generic_CBED
       integer :: id_dz_cbed
       integer :: id_z_cbed_mid
 
+      ! 3D diags (interfaces)(nk_cbed+1)
+      integer :: id_cbed_Db
+      integer :: id_cbed_bioirri
+      integer :: id_cbed_D_o2
+      integer :: id_cbed_D_dic
+      integer :: id_cbed_D_nh4
+      integer :: id_cbed_D_no3
+      integer :: id_cbed_D_odu
+      integer :: id_cbed_por
+      integer :: id_cbed_svf
 
 
    end type generic_CBED_type
@@ -230,12 +261,28 @@ contains
       allocate(cbed%dic_flux(isd:ied,jsd:jed)); cbed%dic_flux=0.0
       allocate(cbed%burial_om(isd:ied,jsd:jed));cbed%burial_om=0.0
       allocate(cbed%denit(isd:ied,jsd:jed));cbed%denit=0.0
+      allocate(cbed%cbed_k1(isd:ied,jsd:jed));cbed%cbed_k1=0.0
+      allocate(cbed%cbed_k2(isd:ied,jsd:jed));cbed%cbed_k2=0.0
+      allocate(cbed%cbed_k3(isd:ied,jsd:jed));cbed%cbed_k3=0.0
+      allocate(cbed%cbed_w(isd:ied,jsd:jed));cbed%cbed_w=0.0
       !allocate(cbed%cbed_anammox(isd:ied,jsd:jed));cbed%cbed_anammox=0.0
       !allocate(cbed%cbed_o2resp(isd:ied,jsd:jed));cbed%cbed_o2resp=0.0
       !allocate(cbed%cbed_no3resp(isd:ied,jsd:jed));cbed%cbed_no3resp=0.0
       ! 3D diag, CBED grid
       allocate(cbed%dz_cbed(isd:ied,jsd:jed,nk_cbed));cbed%dz_cbed=0.0
       allocate(cbed%z_cbed_mid(isd:ied,jsd:jed,nk_cbed));cbed%z_cbed_mid=0.0
+
+      ! 3D diags (interfaces)(nk_cbed+1)
+      allocate(cbed%cbed_Db(isd:ied,jsd:jed,nk_cbed+1));cbed%cbed_Db=0.0
+      allocate(cbed%cbed_bioirri(isd:ied,jsd:jed,nk_cbed+1));cbed%cbed_bioirri=0.0
+      allocate(cbed%cbed_D_o2(isd:ied,jsd:jed,nk_cbed+1));cbed%cbed_D_o2=0.0
+      allocate(cbed%cbed_D_dic(isd:ied,jsd:jed,nk_cbed+1));cbed%cbed_D_dic =0.0
+      allocate(cbed%cbed_D_nh4(isd:ied,jsd:jed,nk_cbed+1));cbed%cbed_D_nh4=0.0
+      allocate(cbed%cbed_D_no3(isd:ied,jsd:jed,nk_cbed+1));cbed%cbed_D_no3=0.0
+      allocate(cbed%cbed_D_odu(isd:ied,jsd:jed,nk_cbed+1));cbed%cbed_D_odu=0.0
+      allocate(cbed%cbed_por(isd:ied,jsd:jed,nk_cbed+1));cbed%cbed_por=0.0
+      allocate(cbed%cbed_svf(isd:ied,jsd:jed,nk_cbed+1));cbed%cbed_svf=0.0
+      
 
       allocate(por(isd:ied,jsd:jed,nk_cbed+1));        por=0.0  !initialize to zero
       allocate(svf(isd:ied,jsd:jed,nk_cbed+1));        svf=0.0  !solid volume fraction
@@ -373,26 +420,6 @@ contains
          call register_restart_field(fileobj, "cbed_dic", cbed%f_dic, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_odu", cbed%f_odu, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_talk", cbed%f_talk, (/"x","y","lev"/))
-         !diags
-         ! 3D diags
-         !call register_restart_field(fileobj, "cbed_TOC", cbed%TOC, (/"x","y","lev"/))
-         !call register_restart_field(fileobj, "cbed_R_om_o2", cbed%R_om_o2, (/"x","y","lev"/))
-         !call register_restart_field(fileobj, "cbed_R_om_no3", cbed%R_om_no3, (/"x","y","lev"/))
-         !call register_restart_field(fileobj, "cbed_R_om_anaerobic", cbed%R_om_anaerobic, (/"x","y","lev"/))
-         !call register_restart_field(fileobj, "cbed_R_dic", cbed%R_dic, (/"x","y","lev"/))
-         ! 2D diags
-         !call register_restart_field(fileobj, "cbed_o2_flux", cbed%o2_flux, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_nh4_flux", cbed%nh4_flux, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_no3_flux", cbed%no3_flux, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_dic_flux", cbed%dic_flux, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_burial_om", cbed%burial_om, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_denit", cbed%denit, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_anammox", cbed%cbed_anammox, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_o2resp", cbed%cbed_o2resp, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_no3resp", cbed%cbed_no3resp, (/"x","y"/))
-         ! 3D diags, CBED grid
-         !call register_restart_field(fileobj, "cbed_dz_cbed", cbed%dz_cbed, (/"x","y","lev"/))
-         !call register_restart_field(fileobj, "cbed_z_cbed_mid", cbed%z_cbed_mid, (/"x","y","lev"/))
 
          call read_restart(fileobj)
       endif
@@ -403,6 +430,8 @@ contains
       !Define cbed layer axis, the x,y axes are the same as MOM6 since the horizontal grids are the same
       do k=1,nk_cbed; cbed_layers(k) = k; enddo
       id_layer = diag_axis_init('cbedlayer', cbed_layers, 'None', 'z', long_name='Benthos Layer', direction=-1)
+      do k=1,nk_cbed+1; cbed_layers_i(k) = k; enddo
+      id_layer_i = diag_axis_init('cbedlayer_i', cbed_layers_i, 'None', 'z', long_name='Benthos Layer Interface', direction=-1)
 
       !cbed%id_tr1 = register_diag_field(package_name, 'cbed_tr1_conc', (/axes(1),axes(2),id_layer/), init_time,&
       !   'cbed tracer1 concentration', 'unknown units', missing_value = missing_value1)
@@ -450,6 +479,15 @@ contains
          'cbed organic carbon burial', 'mol m-2 s-1', missing_value = missing_value1)
       cbed%id_denit = register_diag_field(package_name, 'cbed_denit', (/axes(1),axes(2)/), init_time,&
          'cbed total denitrification (denit + anammox)', 'mol N m-2 s-1', missing_value = missing_value1)
+      cbed%id_cbed_k1 = register_diag_field(package_name, 'cbed_k1', (/axes(1),axes(2)/), init_time,&
+         'OM1 decay rate constant', 's-1', missing_value = missing_value1)
+      cbed%id_cbed_k2 = register_diag_field(package_name, 'cbed_k2', (/axes(1),axes(2)/), init_time,&
+         'OM2 decay rate constant', 's-1', missing_value = missing_value1)
+      cbed%id_cbed_k3 = register_diag_field(package_name, 'cbed_k3', (/axes(1),axes(2)/), init_time,&
+         'OM3 decay rate constant', 's-1', missing_value = missing_value1)
+      cbed%id_cbed_w = register_diag_field(package_name, 'cbed_w', (/axes(1),axes(2)/), init_time,&
+         'sedimentation rate', 'm/s', missing_value = missing_value1)
+
       !cbed%id_cbed_anammox = register_diag_field(package_name, 'cbed_anammox', (/axes(1),axes(2)/), init_time,&
       !   'cbed anammox', 'mol/m2/s', missing_value = missing_value1)
       !cbed%id_cbed_o2resp = register_diag_field(package_name, 'cbed_o2resp', (/axes(1),axes(2)/), init_time,&
@@ -461,6 +499,26 @@ contains
          'CBED grid layer thickess', 'm', missing_value = missing_value1)
       cbed%id_z_cbed_mid = register_diag_field(package_name, 'cbed_z_cbed_mid', (/axes(1),axes(2),id_layer/), init_time,&
          'CBED grid layer midpoints', 'm', missing_value = missing_value1)
+      
+      ! 3D diags, CBED grid interfaces
+      cbed%id_cbed_Db = register_diag_field(package_name, 'cbed_Db', (/axes(1),axes(2),id_layer_i/), init_time,&
+         'bioturbation coefficient', 'm2/s', missing_value = missing_value1)
+      cbed%id_cbed_bioirri = register_diag_field(package_name, 'cbed_bioirri', (/axes(1),axes(2),id_layer_i/), init_time,&
+         'bioirrigation coefficient', 's-1', missing_value = missing_value1)
+      cbed%id_cbed_D_o2 = register_diag_field(package_name, 'cbed_D_o2', (/axes(1),axes(2),id_layer_i/), init_time,&
+         'O2 molecular diffusion coefficient in sediment', 'm2/s', missing_value = missing_value1)
+      cbed%id_cbed_D_dic = register_diag_field(package_name, 'cbed_D_dic', (/axes(1),axes(2),id_layer_i/), init_time,&
+         'DIC molecular diffusion coefficient in sediment', 'm2/s', missing_value = missing_value1)
+      cbed%id_cbed_D_nh4 = register_diag_field(package_name, 'cbed_D_nh4', (/axes(1),axes(2),id_layer_i/), init_time,&
+         'NH4 molecular diffusion coefficient in sediment', 'm2/s', missing_value = missing_value1)
+      cbed%id_cbed_D_no3 = register_diag_field(package_name, 'cbed_D_no3', (/axes(1),axes(2),id_layer_i/), init_time,&
+         'NO3 molecular diffusion coefficient in sediment', 'm2/s', missing_value = missing_value1)
+      cbed%id_cbed_D_odu = register_diag_field(package_name, 'cbed_D_odu', (/axes(1),axes(2),id_layer_i/), init_time,&
+         'ODU molecular diffusion coefficient in sediment', 'm2/s', missing_value = missing_value1)
+      cbed%id_cbed_por = register_diag_field(package_name, 'cbed_por', (/axes(1),axes(2),id_layer_i/), init_time,&
+         'sediment porosity', 'dimensionless', missing_value = missing_value1)
+      cbed%id_cbed_svf = register_diag_field(package_name, 'cbed_svf', (/axes(1),axes(2),id_layer_i/), init_time,&
+         'sediment solid volume fraction', 'dimensionless', missing_value = missing_value1)         
 
    end subroutine generic_CBED_reg_diagnostics
 
@@ -525,11 +583,42 @@ contains
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
       used = send_data(cbed%id_denit, cbed%denit, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_cbed_k1, cbed%cbed_k1, model_time, rmask = cbed_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_cbed_k2, cbed%cbed_k2, model_time, rmask = cbed_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_cbed_k3, cbed%cbed_k3, model_time, rmask = cbed_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_cbed_w, cbed%cbed_w, model_time, rmask = cbed_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
       ! 1D diags
       used = send_data(cbed%id_dz_cbed, cbed%dz_cbed, model_time, rmask = cbed_tmask,&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
       used = send_data(cbed%id_z_cbed_mid, cbed%z_cbed_mid, model_time, rmask = cbed_tmask,&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+
+         ! 3D diags, CBED grid interfaces
+      used = send_data(cbed%id_cbed_Db, cbed%cbed_Db, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
+      used = send_data(cbed%id_cbed_bioirri, cbed%cbed_bioirri, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
+      used = send_data(cbed%id_cbed_D_o2, cbed%cbed_D_o2, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in= jec, ks_in=1, ke_in=nk_cbed+1)
+      used = send_data(cbed%id_cbed_D_dic, cbed%cbed_D_dic, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
+      used = send_data(cbed%id_cbed_D_nh4, cbed%cbed_D_nh4, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
+      used = send_data(cbed%id_cbed_D_no3, cbed%cbed_D_no3, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
+      used = send_data(cbed%id_cbed_D_odu, cbed%cbed_D_odu, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
+      used = send_data(cbed%id_cbed_por, cbed%cbed_por, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
+      used = send_data(cbed%id_cbed_svf, cbed%cbed_svf, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
+         
+
+
    end subroutine generic_CBED_send_diagnostics
 
    subroutine generic_CBED_end()
@@ -561,24 +650,7 @@ contains
          call register_restart_field(fileobj, "cbed_dic", cbed%f_dic, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_odu", cbed%f_odu, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_talk", cbed%f_talk, (/"x","y","lev"/))
-         ! diags
-         ! 3D diags
-         !call register_restart_field(fileobj, "cbed_TOC", cbed%TOC, (/"x","y","lev"/))
-         !call register_restart_field(fileobj, "cbed_R_om_o2", cbed%R_om_o2, (/"x","y","lev"/))
-         !call register_restart_field(fileobj, "cbed_R_om_no3", cbed%R_om_no3, (/"x","y","lev"/))
-         !call register_restart_field(fileobj, "cbed_R_om_anaerobic", cbed%R_om_anaerobic, (/"x","y","lev"/))
-         !call register_restart_field(fileobj, "cbed_R_dic", cbed%R_dic, (/"x","y","lev"/))
-         ! 2D diags
-         !call register_restart_field(fileobj, "cbed_o2_flux", cbed%o2_flux, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_nh4_flux", cbed%nh4_flux, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_no3_flux", cbed%no3_flux, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_dic_flux", cbed%dic_flux, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_burial_om", cbed%burial_om, (/"x","y"/))
-         !call register_restart_field(fileobj, "cbed_denit", cbed%denit, (/"x","y"/))
-         ! 3D diags, CBED grid
-         !call register_restart_field(fileobj, "cbed_dz_cbed", cbed%dz_cbed, (/"x","y","lev"/))
-         !call register_restart_field(fileobj, "cbed_z_cbde_mid", cbed%z_cbed_mid, (/"x","y","lev"/))
-
+         
          call write_restart(fileobj)
          call close_file(fileobj)
       else
@@ -611,6 +683,10 @@ contains
       deallocate(cbed%dic_flux)
       deallocate(cbed%burial_om)
       deallocate(cbed%denit)
+      deallocate(cbed%cbed_k1)
+      deallocate(cbed%cbed_k2)
+      deallocate(cbed%cbed_k3)
+      deallocate(cbed%cbed_w)
       ! 3D diags, CBED grid
       deallocate(cbed%dz_cbed)
       deallocate(cbed%z_cbed_mid)
@@ -633,6 +709,17 @@ contains
       deallocate(k1)
       deallocate(k2)
       deallocate(k3)
+
+      ! 3D diags, CBED grid interfaces
+      deallocate(cbed%cbed_Db)
+      deallocate(cbed%cbed_bioirri)
+      deallocate(cbed%cbed_D_o2)
+      deallocate(cbed%cbed_D_dic)
+      deallocate(cbed%cbed_D_nh4)
+      deallocate(cbed%cbed_D_no3)
+      deallocate(cbed%cbed_D_odu)
+      deallocate(cbed%cbed_por)
+      deallocate(cbed%cbed_svf)
 
 
    end subroutine generic_CBED_end
@@ -1271,6 +1358,28 @@ contains
 
                cbed%denit(i,j) = sum(dz_cbed(:)*(svf(i,j,1:nk_cbed)*0.8*cbed%R_om_no3(i,j,:) + por(i,j,1:nk_cbed)*2.0*R_ana(i,j,:)))
 
+               cbed%cbed_k1(i,j) = k1(i,j)
+               cbed%cbed_k2(i,j) = k2(i,j)
+               cbed%cbed_k3(i,j) = k3(i,j)
+               cbed%cbed_w(i,j) = w(i,j,1)
+            
+            endif
+         enddo;enddo
+      
+      ! some more diags
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               do k = 1, nk_cbed+1
+                  cbed%cbed_Db(i,j,k) = Db(i,j,k)
+                  cbed%cbed_bioirri(i,j,k) = bioirri(i,j,k)
+                  cbed%cbed_D_o2(i,j,k) = D_o2(i,j,k)
+                  cbed%cbed_D_nh4(i,j,k) = D_nh4(i,j,k)
+                  cbed%cbed_D_no3(i,j,k) = D_no3(i,j,k)
+                  cbed%cbed_D_dic(i,j,k) = D_dic(i,j,k)
+                  cbed%cbed_D_odu(i,j,k) = D_odu(i,j,k)
+                  cbed%cbed_por(i,j,k) = por(i,j,k)
+                  cbed%cbed_svf(i,j,k) = svf(i,j,k)
+               enddo
             endif
          enddo;enddo
 
@@ -1285,27 +1394,27 @@ contains
                   !cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
                   cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
-                     (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k)) )*dt
+                     (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k)) )
 
-                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt
+                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )
 
-                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt
+                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )
 
-                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt
+                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )
 
                   cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk) - cbed%f_nh4(i,j,k)) )*dt
+                     ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk) - cbed%f_nh4(i,j,k)) )
 
                   cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j) - cbed%f_no3(i,j,k)) )*dt
+                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j) - cbed%f_no3(i,j,k)) )
 
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     bioirri(i,j,k)*(cobalt%btm_dic(i,j) - cbed%f_dic(i,j,k)) )*dt
+                     bioirri(i,j,k)*(cobalt%btm_dic(i,j) - cbed%f_dic(i,j,k)) )
 
                   cbed%f_odu(i,j,k) = cbed%f_odu(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
-                     R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - cbed%f_odu(i,j,k)) )*dt
+                     R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - cbed%f_odu(i,j,k)) )
 
-                  cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j) - cbed%f_talk(i,j,k)) )*dt
+                  cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j) - cbed%f_talk(i,j,k)) )
 
 
                endif
