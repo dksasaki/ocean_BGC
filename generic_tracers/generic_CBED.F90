@@ -387,8 +387,9 @@ contains
       integer,         intent(in) :: axes(3)
       type(time_type), intent(in) :: init_time
       !Locals
-      integer :: k, id_layer
+      integer :: k, id_layer, id_layer_i
       real :: cbed_layers(1:nk_cbed)
+      real :: cbed_layers_i(1:nk_cbed+1)
 
       !!BEGIN read_restart code block
       !Niki: This code block does not seem to belong here and should be in the _init routine instead.
