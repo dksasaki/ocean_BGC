@@ -1145,6 +1145,7 @@ contains
       real, parameter :: k_oduox = 1e6 /spery   !                    !ODU oxidation rate constant
 
       real, parameter :: Q10 = 1.88
+      real, dimension(isc:iec,jsc:jec) :: Q10_factor
 
       ! Reaction rates
       real, dimension(isc:iec,jsc:jec,nk_cbed) :: R_om1_o2, R_om2_o2, R_om3_o2
@@ -1165,6 +1166,13 @@ contains
                   cbed%dz_cbed(i,j,k) = dz_cbed(k)
                   cbed%z_cbed_mid(i,j,k) = z_cbed_mid(k)
                enddo
+            endif
+         enddo; enddo
+
+      ! calculate Q10 factor
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               Q10_factor(i,j) = Q10**( (cobalt%btm_temp(i,j)-4.0)/10.0 )
             endif
          enddo; enddo
 
@@ -1201,8 +1209,9 @@ contains
 
       ! Sedimentation rate calculation
       do j = jsc, jec; do i = isc, iec
-            do k = 1, nk_cbed+1
-               if (grid_kmt(i,j) .gt. 0) then
+            if (grid_kmt(i,j) .gt. 0) then
+               do k = 1, nk_cbed+1
+
                   ! w (sedimentation rate, cm/year) m/s
                   w(i,j,k) = ( (cobalt%fcadet_arag_btm(i,j)*100.0/2.71 + &
                      cobalt%fcadet_calc_btm(i,j)*100.0/2.94 + &
@@ -1211,8 +1220,8 @@ contains
                      cobalt%ffetot_btm(i,j)*160.0/5.24 + &
                      cobalt%fptot_btm(i,j)*120.0/2.3 + &
                      cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000.0*spery/svf(i,j,k) )/100.0/spery
-               endif
-            enddo
+               enddo
+            endif
          enddo;enddo
 
       !Bioturbation
@@ -1224,12 +1233,12 @@ contains
          enddo;enddo
 
       do j = jsc, jec; do i = isc, iec
-            do k = 1, nk_cbed+1
-               if (grid_kmt(i,j) .gt. 0) then
+            if (grid_kmt(i,j) .gt. 0) then
+               do k = 1, nk_cbed+1
                   ! relation from Archer. POC flux unit in umol cm-2 y-1.
                   Db(i,j,k) = max(0.0, Db_0(i,j)*exp(-(z_cbed_int(k)/Db_l)**2)*(cobalt%btm_o2(i,j)*cobalt%Rho_0/(cobalt%btm_o2(i,j)*cobalt%Rho_0+(20/1e3))) )
-               endif
-            enddo
+               enddo
+            endif
          enddo;enddo
 
       !Bioirrigation
@@ -1255,15 +1264,15 @@ contains
 
       !Calculate diffusion coefficients
       do j = jsc, jec; do i = isc, iec
-            do k = 1, nk_cbed+1
-               if (grid_kmt(i,j) .gt. 0) then
+            if (grid_kmt(i,j) .gt. 0) then
+               do k = 1, nk_cbed+1
                   D_o2(i,j,k)  = ( (0.031558+0.001428*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)   ! m2/s
                   D_dic(i,j,k) = ( (0.015179+0.000795*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
                   D_nh4(i,j,k) = ( (0.030926+0.001225*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
                   D_no3(i,j,k) = ( (0.030863+0.001153*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
                   D_odu(i,j,k) = ( (0.028938+0.001314*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
-               endif
-            enddo
+               enddo
+            endif
          enddo;enddo
 
 
@@ -1281,30 +1290,30 @@ contains
 
       ! ! calculate reaction rates
       do j = jsc, jec; do i = isc, iec
-            do k = 1, nk_cbed
-               if (grid_kmt(i,j) .gt. 0) then
+            if (grid_kmt(i,j) .gt. 0) then
+               do k = 1, nk_cbed
 
                   ! O₂ reaction rates
-                  R_om1_o2(i,j,k) = k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om2_o2(i,j,k) = k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om3_o2(i,j,k) = k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om1_o2(i,j,k) = k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k))) * Q10_factor(i,j)
+                  R_om2_o2(i,j,k) = k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k))) * Q10_factor(i,j)
+                  R_om3_o2(i,j,k) = k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_o2(i,j,k)/(ks_o2 + cbed%f_o2(i,j,k))) * Q10_factor(i,j)
                   ! NO₃ reaction rates
-                  R_om1_no3(i,j,k) = k_adj_denit*k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om2_no3(i,j,k) = k_adj_denit*k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om3_no3(i,j,k) = k_adj_denit*k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om1_no3(i,j,k) = k_adj_denit*k1(i,j)*cbed%f_om1(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k))) * Q10_factor(i,j)
+                  R_om2_no3(i,j,k) = k_adj_denit*k2(i,j)*cbed%f_om2(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k))) * Q10_factor(i,j)
+                  R_om3_no3(i,j,k) = k_adj_denit*k3(i,j)*cbed%f_om3(i,j,k)*(cbed%f_no3(i,j,k)/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k))) * Q10_factor(i,j)
                   ! ODU reaction rates
-                  R_om1_anoxic(i,j,k) = k_adj_anoxia*k1(i,j)*cbed%f_om1(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om2_anoxic(i,j,k) = k_adj_anoxia*k2(i,j)*cbed%f_om2(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
-                  R_om3_anoxic(i,j,k) = k_adj_anoxia*k3(i,j)*cbed%f_om3(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_om1_anoxic(i,j,k) = k_adj_anoxia*k1(i,j)*cbed%f_om1(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k))) * Q10_factor(i,j)
+                  R_om2_anoxic(i,j,k) = k_adj_anoxia*k2(i,j)*cbed%f_om2(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k))) * Q10_factor(i,j)
+                  R_om3_anoxic(i,j,k) = k_adj_anoxia*k3(i,j)*cbed%f_om3(i,j,k)*(ks_no3/(ks_no3 + cbed%f_no3(i,j,k)))*(ks_o2/(ks_o2 + cbed%f_o2(i,j,k))) * Q10_factor(i,j)
 
                   ! dic
                   R_dic_om1(i,j,k) = (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k))
                   R_dic_om2(i,j,k) = (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k))
                   R_dic_om3(i,j,k) = (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k))
                   ! nitrification
-                  R_nox(i,j,k) = k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k)
+                  R_nox(i,j,k) = k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k) * Q10_factor(i,j)
                   ! anammox
-                  R_ana(i,j,k) = k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k)
+                  R_ana(i,j,k) = k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k) * Q10_factor(i,j)
                   ! ODU oxidation
                   R_oduox(i,j,k) = k_oduox*cbed%f_odu(i,j,k)*cbed%f_o2(i,j,k)
                   odu_depo(i,j,k) = (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))*min(1.0, 0.233*(w(i,j,k)*100.0*spery)**0.336)
@@ -1321,9 +1330,8 @@ contains
                   cbed%R_om_anaerobic(i,j,k) = R_om1_anoxic(i,j,k) + R_om2_anoxic(i,j,k) + R_om3_anoxic(i,j,k)
                   cbed%R_dic(i,j,k) = R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)
 
-
-               endif
-            enddo
+               enddo
+            endif
          enddo;enddo
 
       ! Calculate the "b terms" to feed into cobalt.
@@ -1402,8 +1410,9 @@ contains
       ! Source-sink calculations
       !Test that we can change the value of concentration field of a CBED tracer
       do j = jsc, jec; do i = isc, iec  !{
-            do k=1,nk_cbed
-               if (grid_kmt(i,j) .gt. 0) then
+            if (grid_kmt(i,j) .gt. 0) then
+               do k = 1, nk_cbed
+
                   !cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
                   cbed%f_o2(i,j,k)  = max(0.0, cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
@@ -1430,10 +1439,10 @@ contains
                   cbed%f_talk(i,j,k) = max(0.0, cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j) - cbed%f_talk(i,j,k)) )*dt )
 
 
-               endif
-
-            enddo
+               enddo
+            endif
          enddo;enddo
+
 
       ! call vertdiff_CBED. This updates the fields.
       call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
