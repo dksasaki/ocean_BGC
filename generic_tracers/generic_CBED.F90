@@ -599,23 +599,23 @@ contains
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
 
       ! 3D diags, CBED grid interfaces
-      used = send_data(cbed%id_cbed_Db, cbed%cbed_Db, model_time, rmask = cbed_tmask,&
+      used = send_data(cbed%id_cbed_Db, cbed%cbed_Db, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
-      used = send_data(cbed%id_cbed_bioirri, cbed%cbed_bioirri, model_time, rmask = cbed_tmask,&
+      used = send_data(cbed%id_cbed_bioirri, cbed%cbed_bioirri, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
-      used = send_data(cbed%id_cbed_D_o2, cbed%cbed_D_o2, model_time, rmask = cbed_tmask,&
+      used = send_data(cbed%id_cbed_D_o2, cbed%cbed_D_o2, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in= jec, ks_in=1, ke_in=nk_cbed+1)
-      used = send_data(cbed%id_cbed_D_dic, cbed%cbed_D_dic, model_time, rmask = cbed_tmask,&
+      used = send_data(cbed%id_cbed_D_dic, cbed%cbed_D_dic, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
-      used = send_data(cbed%id_cbed_D_nh4, cbed%cbed_D_nh4, model_time, rmask = cbed_tmask,&
+      used = send_data(cbed%id_cbed_D_nh4, cbed%cbed_D_nh4, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
-      used = send_data(cbed%id_cbed_D_no3, cbed%cbed_D_no3, model_time, rmask = cbed_tmask,&
+      used = send_data(cbed%id_cbed_D_no3, cbed%cbed_D_no3, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
-      used = send_data(cbed%id_cbed_D_odu, cbed%cbed_D_odu, model_time, rmask = cbed_tmask,&
+      used = send_data(cbed%id_cbed_D_odu, cbed%cbed_D_odu, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
-      used = send_data(cbed%id_cbed_por, cbed%cbed_por, model_time, rmask = cbed_tmask,&
+      used = send_data(cbed%id_cbed_por, cbed%cbed_por, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
-      used = send_data(cbed%id_cbed_svf, cbed%cbed_svf, model_time, rmask = cbed_tmask,&
+      used = send_data(cbed%id_cbed_svf, cbed%cbed_svf, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
 
 
