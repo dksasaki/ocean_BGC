@@ -814,23 +814,44 @@ contains
                sfc_src = 0.0
 
                if ((trim(field_name) == "f_o2")) then
+
                   if (j == 10 .and. i == 14) then
                      print *, "before update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
                   endif
+
+                  if (j == 5 .and. i == 11) then
+                     print *, "before update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
+                     print *, "cobalt btm_o2 mol/kg = ", cobalt%btm_o2(i,j)
+                     print *, "cobalt Rho_0 = ", cobalt%Rho_0
+                  endif
+
                   sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0))*dt ! top flux (diffuvive flux + advective flux)
+
                   if (j == 10 .and. i == 14) then
                      print *, "sfc_src o2 (", i, ",", j, ",1) = ", sfc_src
                      print *, "diff flux part o2 = ", VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt
                      print *, "adv flux part o2 = ", VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0)*dt
                      print *, "cobalt btm_o2 = ", (cobalt%btm_o2(i,j)*cobalt%Rho_0)
+                     print *, "cobalt btm_o2 mol/kg = ", cobalt%btm_o2(i,j)
+                     print *, "cobalt Rho_0 = ", cobalt%Rho_0
                   endif
                   !print *, "before update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
+
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+
                   if (j == 10 .and. i == 14) then
                      print *, "after update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
                      print *, "dt = ", dt
                   endif
                   !print *, "after update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
+
+                  if (j == 5 .and. i == 11) then
+                     print *, "sfc_src o2 (", i, ",", j, ",1) = ", sfc_src
+                     print *, "diff flux part o2 = ", VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt
+                     print *, "adv flux part o2 = ", VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0)*dt
+                     print *, "cobalt btm_o2 = ", (cobalt%btm_o2(i,j)*cobalt%Rho_0)
+                     print *, "after update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
+                  endif
 
                else if ((trim(field_name) == "f_nh4")) then
                   sfc_src =  (VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0))*dt ! top flux
@@ -843,6 +864,15 @@ contains
                else if ((trim(field_name) == "f_dic") ) then
                   sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
+
+                  if (j == 10 .and. i == 14) then
+                     print *, "sfc_src dic (", i, ",", j, ",1) = ", sfc_src
+                     print *, "diff flux part dic = ", VF(i,j,1)*D(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt
+                     print *, "adv flux part dic = ", VF(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0)*dt
+                     print *, "cobalt btm_dic = ", (cobalt%btm_dic(i,j)*cobalt%Rho_0)
+                     print *, "cobalt btm_dic mol/kg = ", cobalt%btm_dic(i,j)
+                     print *, "cobalt Rho_0 = ", cobalt%Rho_0
+                  endif
 
                else if ((trim(field_name) == "f_odu") ) then
                   sfc_src = VF(i,j,1)*D(i,j,1)*((0.0-cbed_field(i,j,1))/(dz_cbed(1)/2.0)) *dt ! top flux
@@ -1379,6 +1409,20 @@ contains
                b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - cbed%f_nh4(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0)
                b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0)
                b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0)
+
+               if (j == 10 .and. i == 14) then
+                  print *, "b_o2 (", i, ",", j, ",1) = ", b_o2(i,j)
+                  print *, "b_nh4 (", i, ",", j, ",1) = ", b_nh4(i,j)
+                  print *, "b_no3 (", i, ",", j, ",1) = ", b_no3(i,j)
+                  print *, "b_dic (", i, ",", j, ",1) = ", b_dic(i,j)
+                  print *, "cobalt btm_dic mol/kg = ", cobalt%btm_dic(i,j)
+                  print *, "cobalt btm_o2 mol/kg = ", cobalt%btm_o2(i,j)
+                  print *, "cobalt btm_nh4 mol/kg = ", (cobalt%f_nh4(i,j,nk))
+                  print *, "cobalt btm_no3 mol/kg = ", (cobalt%btm_no3(i,j))
+                  print *, "cobalt Rho_0 = ", cobalt%Rho_0
+               endif
+
+
             endif
          enddo;enddo
 
