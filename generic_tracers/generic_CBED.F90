@@ -771,11 +771,25 @@ contains
                do k=1,nk_cbed
                   ea(i,j,k) = VF(i,j,k)*D(i,j,k)*dt/h_old(k)
                   eb(i,j,k) = VF(i,j,k)*D(i,j,k+1)*dt/h_old(k)
-                  print *, field_name, "ea(", i, ",", j, ",", k, ") = ", ea(i,j,k)
-                  print *, field_name, "eb(", i, ",", j, ",", k, ") = ", eb(i,j,k)
+                  !print *, field_name, " ea(", i, ",", j, ",", k, ") = ", ea(i,j,k)
+                  !print *, field_name, " eb(", i, ",", j, ",", k, ") = ", eb(i,j,k)
                enddo
             endif
          enddo; enddo
+      ! print ea eb for o2 for debugging
+      if (trim(field_name) == "f_o2") then
+         do j = jsc, jec; do i = isc, iec
+               if (grid_kmt(i,j) .gt. 0) then
+                  if (j == 10 .and. i == 14) then
+                     do k=1,nk_cbed
+                        print *, field_name, " ea(", i, ",", j, ",", k, ") = ", ea(i,j,k)
+                        print *, field_name, " eb(", i, ",", j, ",", k, ") = ", eb(i,j,k)
+                     enddo
+                  endif
+               endif
+            enddo; enddo
+      endif
+
 
       ! sink(k+1)
       do j = jsc, jec; do i = isc, iec
@@ -800,10 +814,23 @@ contains
                sfc_src = 0.0
 
                if ((trim(field_name) == "f_o2")) then
+                  if (j == 10 .and. i == 14) then
+                     print *, "before update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
+                  endif
                   sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0))*dt ! top flux (diffuvive flux + advective flux)
-                  print *, "before update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
+                  if (j == 10 .and. i == 14) then
+                     print *, "sfc_src o2 (", i, ",", j, ",1) = ", sfc_src
+                     print *, "diff flux part o2 = ", VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt
+                     print *, "adv flux part o2 = ", VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0)*dt
+                     print *, "cobalt btm_o2 = ", (cobalt%btm_o2(i,j)*cobalt%Rho_0)
+                  endif
+                  !print *, "before update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
-                  print *, "after update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
+                  if (j == 10 .and. i == 14) then
+                     print *, "after update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
+                     print *, "dt = ", dt
+                  endif
+                  !print *, "after update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
 
                else if ((trim(field_name) == "f_nh4")) then
                   sfc_src =  (VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0))*dt ! top flux
@@ -1144,9 +1171,9 @@ contains
       real, parameter :: ks_o2 = 0.008   ! O2 half saturation constant (mol/m3)
       real, parameter :: ks_no3 = 0.001  ! NO3 half saturation constant (mol/m3)
 
-      real, parameter :: k_nox = 2e5 /spery     ! mol-1 m3 s-1 (from the original: mmol-1 L yr-1) !nitrification rate constant
-      real, parameter :: k_ana = 1e5 /spery     !                    !anammox rate constant
-      real, parameter :: k_oduox = 1e6 /spery   !                    !ODU oxidation rate constant
+      real, parameter :: k_nox = 0.0 !2e5 /spery     ! mol-1 m3 s-1 (from the original: mmol-1 L yr-1) !nitrification rate constant
+      real, parameter :: k_ana = 0.0 !1e5 /spery     !                    !anammox rate constant
+      real, parameter :: k_oduox = 0.0 !1e6 /spery   !                    !ODU oxidation rate constant
 
       real, parameter :: Q10 = 1.88
       real, dimension(isc:iec,jsc:jec) :: Q10_factor
@@ -1419,12 +1446,17 @@ contains
 
                   !cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
-                  print *, "before update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
+                  if (j == 10 .and. i == 14) then
+                     print *, "before update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
+                  endif
 
                   cbed%f_o2(i,j,k)  = max(0.0, cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
                      (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k)) )*dt )
 
-                  print *, "before after o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
+                  if (j == 10 .and. i == 14) then
+                     print *, "after update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
+                  endif
+                  !print *, "after update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
 
                   cbed%f_om1(i,j,k) = max(0.0, cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt )
 
@@ -1435,19 +1467,19 @@ contains
                   cbed%f_nh4(i,j,k) = max(0.0, cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
                      ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk) - cbed%f_nh4(i,j,k)) )*dt )
 
-                  print *, "before update no3 cbed%f_no3(", i, ",", j, ",", k, ") = ", cbed%f_no3(i,j,k)
+                  !print *, "before update no3 cbed%f_no3(", i, ",", j, ",", k, ") = ", cbed%f_no3(i,j,k)
 
                   cbed%f_no3(i,j,k) = max(0.0, cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
                      (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j) - cbed%f_no3(i,j,k)) )*dt )
 
-                  print *, "after update no3 cbed%f_no3(", i, ",", j, ",", k, ") = ", cbed%f_no3(i,j,k)
+                  !print *, "after update no3 cbed%f_no3(", i, ",", j, ",", k, ") = ", cbed%f_no3(i,j,k)
 
-                  print *, "before update dic cbed%f_dic(", i, ",", j, ",", k, ") = ", cbed%f_dic(i,j,k)
+                  !print *, "before update dic cbed%f_dic(", i, ",", j, ",", k, ") = ", cbed%f_dic(i,j,k)
 
                   cbed%f_dic(i,j,k) = max(0.0, cbed%f_dic(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
                      bioirri(i,j,k)*(cobalt%btm_dic(i,j) - cbed%f_dic(i,j,k)) )*dt )
 
-                  print *, "after update dic cbed%f_dic(", i, ",", j, ",", k, ") = ", cbed%f_dic(i,j,k)
+                  !print *, "after update dic cbed%f_dic(", i, ",", j, ",", k, ") = ", cbed%f_dic(i,j,k)
 
                   cbed%f_odu(i,j,k) = max(0.0, cbed%f_odu(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
                      R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - cbed%f_odu(i,j,k)) )*dt )
