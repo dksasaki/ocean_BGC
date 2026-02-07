@@ -1480,8 +1480,6 @@ contains
          enddo;enddo
 
 
-      print *, "tau = ", tau
-
 
       ! Source-sink calculations
       !Test that we can change the value of concentration field of a CBED tracer
@@ -1494,7 +1492,7 @@ contains
                   if (j == 375 .and. i == 475) then
                      print *, "before update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
                   endif
-                  
+
                   cbed%f_o2(i,j,k)  = max(0.0, cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
                      (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k)) )*dt )
 
