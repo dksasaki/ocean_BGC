@@ -815,7 +815,7 @@ contains
 
                if ((trim(field_name) == "f_o2")) then
 
-                  if (j == 375 .and. i == 475) then
+                  if (j == 100 .and. i == 42) then
                      print *, "before update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
                   endif
 
@@ -827,7 +827,16 @@ contains
 
                   sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0))*dt ! top flux (diffuvive flux + advective flux)
 
-                  if (j == 375 .and. i == 475) then
+                  if (j == 100 .and. i == 42) then
+                     print *, "sfc_src o2 (", i, ",", j, ",1) = ", sfc_src
+                     print *, "diff flux part o2 = ", VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt
+                     print *, "adv flux part o2 = ", VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0)*dt
+                     print *, "cobalt btm_o2 = ", (cobalt%btm_o2(i,j)*cobalt%Rho_0)
+                     print *, "cobalt btm_o2 mol/kg = ", cobalt%btm_o2(i,j)
+                     print *, "cobalt Rho_0 = ", cobalt%Rho_0
+                  endif
+
+                  if (j == 400 .and. i == 385) then
                      print *, "sfc_src o2 (", i, ",", j, ",1) = ", sfc_src
                      print *, "diff flux part o2 = ", VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt
                      print *, "adv flux part o2 = ", VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0)*dt
@@ -839,7 +848,7 @@ contains
 
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
-                  if (j == 375 .and. i == 475) then
+                  if (j == 100 .and. i == 42) then
                      print *, "after update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
                      print *, "dt = ", dt
                   endif
@@ -1202,8 +1211,8 @@ contains
       real, parameter :: ks_no3 = 0.001  ! NO3 half saturation constant (mol/m3)
 
       real, parameter :: k_nox = (2.0*10.0**5.0)/spery   ! 2e5 ! mol-1 m3 s-1 (from the original: mmol-1 L yr-1) !nitrification rate constant
-      real, parameter :: k_ana = 0.0 * (10.0**5) /spery     !   ! 1e5               !anammox rate constant
-      real, parameter :: k_oduox = 0.0 * (1.0**5) /spery   !              1e6      !ODU oxidation rate constant
+      real, parameter :: k_ana = 0.0 * (10.0**5.0) /spery     !   ! 1e5               !anammox rate constant
+      real, parameter :: k_oduox = (10.0**5.0) /spery   !              1e6      !ODU oxidation rate constant
 
       real, parameter :: Q10 = 1.88
       real, dimension(isc:iec,jsc:jec) :: Q10_factor
@@ -1489,14 +1498,14 @@ contains
 
                   !cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
-                  if (j == 375 .and. i == 475) then
+                  if (j == 100 .and. i == 42) then
                      print *, "before update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
                   endif
 
                   cbed%f_o2(i,j,k)  = max(0.0, cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
                      (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k)) )*dt )
 
-                  if (j == 375 .and. i == 475) then
+                  if (j == 100 .and. i == 42) then
                      print *, "after update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
                   endif
                   !print *, "after update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
