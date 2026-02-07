@@ -1211,7 +1211,7 @@ contains
       real, parameter :: ks_no3 = 0.001  ! NO3 half saturation constant (mol/m3)
 
       real, parameter :: k_nox = (2.0*10.0**5.0)/spery   ! 2e5 ! mol-1 m3 s-1 (from the original: mmol-1 L yr-1) !nitrification rate constant
-      real, parameter :: k_ana = 0.0 * (10.0**5.0) /spery     !   ! 1e5               !anammox rate constant
+      real, parameter :: k_ana =  (10.0**5.0) /spery     !   ! 1e5               !anammox rate constant
       real, parameter :: k_oduox = (10.0**5.0) /spery   !              1e6      !ODU oxidation rate constant
 
       real, parameter :: Q10 = 1.88
@@ -1419,17 +1419,29 @@ contains
                b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0)
                b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0)
 
-               ! if (j == 10 .and. i == 14) then
-               !    print *, "b_o2 (", i, ",", j, ",1) = ", b_o2(i,j)
-               !    print *, "b_nh4 (", i, ",", j, ",1) = ", b_nh4(i,j)
-               !    print *, "b_no3 (", i, ",", j, ",1) = ", b_no3(i,j)
-               !    print *, "b_dic (", i, ",", j, ",1) = ", b_dic(i,j)
-               !    print *, "cobalt btm_dic mol/kg = ", cobalt%btm_dic(i,j)
-               !    print *, "cobalt btm_o2 mol/kg = ", cobalt%btm_o2(i,j)
-               !    print *, "cobalt btm_nh4 mol/kg = ", (cobalt%f_nh4(i,j,nk))
-               !    print *, "cobalt btm_no3 mol/kg = ", (cobalt%btm_no3(i,j))
-               !    print *, "cobalt Rho_0 = ", cobalt%Rho_0
-               ! endif
+               if (j == 10 .and. i == 14) then
+                  print *, "b_o2 (", i, ",", j, ",1) = ", b_o2(i,j)
+                  print *, "b_nh4 (", i, ",", j, ",1) = ", b_nh4(i,j)
+                  print *, "b_no3 (", i, ",", j, ",1) = ", b_no3(i,j)
+                  print *, "b_dic (", i, ",", j, ",1) = ", b_dic(i,j)
+                  print *, "cobalt btm_dic mol/kg = ", cobalt%btm_dic(i,j)
+                  print *, "cobalt btm_o2 mol/kg = ", cobalt%btm_o2(i,j)
+                  print *, "cobalt btm_nh4 mol/kg = ", (cobalt%f_nh4(i,j,nk))
+                  print *, "cobalt btm_no3 mol/kg = ", (cobalt%btm_no3(i,j))
+                  print *, "cobalt Rho_0 = ", cobalt%Rho_0
+               endif
+
+               if (j == 100 .and. i == 42) then
+                  print *, "b_o2 (", i, ",", j, ",1) = ", b_o2(i,j)
+                  print *, "b_nh4 (", i, ",", j, ",1) = ", b_nh4(i,j)
+                  print *, "b_no3 (", i, ",", j, ",1) = ", b_no3(i,j)
+                  print *, "b_dic (", i, ",", j, ",1) = ", b_dic(i,j)
+                  print *, "cobalt btm_dic mol/kg = ", cobalt%btm_dic(i,j)
+                  print *, "cobalt btm_o2 mol/kg = ", cobalt%btm_o2(i,j)
+                  print *, "cobalt btm_nh4 mol/kg = ", (cobalt%f_nh4(i,j,nk))
+                  print *, "cobalt btm_no3 mol/kg = ", (cobalt%btm_no3(i,j))
+                  print *, "cobalt Rho_0 = ", cobalt%Rho_0
+               endif
 
 
             endif
