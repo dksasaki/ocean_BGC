@@ -780,7 +780,7 @@ contains
       if (trim(field_name) == "f_o2") then
          do j = jsc, jec; do i = isc, iec
                if (grid_kmt(i,j) .gt. 0) then
-                  if (j == 10 .and. i == 14) then
+                  if (j == 375 .and. i == 475) then
                      do k=1,nk_cbed
                         print *, field_name, " ea(", i, ",", j, ",", k, ") = ", ea(i,j,k)
                         print *, field_name, " eb(", i, ",", j, ",", k, ") = ", eb(i,j,k)
@@ -815,7 +815,7 @@ contains
 
                if ((trim(field_name) == "f_o2")) then
 
-                  if (j == 10 .and. i == 14) then
+                  if (j == 375 .and. i == 475) then
                      print *, "before update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
                   endif
 
@@ -827,7 +827,7 @@ contains
 
                   sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0))*dt ! top flux (diffuvive flux + advective flux)
 
-                  if (j == 10 .and. i == 14) then
+                  if (j == 375 .and. i == 475) then
                      print *, "sfc_src o2 (", i, ",", j, ",1) = ", sfc_src
                      print *, "diff flux part o2 = ", VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0))*dt
                      print *, "adv flux part o2 = ", VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0)*dt
@@ -839,7 +839,7 @@ contains
 
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
 
-                  if (j == 10 .and. i == 14) then
+                  if (j == 375 .and. i == 475) then
                      print *, "after update in vertdiff top layer o2 cbed%f_o2(", i, ",", j, ",1) = ", cbed_field(i,j,1)
                      print *, "dt = ", dt
                   endif
@@ -1480,6 +1480,7 @@ contains
          enddo;enddo
 
 
+      print *, "tau = ", tau
 
 
       ! Source-sink calculations
@@ -1490,14 +1491,14 @@ contains
 
                   !cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
-                  if (j == 10 .and. i == 14) then
+                  if (j == 375 .and. i == 475) then
                      print *, "before update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
                   endif
-
+                  
                   cbed%f_o2(i,j,k)  = max(0.0, cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
                      (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k)) )*dt )
 
-                  if (j == 10 .and. i == 14) then
+                  if (j == 375 .and. i == 475) then
                      print *, "after update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
                   endif
                   !print *, "after update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
