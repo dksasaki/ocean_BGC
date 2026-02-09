@@ -1100,7 +1100,7 @@ contains
                         ! SOLUTES: Add Robin boundary contribution
                         ! This brings in the influence of bottom water concentration
                         f_old(1) = f_old(1) + alpha_dt_over_h * btm_tracer_conc(i,j)
-                        !f_old(1) = f_old(1) + alpha_dt_over_h * (btm_tracer_conc(i,j) - cbed_field(i,j,1))   ! This would be the full Robin BC contribution, but since cbed_field(i,j,1) is on the LHS, we only add the bottom water part to the RHS. The flux term is split in two parts in the above. 
+                        !f_old(1) = f_old(1) + alpha_dt_over_h * (btm_tracer_conc(i,j) - cbed_field(i,j,1))   ! This would be the full Robin BC contribution, but since cbed_field(i,j,1) is on the LHS, we only add the bottom water part to the RHS. The flux term is split in two parts in the above.
 
                         ! Add advective flux from bottom water
                         if (w(i,j,1) > 0.0) then
@@ -1211,9 +1211,9 @@ contains
       real, parameter :: ks_o2 = 0.008   ! O2 half saturation constant (mol/m3)
       real, parameter :: ks_no3 = 0.001  ! NO3 half saturation constant (mol/m3)
 
-      real, parameter :: k_nox = (2.0*10.0**5.0)/spery   ! 2e5 ! mol-1 m3 s-1 (from the original: mmol-1 L yr-1) !nitrification rate constant
+      real, parameter :: k_nox = 0.0 * (2.0*10.0**5.0)/spery   ! 2e5 ! mol-1 m3 s-1 (from the original: mmol-1 L yr-1) !nitrification rate constant
       real, parameter :: k_ana =  0.0* (10.0**3.0) /spery     !   ! 1e5               !anammox rate constant
-      real, parameter :: k_oduox = (10.0**5.0) /spery   !              1e6      !ODU oxidation rate constant
+      real, parameter :: k_oduox = 0.0 * (10.0**5.0) /spery   !              1e6      !ODU oxidation rate constant
 
       real, parameter :: Q10 = 1.88
       real, dimension(isc:iec,jsc:jec) :: Q10_factor
@@ -1501,7 +1501,10 @@ contains
             endif
          enddo;enddo
 
-
+      print *, "isc = ", isc
+      print *, "iec = ", iec
+      print *, "jsc = ", jsc
+      print *, "jec = ", jec
 
       ! Source-sink calculations
       !Test that we can change the value of concentration field of a CBED tracer
@@ -1516,40 +1519,40 @@ contains
                   ! endif
 
                   cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
-                     (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k)) )*dt 
+                     (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k)) )*dt
 
                   ! if (j == 100 .and. i == 42) then
                   !    print *, "after update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
                   ! endif
                   !print *, "after update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
 
-                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt 
+                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt
 
-                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt 
+                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt
 
-                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt 
+                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt
 
                   cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk) - cbed%f_nh4(i,j,k)) )*dt 
+                     ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk) - cbed%f_nh4(i,j,k)) )*dt
 
                   !print *, "before update no3 cbed%f_no3(", i, ",", j, ",", k, ") = ", cbed%f_no3(i,j,k)
 
                   cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j) - cbed%f_no3(i,j,k)) )*dt 
+                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j) - cbed%f_no3(i,j,k)) )*dt
 
                   !print *, "after update no3 cbed%f_no3(", i, ",", j, ",", k, ") = ", cbed%f_no3(i,j,k)
 
                   !print *, "before update dic cbed%f_dic(", i, ",", j, ",", k, ") = ", cbed%f_dic(i,j,k)
 
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     bioirri(i,j,k)*(cobalt%btm_dic(i,j) - cbed%f_dic(i,j,k)) )*dt 
+                     bioirri(i,j,k)*(cobalt%btm_dic(i,j) - cbed%f_dic(i,j,k)) )*dt
 
                   !print *, "after update dic cbed%f_dic(", i, ",", j, ",", k, ") = ", cbed%f_dic(i,j,k)
 
                   cbed%f_odu(i,j,k) = cbed%f_odu(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
-                     R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - cbed%f_odu(i,j,k)) )*dt 
+                     R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - cbed%f_odu(i,j,k)) )*dt
 
-                  cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j) - cbed%f_talk(i,j,k)) )*dt 
+                  cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j) - cbed%f_talk(i,j,k)) )*dt
 
 
                enddo
