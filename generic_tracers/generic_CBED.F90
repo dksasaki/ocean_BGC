@@ -1212,8 +1212,8 @@ contains
       real, parameter :: ks_no3 = 0.001  ! NO3 half saturation constant (mol/m3)
 
       real, parameter :: k_nox = (2.0*10.0**5.0)/spery   ! 2e5 ! mol-1 m3 s-1 (from the original: mmol-1 L yr-1) !nitrification rate constant
-      real, parameter :: k_ana =  0.0 * (10.0**3.0) /spery     !   ! 1e5               !anammox rate constant
-      real, parameter :: k_oduox = (10.0**5.0) /spery   !              1e6      !ODU oxidation rate constant
+      real, parameter :: k_ana =  (10.0**5.0) /spery     !   ! 1e5               !anammox rate constant
+      real, parameter :: k_oduox = (10.0**6.0) /spery   !              1e6      !ODU oxidation rate constant
 
       real, parameter :: Q10 = 1.88
       real, dimension(isc:iec,jsc:jec) :: Q10_factor
@@ -1384,7 +1384,7 @@ contains
                   ! nitrification
                   R_nox(i,j,k) = k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k) * Q10_factor(i,j)
                   ! anammox
-                  R_ana(i,j,k) = k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k) * Q10_factor(i,j)
+                  R_ana(i,j,k) = k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k) * Q10_factor(i,j) * (ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
                   ! ODU oxidation
                   R_oduox(i,j,k) = k_oduox*cbed%f_odu(i,j,k)*cbed%f_o2(i,j,k) * Q10_factor(i,j)
                   odu_depo(i,j,k) = (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))*min(1.0, 0.233*(w(i,j,k)*100.0*spery)**0.336)
@@ -1420,29 +1420,29 @@ contains
                b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - cbed%f_no3(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0)
                b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - cbed%f_dic(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0)
 
-               if (j == 10 .and. i == 14) then
-                  print *, "b_o2 (", i, ",", j, ",1) = ", b_o2(i,j)
-                  print *, "b_nh4 (", i, ",", j, ",1) = ", b_nh4(i,j)
-                  print *, "b_no3 (", i, ",", j, ",1) = ", b_no3(i,j)
-                  print *, "b_dic (", i, ",", j, ",1) = ", b_dic(i,j)
-                  print *, "cobalt btm_dic mol/kg = ", cobalt%btm_dic(i,j)
-                  print *, "cobalt btm_o2 mol/kg = ", cobalt%btm_o2(i,j)
-                  print *, "cobalt btm_nh4 mol/kg = ", (cobalt%f_nh4(i,j,nk))
-                  print *, "cobalt btm_no3 mol/kg = ", (cobalt%btm_no3(i,j))
-                  print *, "cobalt Rho_0 = ", cobalt%Rho_0
-               endif
+               ! if (j == 10 .and. i == 14) then
+               !    print *, "b_o2 (", i, ",", j, ",1) = ", b_o2(i,j)
+               !    print *, "b_nh4 (", i, ",", j, ",1) = ", b_nh4(i,j)
+               !    print *, "b_no3 (", i, ",", j, ",1) = ", b_no3(i,j)
+               !    print *, "b_dic (", i, ",", j, ",1) = ", b_dic(i,j)
+               !    print *, "cobalt btm_dic mol/kg = ", cobalt%btm_dic(i,j)
+               !    print *, "cobalt btm_o2 mol/kg = ", cobalt%btm_o2(i,j)
+               !    print *, "cobalt btm_nh4 mol/kg = ", (cobalt%f_nh4(i,j,nk))
+               !    print *, "cobalt btm_no3 mol/kg = ", (cobalt%btm_no3(i,j))
+               !    print *, "cobalt Rho_0 = ", cobalt%Rho_0
+               ! endif
 
-               if (j == 100 .and. i == 42) then
-                  print *, "b_o2 (", i, ",", j, ",1) = ", b_o2(i,j)
-                  print *, "b_nh4 (", i, ",", j, ",1) = ", b_nh4(i,j)
-                  print *, "b_no3 (", i, ",", j, ",1) = ", b_no3(i,j)
-                  print *, "b_dic (", i, ",", j, ",1) = ", b_dic(i,j)
-                  print *, "cobalt btm_dic mol/kg = ", cobalt%btm_dic(i,j)
-                  print *, "cobalt btm_o2 mol/kg = ", cobalt%btm_o2(i,j)
-                  print *, "cobalt btm_nh4 mol/kg = ", (cobalt%f_nh4(i,j,nk))
-                  print *, "cobalt btm_no3 mol/kg = ", (cobalt%btm_no3(i,j))
-                  print *, "cobalt Rho_0 = ", cobalt%Rho_0
-               endif
+               ! if (j == 100 .and. i == 42) then
+               !    print *, "b_o2 (", i, ",", j, ",1) = ", b_o2(i,j)
+               !    print *, "b_nh4 (", i, ",", j, ",1) = ", b_nh4(i,j)
+               !    print *, "b_no3 (", i, ",", j, ",1) = ", b_no3(i,j)
+               !    print *, "b_dic (", i, ",", j, ",1) = ", b_dic(i,j)
+               !    print *, "cobalt btm_dic mol/kg = ", cobalt%btm_dic(i,j)
+               !    print *, "cobalt btm_o2 mol/kg = ", cobalt%btm_o2(i,j)
+               !    print *, "cobalt btm_nh4 mol/kg = ", (cobalt%f_nh4(i,j,nk))
+               !    print *, "cobalt btm_no3 mol/kg = ", (cobalt%btm_no3(i,j))
+               !    print *, "cobalt Rho_0 = ", cobalt%Rho_0
+               ! endif
 
 
             endif
@@ -1476,10 +1476,10 @@ contains
 
                cbed%denit(i,j) = sum(dz_cbed(:)*(svf(i,j,1:nk_cbed)*0.8*cbed%R_om_no3(i,j,:) + por(i,j,1:nk_cbed)*2.0*R_ana(i,j,:)))
 
-               cbed%cbed_k1(i,j) = cobalt%f_o2(i,j,nk) !k1(i,j)
-               cbed%cbed_k2(i,j) = cobalt%btm_o2(i,j) !k2(i,j)
-               cbed%cbed_k3(i,j) = cobalt%f_no3(i,j,nk)*cobalt%Rho_0 !k3(i,j)
-               cbed%cbed_w(i,j) = cobalt%btm_no3(i,j)   !w(i,j,1)
+               cbed%cbed_k1(i,j) = k1(i,j)
+               cbed%cbed_k2(i,j) = k2(i,j)
+               cbed%cbed_k3(i,j) = k3(i,j)
+               cbed%cbed_w(i,j) = w(i,j,1)
 
             endif
          enddo;enddo
@@ -1511,45 +1511,45 @@ contains
 
                   !cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
-                  if (j == 100 .and. i == 42) then
-                     print *, "before update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
-                  endif
+                  ! if (j == 100 .and. i == 42) then
+                  !    print *, "before update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
+                  ! endif
 
-                  cbed%f_o2(i,j,k)  = max(0.0, cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
-                     (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k)) )*dt )
+                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
+                     (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j) - cbed%f_o2(i,j,k)) )*dt 
 
-                  if (j == 100 .and. i == 42) then
-                     print *, "after update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
-                  endif
+                  ! if (j == 100 .and. i == 42) then
+                  !    print *, "after update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
+                  ! endif
                   !print *, "after update o2 cbed%f_o2(", i, ",", j, ",", k, ") = ", cbed%f_o2(i,j,k)
 
-                  cbed%f_om1(i,j,k) = max(0.0, cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt )
+                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt 
 
-                  cbed%f_om2(i,j,k) = max(0.0, cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt )
+                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt 
 
-                  cbed%f_om3(i,j,k) = max(0.0, cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt )
+                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt 
 
-                  cbed%f_nh4(i,j,k) = max(0.0, cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk) - cbed%f_nh4(i,j,k)) )*dt )
+                  cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
+                     ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk) - cbed%f_nh4(i,j,k)) )*dt 
 
                   !print *, "before update no3 cbed%f_no3(", i, ",", j, ",", k, ") = ", cbed%f_no3(i,j,k)
 
-                  cbed%f_no3(i,j,k) = max(0.0, cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j) - cbed%f_no3(i,j,k)) )*dt )
+                  cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
+                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j) - cbed%f_no3(i,j,k)) )*dt 
 
                   !print *, "after update no3 cbed%f_no3(", i, ",", j, ",", k, ") = ", cbed%f_no3(i,j,k)
 
                   !print *, "before update dic cbed%f_dic(", i, ",", j, ",", k, ") = ", cbed%f_dic(i,j,k)
 
-                  cbed%f_dic(i,j,k) = max(0.0, cbed%f_dic(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     bioirri(i,j,k)*(cobalt%btm_dic(i,j) - cbed%f_dic(i,j,k)) )*dt )
+                  cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
+                     bioirri(i,j,k)*(cobalt%btm_dic(i,j) - cbed%f_dic(i,j,k)) )*dt 
 
                   !print *, "after update dic cbed%f_dic(", i, ",", j, ",", k, ") = ", cbed%f_dic(i,j,k)
 
-                  cbed%f_odu(i,j,k) = max(0.0, cbed%f_odu(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
-                     R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - cbed%f_odu(i,j,k)) )*dt )
+                  cbed%f_odu(i,j,k) = cbed%f_odu(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
+                     R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - cbed%f_odu(i,j,k)) )*dt 
 
-                  cbed%f_talk(i,j,k) = max(0.0, cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j) - cbed%f_talk(i,j,k)) )*dt )
+                  cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j) - cbed%f_talk(i,j,k)) )*dt 
 
 
                enddo
