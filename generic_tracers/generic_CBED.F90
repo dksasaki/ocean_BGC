@@ -1212,7 +1212,7 @@ contains
       real, parameter :: ks_no3 = 0.001  ! NO3 half saturation constant (mol/m3)
 
       real, parameter :: k_nox = (2.0*10.0**5.0)/spery   ! 2e5 ! mol-1 m3 s-1 (from the original: mmol-1 L yr-1) !nitrification rate constant
-      real, parameter :: k_ana =  (10.0**3.0) /spery     !   ! 1e5               !anammox rate constant
+      real, parameter :: k_ana =  0.0* (10.0**3.0) /spery     !   ! 1e5               !anammox rate constant
       real, parameter :: k_oduox = (10.0**5.0) /spery   !              1e6      !ODU oxidation rate constant
 
       real, parameter :: Q10 = 1.88
@@ -1384,7 +1384,7 @@ contains
                   ! nitrification
                   R_nox(i,j,k) = k_nox*cbed%f_nh4(i,j,k)*cbed%f_o2(i,j,k) * Q10_factor(i,j)
                   ! anammox
-                  R_ana(i,j,k) = k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k) * Q10_factor(i,j) * (ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                  R_ana(i,j,k) = k_ana*cbed%f_nh4(i,j,k)*cbed%f_no3(i,j,k) * Q10_factor(i,j) !* (ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
                   ! ODU oxidation
                   R_oduox(i,j,k) = k_oduox*cbed%f_odu(i,j,k)*cbed%f_o2(i,j,k) * Q10_factor(i,j)
                   odu_depo(i,j,k) = (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))*min(1.0, 0.233*(w(i,j,k)*100.0*spery)**0.336)
