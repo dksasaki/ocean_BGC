@@ -1099,7 +1099,8 @@ contains
 
                         ! SOLUTES: Add Robin boundary contribution
                         ! This brings in the influence of bottom water concentration
-                        f_old(1) = f_old(1) + alpha_dt_over_h * (btm_tracer_conc(i,j) - cbed_field(i,j,1))
+                        f_old(1) = f_old(1) + alpha_dt_over_h * btm_tracer_conc(i,j)
+                        !f_old(1) = f_old(1) + alpha_dt_over_h * (btm_tracer_conc(i,j) - cbed_field(i,j,1))   ! This would be the full Robin BC contribution, but since cbed_field(i,j,1) is on the LHS, we only add the bottom water part to the RHS. The flux term is split in two parts in the above. 
 
                         ! Add advective flux from bottom water
                         if (w(i,j,1) > 0.0) then
