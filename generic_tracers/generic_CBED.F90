@@ -52,6 +52,8 @@ module generic_CBED
       real, dimension(:,:), allocatable :: nh4_flux !benthic nh4 flux
       real, dimension(:,:), allocatable :: no3_flux !benthic no3 flux
       real, dimension(:,:), allocatable :: dic_flux !benthic dic flux
+      real, dimension(:,:), allocatable :: talk_flux !benthic talk flux
+      real, dimension(:,:), allocatable :: odu_flux !benthic odu flux
       real, dimension(:,:), allocatable :: burial_om !organic matter burial at the bottom of sediment column
       real, dimension(:,:), allocatable :: denit
       real, dimension(:,:), allocatable :: cbed_k1
@@ -99,6 +101,8 @@ module generic_CBED
       integer :: id_nh4_flux
       integer :: id_no3_flux
       integer :: id_dic_flux
+      integer :: id_talk_flux
+      integer :: id_odu_flux
       integer :: id_burial_om
       integer :: id_denit
       integer :: id_cbed_k1
@@ -259,6 +263,8 @@ contains
       allocate(cbed%nh4_flux(isd:ied,jsd:jed)); cbed%nh4_flux=0.0
       allocate(cbed%no3_flux(isd:ied,jsd:jed)); cbed%no3_flux=0.0
       allocate(cbed%dic_flux(isd:ied,jsd:jed)); cbed%dic_flux=0.0
+      allocate(cbed%talk_flux(isd:ied,jsd:jed)); cbed%talk_flux=0.0
+      allocate(cbed%odu_flux(isd:ied,jsd:jed)); cbed%odu_flux=0.0
       allocate(cbed%burial_om(isd:ied,jsd:jed));cbed%burial_om=0.0
       allocate(cbed%denit(isd:ied,jsd:jed));cbed%denit=0.0
       allocate(cbed%cbed_k1(isd:ied,jsd:jed));cbed%cbed_k1=0.0
@@ -476,6 +482,10 @@ contains
          'benthic no3 flux', 'mol m-2 s-1', missing_value = missing_value1)
       cbed%id_dic_flux = register_diag_field(package_name, 'cbed_dic_flux', (/axes(1),axes(2)/), init_time,&
          'benthic dic flux', 'mol m-2 s-1', missing_value = missing_value1)
+      cbed%id_talk_flux = register_diag_field(package_name, 'cbed_talk_flux', (/axes(1),axes(2)/), init_time,&
+         'benthic talk flux', 'mol m-2 s-1', missing_value = missing_value1)
+      cbed%id_odu_flux = register_diag_field(package_name, 'cbed_odu_flux', (/axes(1),axes(2)/), init_time,&
+         'benthic odu flux', 'mol m-2 s-1', missing_value = missing_value1)
       cbed%id_burial_om = register_diag_field(package_name, 'cbed_burial_om', (/axes(1),axes(2)/), init_time,&
          'cbed organic carbon burial', 'mol m-2 s-1', missing_value = missing_value1)
       cbed%id_denit = register_diag_field(package_name, 'cbed_denit', (/axes(1),axes(2)/), init_time,&
@@ -583,6 +593,10 @@ contains
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
       used = send_data(cbed%id_dic_flux, cbed%dic_flux, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_talk_flux, cbed%talk_flux, model_time, rmask = cbed_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_odu_flux, cbed%odu_flux, model_time, rmask = cbed_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
       used = send_data(cbed%id_burial_om, cbed%burial_om, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
       used = send_data(cbed%id_denit, cbed%denit, model_time, rmask = cbed_tmask(:,:,1),&
@@ -685,6 +699,8 @@ contains
       deallocate(cbed%nh4_flux)
       deallocate(cbed%no3_flux)
       deallocate(cbed%dic_flux)
+      deallocate(cbed%talk_flux)
+      deallocate(cbed%odu_flux)
       deallocate(cbed%burial_om)
       deallocate(cbed%denit)
       deallocate(cbed%cbed_k1)
@@ -1455,6 +1471,8 @@ contains
                cbed%nh4_flux(i,j) = b_nh4(i,j)
                cbed%no3_flux(i,j) = b_no3(i,j)
                cbed%dic_flux(i,j) = b_dic(i,j)
+               cbed%talk_flux(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_alk(i,j)*cobalt%Rho_0 - cbed%f_talk(i,j,1))/(dz_cbed(1)/2.0)) + por(i,j,1)*w(i,j,1)*(cobalt%btm_alk(i,j)*cobalt%Rho_0)
+               cbed%odu_flux(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - cbed%f_odu(i,j,1))/(dz_cbed(1)/2.0))
             endif
          enddo;enddo
 
