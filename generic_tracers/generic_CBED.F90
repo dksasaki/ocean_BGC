@@ -1211,7 +1211,7 @@ contains
       real, parameter :: ks_o2 = 0.008   ! O2 half saturation constant (mol/m3)
       real, parameter :: ks_no3 = 0.001  ! NO3 half saturation constant (mol/m3)
 
-      real, parameter :: k_nox = 0.0 * (2.0*10.0**5.0)/spery   ! 2e5 ! mol-1 m3 s-1 (from the original: mmol-1 L yr-1) !nitrification rate constant
+      real, parameter :: k_nox = (2.0*10.0**5.0)/spery   ! 2e5 ! mol-1 m3 s-1 (from the original: mmol-1 L yr-1) !nitrification rate constant
       real, parameter :: k_ana =  0.0* (10.0**3.0) /spery     !   ! 1e5               !anammox rate constant
       real, parameter :: k_oduox = 0.0 * (10.0**5.0) /spery   !              1e6      !ODU oxidation rate constant
 
