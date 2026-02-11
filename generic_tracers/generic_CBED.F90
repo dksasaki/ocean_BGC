@@ -790,7 +790,7 @@ contains
                enddo
             endif
          enddo; enddo
-      
+
 
 
       ! sink(k+1)
@@ -818,7 +818,7 @@ contains
                if ((trim(field_name) == "f_o2")) then
                   sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0))*dt ! top flux (diffuvive flux + advective flux)
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
-                 
+
                else if ((trim(field_name) == "f_nh4")) then
                   sfc_src =  (VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - cbed_field(i,j,1))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0))*dt ! top flux
                   cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
@@ -888,6 +888,11 @@ contains
                enddo
 
                call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:),nk_cbed)
+
+               do k = 1, nk_cbed
+                  cbed_field(i,j,k) = max(0.0, cbed_field(i,j,k))
+               enddo
+               
             endif
          enddo; enddo
 
