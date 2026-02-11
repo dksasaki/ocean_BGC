@@ -1379,7 +1379,7 @@ contains
                   cbed%R_om_anaerobic(i,j,k) = R_om1_anoxic(i,j,k) + R_om2_anoxic(i,j,k) + R_om3_anoxic(i,j,k)
                   cbed%R_dic(i,j,k) = R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)
                   cbed%R_nox(i,j,k) = R_nox(i,j,k)
-                  cbed%R_ana(i,j,k) = R_ana(i,j,k)
+                  cbed%R_anammox(i,j,k) = R_ana(i,j,k)
                   cbed%R_oduox(i,j,k) = R_oduox(i,j,k)
 
                   cbed%cbed_bioirri(i,j,k) = bioirri(i,j,k) ! bioirrigation diagnostics
