@@ -46,6 +46,10 @@ module generic_CBED
       real, dimension(:,:,:), allocatable :: R_om_no3         ! OM resep via denitrification
       real, dimension(:,:,:), allocatable :: R_om_anaerobic   ! OM resep via other anaerobic process
       real, dimension(:,:,:), allocatable :: R_dic            ! total remineralization
+      real, dimension(:,:,:), allocatable :: R_nox            ! nitrification rate
+      real, dimension(:,:,:), allocatable :: R_anammox          ! anammox rate
+      real, dimension(:,:,:), allocatable :: R_oduox          ! ODU reoxidation rate
+      real, dimension(:,:,:), allocatable :: cbed_bioirri
 
       ! 2D diags
       real, dimension(:,:), allocatable :: o2_flux !benthic o2 flux
@@ -69,7 +73,6 @@ module generic_CBED
 
       ! 3D diags (interfaces)(nk_cbed+1)
       real, dimension(:,:,:), allocatable :: cbed_Db
-      real, dimension(:,:,:), allocatable :: cbed_bioirri
       real, dimension(:,:,:), allocatable :: cbed_D_o2
       real, dimension(:,:,:), allocatable :: cbed_D_dic
       real, dimension(:,:,:), allocatable :: cbed_D_nh4
@@ -96,6 +99,11 @@ module generic_CBED
       integer :: id_R_om_no3
       integer :: id_R_om_anaerobic
       integer :: id_R_dic
+      integer :: id_R_nox
+      integer :: id_R_anammox
+      integer :: id_R_oduox
+      integer :: id_cbed_bioirri
+
       ! 2D diags
       integer :: id_o2_flux
       integer :: id_nh4_flux
@@ -118,7 +126,6 @@ module generic_CBED
 
       ! 3D diags (interfaces)(nk_cbed+1)
       integer :: id_cbed_Db
-      integer :: id_cbed_bioirri
       integer :: id_cbed_D_o2
       integer :: id_cbed_D_dic
       integer :: id_cbed_D_nh4
@@ -258,6 +265,9 @@ contains
       allocate(cbed%R_om_no3(isd:ied,jsd:jed,nk_cbed));cbed%R_om_no3=0.0
       allocate(cbed%R_om_anaerobic(isd:ied,jsd:jed,nk_cbed));cbed%R_om_anaerobic=0.0
       allocate(cbed%R_dic(isd:ied,jsd:jed,nk_cbed));cbed%R_dic=0.0
+      allocate(cbed%R_nox(isd:ied,jsd:jed,nk_cbed));cbed%R_nox=0.0
+      allocate(cbed%R_anammox(isd:ied,jsd:jed,nk_cbed));cbed%R_anammox=0.0
+      allocate(cbed%R_oduox(isd:ied,jsd:jed,nk_cbed));cbed%R_oduox=0.0
       allocate(cbed%cbed_bioirri(isd:ied,jsd:jed,nk_cbed));cbed%cbed_bioirri=0.0
       ! 2D diags
       allocate(cbed%o2_flux(isd:ied,jsd:jed)); cbed%o2_flux=0.0
@@ -472,6 +482,12 @@ contains
          'OM respiration via other anaerobic processes in sediment 3D field', 'mol C m-3 s-1', missing_value = missing_value1)
       cbed%id_R_dic = register_diag_field(package_name, 'cbed_R_dic', (/axes(1),axes(2),id_layer/), init_time,&
          'DIC produced in sediment via OM remineralization 3D field', 'mol C m-3 s-1', missing_value = missing_value1)
+      cbed%id_R_nox = register_diag_field(package_name, 'cbed_R_nox', (/axes(1),axes(2),id_layer/), init_time,&
+         'nitrification in sediment', 'mol m-3 s-1', missing_value = missing_value1)
+      cbed%id_R_anammox = register_diag_field(package_name, 'cbed_R_anammox', (/axes(1),axes(2),id_layer/), init_time,&
+         'anammox in sediment', 'mol N2 m-3 s-1', missing_value = missing_value1)
+      cbed%id_R_oduox = register_diag_field(package_name, 'cbed_R_oduox', (/axes(1),axes(2),id_layer/), init_time,&
+         'ODU reoxidation in sediment', 'mol m-3 s-1', missing_value = missing_value1)
       cbed%id_cbed_bioirri = register_diag_field(package_name, 'cbed_bioirri', (/axes(1),axes(2),id_layer/), init_time,&
          'bioirrigation coefficient', 's-1', missing_value = missing_value1)
 
@@ -584,6 +600,12 @@ contains
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
       used = send_data(cbed%id_R_dic, cbed%R_dic, model_time, rmask = cbed_tmask,&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+      used = send_data(cbed%id_R_nox, cbed%R_nox, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+      used = send_data(cbed%id_R_anammox, cbed%R_anammox, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+      used = send_data(cbed%id_R_oduox, cbed%R_oduox, model_time, rmask = cbed_tmask,&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
       used = send_data(cbed%id_cbed_bioirri, cbed%cbed_bioirri, model_time, rmask = cbed_tmask,&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
       ! 2D diags
@@ -694,6 +716,9 @@ contains
       deallocate(cbed%R_om_no3)
       deallocate(cbed%R_om_anaerobic)
       deallocate(cbed%R_dic)
+      deallocate(cbed%R_nox)
+      deallocate(cbed%R_anammox)
+      deallocate(cbed%R_oduox)
       deallocate(cbed%cbed_bioirri)
       !2D diags
       deallocate(cbed%o2_flux)
@@ -1353,6 +1378,9 @@ contains
                   cbed%R_om_no3(i,j,k) = R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)
                   cbed%R_om_anaerobic(i,j,k) = R_om1_anoxic(i,j,k) + R_om2_anoxic(i,j,k) + R_om3_anoxic(i,j,k)
                   cbed%R_dic(i,j,k) = R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)
+                  cbed%R_nox(i,j,k) = R_nox(i,j,k)
+                  cbed%R_ana(i,j,k) = R_ana(i,j,k)
+                  cbed%R_oduox(i,j,k) = R_oduox(i,j,k)
 
                   cbed%cbed_bioirri(i,j,k) = bioirri(i,j,k) ! bioirrigation diagnostics
 
