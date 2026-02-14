@@ -148,7 +148,7 @@ module generic_CBED
    ! grid
    ! local parameters
    real, parameter :: l_cbed = 0.20           ! length of sediment domain | sediment depth (m, 20 cm)
-   real, parameter :: dz1_cbed = 0.003        ! thickness of the first layer (m). For increasing thickness
+   real, parameter :: dz1_cbed = 0.001        ! thickness of the first layer (m). For increasing thickness
    real, parameter :: rho_s = 2.5             ! solid density (g/cm³)
    real, parameter :: Db_l = 0.08             ! bioturbation length scale (m) 8 cm.
    real, parameter :: bioirri_l = 0.018       ! bioirrigation length scale (m) 1.8 cm.
