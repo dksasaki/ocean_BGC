@@ -1188,7 +1188,7 @@ contains
       real, parameter :: frac_OM2 = 0.20
       real, parameter :: frac_OM3 = 0.10
 
-      real, parameter :: dt_half = dt/2.0  ! splitting reactions update into half steps for better numerical stability
+      !real, parameter :: dt_half = dt/2.0  ! splitting reactions update into half steps for better numerical stability
 
 
       real, parameter :: k_adj_denit = 0.1
@@ -1521,27 +1521,27 @@ contains
                   !cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
                   cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
-                     (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,k)) )*dt_half
+                     (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,k)) )*dt/2.0
 
-                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt_half
+                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt/2.0
 
-                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt_half
+                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt/2.0
 
-                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt_half
+                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt/2.0
 
                   cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,k)) )*dt_half
+                     ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,k)) )*dt/2.0
 
                   cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,k)) )*dt_half
+                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,k)) )*dt/2.0
 
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     bioirri(i,j,k)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,k)) )*dt_half
+                     bioirri(i,j,k)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,k)) )*dt/2.0
 
                   cbed%f_odu(i,j,k) = cbed%f_odu(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
-                     R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - c_odu(i,j,k)) )*dt_half
+                     R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - c_odu(i,j,k)) )*dt/2.0
 
-                  cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j)*cobalt%Rho_0 - c_talk(i,j,k)) )*dt_half
+                  cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j)*cobalt%Rho_0 - c_talk(i,j,k)) )*dt/2.0
 
 
                enddo
@@ -1572,27 +1572,27 @@ contains
                   !cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
 
                   cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
-                     (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,k)) )*dt_half
+                     (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,k)) )*dt/2.0
 
-                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt_half
+                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt/2.0
 
-                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt_half
+                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt/2.0
 
-                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt_half
+                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt/2.0
 
                   cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,k)) )*dt_half
+                     ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,k)) )*dt/2.0
 
                   cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,k)) )*dt_half
+                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,k)) )*dt/2.0
 
                   cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     bioirri(i,j,k)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,k)) )*dt_half
+                     bioirri(i,j,k)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,k)) )*dt/2.0
 
                   cbed%f_odu(i,j,k) = cbed%f_odu(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
-                     R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - c_odu(i,j,k)) )*dt_half
+                     R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - c_odu(i,j,k)) )*dt/2.0
 
-                  cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j)*cobalt%Rho_0 - c_talk(i,j,k)) )*dt_half
+                  cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j)*cobalt%Rho_0 - c_talk(i,j,k)) )*dt/2.0
 
 
                enddo
