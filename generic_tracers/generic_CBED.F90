@@ -1188,7 +1188,7 @@ contains
       real, parameter :: frac_OM2 = 0.20
       real, parameter :: frac_OM3 = 0.10
 
-      real :: dt_half = dt/2.0  ! splitting reactions update into half steps for better numerical stability
+      real, parameter :: dt_half = dt/2.0  ! splitting reactions update into half steps for better numerical stability
 
 
       real, parameter :: k_adj_denit = 0.1
