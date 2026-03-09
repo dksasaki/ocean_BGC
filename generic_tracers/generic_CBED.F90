@@ -1669,7 +1669,8 @@ contains
             endif
          enddo;enddo
 
-
+      
+      print *, "dt is (s) = ", dt
 
       ! Source-sink calculations
       !Test that we can change the value of concentration field of a CBED tracer
