@@ -28,6 +28,11 @@ module generic_CBED
    type generic_CBED_type
       ! TODO: change read_porosity_from_file into a namelist variable
       logical :: read_porosity_from_file = .false.   ! flag to read porosity from file
+      logical :: do_adaptive_time_stepping = .true.   ! flag to use adaptive time stepping | sub cycle dt over n steps to
+      ! ensure that the change in tracer concentration in each step does not exceed a certain threshold.
+      ! This is to prevent negative when reaction rates are high and the time step is too large.
+
+      ! State variables
 
       !real, dimension(:,:,:), allocatable :: f_tr1  ! tracer 1 concentration field
       real, dimension(:,:,:), allocatable :: f_o2   ! tracer o2 concentration field
@@ -1140,7 +1145,7 @@ contains
    ! end subroutine vertdiff_CBED
 
 
-   ! VF issue is fixed. logic in R, and compared with R model. 
+   ! VF issue is fixed. logic in R, and compared with R model.
    subroutine vertdiff_CBED(cobalt_tracer_list, cobalt, cbed_field, field_name, D, w, VF, grid_kmt, dt, tau, isc, iec, jsc, jec, isd, ied, jsd, jed, nk, nk_cbed)
       ! Arguments
       type(g_tracer_type),          pointer       :: cobalt_tracer_list
@@ -1161,7 +1166,7 @@ contains
 
       ! Tridiagonal matrix arrays (1D column)
       real, dimension(nk_cbed)   :: a, b, c, f_old
-      
+
       ! Transport intermediate arrays (1D column)
       real, dimension(nk_cbed+1) :: dist          ! True distance between nodes
       real, dimension(nk_cbed)   :: VF_cell       ! Cell-centered volume fraction
@@ -1182,8 +1187,8 @@ contains
       ! -----------------------------------------------------------------------
       is_solid = .false.
       if (trim(field_name) == "f_om1" .or. &
-          trim(field_name) == "f_om2" .or. &
-          trim(field_name) == "f_om3") then
+         trim(field_name) == "f_om2" .or. &
+         trim(field_name) == "f_om3") then
          is_solid = .true.
       endif
 
@@ -1237,7 +1242,7 @@ contains
 
                ! --- C. Build Tridiagonal Matrix ---
                do k = 1, nk_cbed
-                  
+
                   ! Transport rates normalized by cell capacity
                   DiffIn  = K_diff(k)   * dt / capacity(k)
                   DiffOut = K_diff(k+1) * dt / capacity(k)
@@ -1248,7 +1253,7 @@ contains
                      ! Top Boundary
                      a(1) = 0.0
                      c(1) = -DiffOut
-                     
+
                      if (.not. is_solid) then
                         ! Solutes: Robin BC
                         b(1) = 1.0 + DiffIn + DiffOut + AdvOut
@@ -1257,7 +1262,7 @@ contains
                         ! Solids: Particle rain
                         b(1) = 1.0 + DiffOut + AdvOut
                         f_old(1) = cbed_field(i,j,1)
-                        
+
                         ! Add organic matter fluxes normalized by capacity
                         if (trim(field_name) == "f_om1") then
                            f_old(1) = f_old(1) + (frac_OM1 * cobalt%fntot_btm(i,j) * cobalt%c_2_n * dt) / capacity(1)
@@ -1669,57 +1674,277 @@ contains
             endif
          enddo;enddo
 
-      
-      print *, "dt is (s) = ", dt
 
-      ! Source-sink calculations
-      !Test that we can change the value of concentration field of a CBED tracer
-      do j = jsc, jec; do i = isc, iec  !{
-            if (grid_kmt(i,j) .gt. 0) then
-               do k = 1, nk_cbed
-
-                  !cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
-
-                  cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
-                     (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,k)) )*dt
-
-                  cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt
-
-                  cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt
-
-                  cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt
-
-                  cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,k)) )*dt
-
-                  cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                     (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,k)) )*dt
-
-                  cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                     bioirri(i,j,k)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,k)) )*dt
-
-                  cbed%f_odu(i,j,k) = cbed%f_odu(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
-                     R_oduox(i,j,k) - odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - c_odu(i,j,k)) )*dt
-
-                  cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j)*cobalt%Rho_0 - c_talk(i,j,k)) )*dt
+      !print *, "dt is (s) = ", dt
 
 
+
+
+      if (cbed%do_adaptive_time_stepping) then
+
+         ! --- NEW: ADAPTIVE TIME-STEPPING CALCULATION (O2, NO3, NH4) ---
+         integer :: n_sub, n_req_o2, n_req_no3, n_req_nh4, n_req_odu
+         real    :: dt_sub
+         real    :: max_o2_sink, max_no3_sink, max_nh4_sink
+         integer :: sub_step
+
+         n_sub = 1 ! Default to 1 macro step
+
+         do j = jsc, jec
+            do i = isc, iec
+               if (grid_kmt(i,j) > 0) then
+                  do k = 1, nk_cbed
+
+                     ! ---------------------------------------------------------
+                     ! 1. OXYGEN CONSTRAINT
+                     ! Sinks: Aerobic Respiration, Nitrification, ODU Oxidation
+                     ! ---------------------------------------------------------
+                     if (c_o2(i,j,k) > 1.0e-6) then
+                        max_o2_sink = svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) + &
+                           (2.0*R_nox(i,j,k)+R_oduox(i,j,k))
+
+                        ! The maximum sink is the total amount of O2 that could be consumed in this time step based on the current concentrations and reaction rates.
+                        ! We divide by 0.5*c_o2, to get the number of sub-steps needed to ensure that we don't drop the cell concentration more than half in one time step.
+                        ! This is a conservative estimate to ensure we don't overshoot and get negative concentrations.
+                        ! We then take the ceiling of this number to get the number of sub-steps needed to ensure that we don't consume more O2 than is available in any sub-step.
+                        ! We do this for O2, NO3, and NH4 and take the maximum number of sub-steps required among the three to ensure that we don't violate any of the constraints.
+                        ! Note: This is a simple approach and may be overly conservative, but it is a good starting point to prevent negative concentrations.
+                        ! More sophisticated approaches could involve dynamically adjusting the time step based on the reaction rates and concentrations
+                        ! rather than just taking the ceiling, but this would require more complex logic to ensure stability and mass balance.
+
+                        n_req_o2 = ceiling( (max_o2_sink * dt) / (0.8 * c_o2(i,j,k)) )
+                        if (n_req_o2 > n_sub) n_sub = n_req_o2
+                     endif
+
+                     ! ---------------------------------------------------------
+                     ! 2. NITRATE CONSTRAINT
+                     ! Sinks: Denitrification, Anammox
+                     ! ---------------------------------------------------------
+                     if (c_no3(i,j,k) > 1.0e-6) then
+                        max_no3_sink = svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + R_ana(i,j,k)
+
+                        n_req_no3 = ceiling( (max_no3_sink * dt) / (0.8 * c_no3(i,j,k)) )
+                        if (n_req_no3 > n_sub) n_sub = n_req_no3
+                     endif
+
+                     ! ---------------------------------------------------------
+                     ! 3. AMMONIUM CONSTRAINT
+                     ! Sinks: Nitrification, Anammox
+                     ! ---------------------------------------------------------
+                     if (c_nh4(i,j,k) > 1.0e-6) then
+                        max_nh4_sink = R_nox(i,j,k) + R_ana(i,j,k)
+
+                        n_req_nh4 = ceiling( (max_nh4_sink * dt) / (0.8 * c_nh4(i,j,k)) )
+                        if (n_req_nh4 > n_sub) n_sub = n_req_nh4
+                     endif
+
+                     ! ---------------------------------------------------------
+                     ! 3. ODU CONSTRAINT
+                     ! Sinks: ODU oxidation 
+                     ! ---------------------------------------------------------
+                     if (c_odu(i,j,k) > 1.0e-6) then
+                        max_odu_sink = R_oduox(i,j,k)
+
+                        n_req_odu = ceiling( (max_odu_sink * dt) / (0.8 * c_odu(i,j,k)) )
+                        if (n_req_odu > n_sub) n_sub = n_req_odu
+                     endif
+
+                  enddo
+               endif
+            enddo
+         enddo
+
+         ! Cap the maximum number of sub-steps to prevent the ESM from hanging
+         ! Note: You may want to increase this cap (e.g., 50) depending on how aggressive
+         ! the coastal fluxes get, but 20 is a safe starting point.
+         n_sub = min(n_sub, 20)
+         dt_sub = dt / real(n_sub)
+
+         ! ! Initialize macro-step accumulators for benthic fluxes to the ocean
+         ! cbed%o2_flux = 0.0
+         ! cbed%no3_flux = 0.0
+         ! cbed%nh4_flux = 0.0
+         ! cbed%dic_flux = 0.0
+         ! cbed%talk_flux = 0.0
+         ! cbed%odu_flux = 0.0
+
+
+
+         ! --- BEGIN ADAPTIVE SUB-STEPPING LOOP ---
+         do sub_step = 1, n_sub
+
+            ! 1. Re-evaluate positive concentrations for this specific sub-step
+            do j = jsc, jec
+               do i = isc, iec
+                  if (grid_kmt(i,j) > 0) then
+                     do k = 1, nk_cbed
+                        c_om1(i,j,k) = max(0.0, cbed%f_om1(i,j,k))
+                        c_om2(i,j,k) = max(0.0, cbed%f_om2(i,j,k))
+                        c_om3(i,j,k) = max(0.0, cbed%f_om3(i,j,k))
+                        c_o2(i,j,k)  = max(0.0, cbed%f_o2(i,j,k))
+                        c_no3(i,j,k) = max(0.0, cbed%f_no3(i,j,k))
+                        c_nh4(i,j,k) = max(0.0, cbed%f_nh4(i,j,k))
+                        c_dic(i,j,k) = max(0.0, cbed%f_dic(i,j,k))
+                        c_odu(i,j,k) = max(0.0, cbed%f_odu(i,j,k))
+                        c_talk(i,j,k) = max(0.0, cbed%f_talk(i,j,k))
+
+
+                        ! O₂ reaction rates
+                        R_om1_o2(i,j,k) = k1(i,j)*c_om1(i,j,k)*(c_o2(i,j,k)/(ks_o2 + c_o2(i,j,k))) * Q10_factor(i,j)
+                        R_om2_o2(i,j,k) = k2(i,j)*c_om2(i,j,k)*(c_o2(i,j,k)/(ks_o2 + c_o2(i,j,k))) * Q10_factor(i,j)
+                        R_om3_o2(i,j,k) = k3(i,j)*c_om3(i,j,k)*(c_o2(i,j,k)/(ks_o2 + c_o2(i,j,k))) * Q10_factor(i,j)
+                        ! NO₃ reaction rates
+                        R_om1_no3(i,j,k) = k_adj_denit*k1(i,j)*c_om1(i,j,k)*(c_no3(i,j,k)/(ks_no3 + c_no3(i,j,k)))*(ks_o2/(ks_o2 + c_o2(i,j,k))) * Q10_factor(i,j)
+                        R_om2_no3(i,j,k) = k_adj_denit*k2(i,j)*c_om2(i,j,k)*(c_no3(i,j,k)/(ks_no3 + c_no3(i,j,k)))*(ks_o2/(ks_o2 + c_o2(i,j,k))) * Q10_factor(i,j)
+                        R_om3_no3(i,j,k) = k_adj_denit*k3(i,j)*c_om3(i,j,k)*(c_no3(i,j,k)/(ks_no3 + c_no3(i,j,k)))*(ks_o2/(ks_o2 + c_o2(i,j,k))) * Q10_factor(i,j)
+                        ! ODU reaction rates
+                        R_om1_anoxic(i,j,k) = k_adj_anoxia*k1(i,j)*c_om1(i,j,k)*(ks_no3/(ks_no3 + c_no3(i,j,k)))*(ks_o2/(ks_o2 + c_o2(i,j,k))) * Q10_factor(i,j)
+                        R_om2_anoxic(i,j,k) = k_adj_anoxia*k2(i,j)*c_om2(i,j,k)*(ks_no3/(ks_no3 + c_no3(i,j,k)))*(ks_o2/(ks_o2 + c_o2(i,j,k))) * Q10_factor(i,j)
+                        R_om3_anoxic(i,j,k) = k_adj_anoxia*k3(i,j)*c_om3(i,j,k)*(ks_no3/(ks_no3 + c_no3(i,j,k)))*(ks_o2/(ks_o2 + c_o2(i,j,k))) * Q10_factor(i,j)
+
+                        ! dic
+                        R_dic_om1(i,j,k) = (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k))
+                        R_dic_om2(i,j,k) = (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k))
+                        R_dic_om3(i,j,k) = (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k))
+                        ! nitrification
+                        R_nox(i,j,k) = k_nox*c_nh4(i,j,k)*c_o2(i,j,k) * Q10_factor(i,j)
+                        ! anammox
+                        R_ana(i,j,k) = k_ana*c_nh4(i,j,k)*c_no3(i,j,k) * Q10_factor(i,j) !* (ks_o2/(ks_o2 + cbed%f_o2(i,j,k)))
+                        ! ODU oxidation
+                        R_oduox(i,j,k) = k_oduox*c_odu(i,j,k)*c_o2(i,j,k) * Q10_factor(i,j)
+                        odu_depo(i,j,k) = (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))*min(1.0, 0.233*(w(i,j,k)*100.0*spery)**0.336)
+
+                        ! TA calculation
+                        R_talk(i,j,k) = svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) + &
+                           svf(i,j,k)/por(i,j,k)*(0.8+1.0/cobalt%c_2_n)*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
+                           svf(i,j,k)/por(i,j,k)*(1.0+1.0/cobalt%c_2_n)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
+                           2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k)
+
+                     enddo
+                  endif
                enddo
-            endif
-         enddo;enddo
+            enddo
+
+            ! 2. Calculate Reaction Rates (R_om1_o2, R_nox, etc.) exactly as you currently do
+            ! ... [Your existing reaction rate code] ...
+
+            ! 3. Calculate Benthic Fluxes (b_o2, b_nh4, etc.)
+            ! ... [Your existing b_xxx code] ...
+
+            ! ACCUMULATE the sub-step fluxes for the final macro diagnostic
+            ! do j = jsc, jec
+            !    do i = isc, iec
+            !       if (grid_kmt(i,j) > 0) then
+            !          ! We average the flux over the n_sub steps
+            !          cbed%o2_flux(i,j)  = cbed%o2_flux(i,j)  + b_o2(i,j)  * (1.0 / real(n_sub))
+            !          cbed%nh4_flux(i,j) = cbed%nh4_flux(i,j) + b_nh4(i,j) * (1.0 / real(n_sub))
+            !          ! ... [accumulate other fluxes] ...
+            !       endif
+            !    enddo
+            ! enddo
+
+            ! 4. Source-sink calculations
+            ! IMPORTANT: Change `* dt` to `* dt_sub` in all these equations!
+            do j = jsc, jec
+               do i = isc, iec
+                  if (grid_kmt(i,j) > 0) then
+                     do k = 1, nk_cbed
+
+                        cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
+                           (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,k)) )*dt_sub
+
+                        cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt_sub
+
+                        cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt_sub
+
+                        cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt_sub
+
+                        cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
+                           ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,k)) )*dt_sub
+
+                        cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
+                           (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,k)) )*dt_sub
+
+                        cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
+                           bioirri(i,j,k)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,k)) )*dt_sub
+
+                        cbed%f_odu(i,j,k) = cbed%f_odu(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
+                           R_oduox(i,j,k) - svf(i,j,k)/por(i,j,k)*odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - c_odu(i,j,k)) )*dt_sub
+
+                        cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j)*cobalt%Rho_0 - c_talk(i,j,k)) )*dt_sub
+
+                     enddo
+                  endif
+               enddo
+            enddo
+
+            ! 5. Implicit Transport
+            ! IMPORTANT: Pass `dt_sub` into vertdiff_CBED instead of `dt`
+            call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+            call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, "f_om2", Db,    w, svf, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+            call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+            call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  "f_o2", D_o2,   w, por, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+            call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, "f_nh4", D_nh4, w, por, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+            call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+            call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_odu, "f_odu", D_odu, w, por, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+            call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_talk, "f_talk", D_dic, w, por, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+
+         enddo
+         ! --- END ADAPTIVE SUB-STEPPING LOOP ---
 
 
-      ! call vertdiff_CBED. This updates the fields.
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, "f_om2", Db,    w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  "f_o2", D_o2,   w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, "f_nh4", D_nh4, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_no3, "f_no3", D_no3, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_odu, "f_odu", D_odu, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_talk, "f_talk", D_dic, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
 
+      else
+         ! Source-sink calculations
+         !Test that we can change the value of concentration field of a CBED tracer
+         do j = jsc, jec; do i = isc, iec  !{
+               if (grid_kmt(i,j) .gt. 0) then
+                  do k = 1, nk_cbed
+
+                     !cbed%f_tr1(i,j,k) = cbed%f_tr1(i,j,k) + 0.01 * k !fictitious dubious dynamics for testing purposes
+
+                     cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
+                        (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,k)) )*dt
+
+                     cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt
+
+                     cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt
+
+                     cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt
+
+                     cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
+                        ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,k)) )*dt
+
+                     cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
+                        (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,k)) )*dt
+
+                     cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
+                        bioirri(i,j,k)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,k)) )*dt
+
+                     cbed%f_odu(i,j,k) = cbed%f_odu(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
+                        R_oduox(i,j,k) - svf(i,j,k)/por(i,j,k)*odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - c_odu(i,j,k)) )*dt
+
+                     cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j)*cobalt%Rho_0 - c_talk(i,j,k)) )*dt
+
+
+                  enddo
+               endif
+            enddo;enddo
+
+
+         ! call vertdiff_CBED. This updates the fields.
+         call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+         call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, "f_om2", Db,    w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+         call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+         call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  "f_o2", D_o2,   w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+         call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, "f_nh4", D_nh4, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+         call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_no3, "f_no3", D_no3, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+         call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+         call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_odu, "f_odu", D_odu, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+         call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_talk, "f_talk", D_dic, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+
+
+      endif
 
 
 
