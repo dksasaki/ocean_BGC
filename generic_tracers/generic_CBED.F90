@@ -1385,7 +1385,7 @@ contains
       ! variables for sub-stepping reactions | adaptive time stepping for reactions
       integer :: n_sub, n_req_o2, n_req_no3, n_req_nh4, n_req_odu
       real    :: dt_sub
-      real    :: max_o2_sink, max_no3_sink, max_nh4_sink
+      real    :: max_o2_sink, max_no3_sink, max_nh4_sink, max_odu_sink
       integer :: sub_step
 
 
