@@ -1382,6 +1382,12 @@ contains
       ! b terms
       real, dimension(isc:iec,jsc:jec) :: b_o2, b_dic, b_nh4, b_no3
 
+      ! variables for sub-stepping reactions | adaptive time stepping for reactions
+      integer :: n_sub, n_req_o2, n_req_no3, n_req_nh4, n_req_odu
+      real    :: dt_sub
+      real    :: max_o2_sink, max_no3_sink, max_nh4_sink
+      integer :: sub_step
+
 
       ! write the grid layers to register as diags
       do j = jsc, jec; do i = isc, iec
@@ -1682,11 +1688,7 @@ contains
 
       if (cbed%do_adaptive_time_stepping) then
 
-         ! --- NEW: ADAPTIVE TIME-STEPPING CALCULATION (O2, NO3, NH4) ---
-         integer :: n_sub, n_req_o2, n_req_no3, n_req_nh4, n_req_odu
-         real    :: dt_sub
-         real    :: max_o2_sink, max_no3_sink, max_nh4_sink
-         integer :: sub_step
+         ! --- NEW: ADAPTIVE TIME-STEPPING CALCULATION (O2, NO3, NH4, ODU) ---
 
          n_sub = 1 ! Default to 1 macro step
 
@@ -1740,7 +1742,7 @@ contains
 
                      ! ---------------------------------------------------------
                      ! 3. ODU CONSTRAINT
-                     ! Sinks: ODU oxidation 
+                     ! Sinks: ODU oxidation
                      ! ---------------------------------------------------------
                      if (c_odu(i,j,k) > 1.0e-6) then
                         max_odu_sink = R_oduox(i,j,k)
