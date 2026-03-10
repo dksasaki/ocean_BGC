@@ -27,7 +27,7 @@ module generic_CBED
 
    type generic_CBED_type
       ! TODO: change read_porosity_from_file into a namelist variable
-      logical :: read_porosity_from_file = .false.   ! flag to read porosity from file
+      logical :: read_porosity_from_file = .true.   ! flag to read porosity from file
       logical :: do_adaptive_time_stepping = .true.   ! flag to use adaptive time stepping | sub cycle dt over n steps to
       ! ensure that the change in tracer concentration in each step does not exceed a certain threshold.
       ! This is to prevent negative when reaction rates are high and the time step is too large.
@@ -1887,6 +1887,7 @@ contains
             call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
             call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_o2,  "f_o2", D_o2,   w, por, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
             call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_nh4, "f_nh4", D_nh4, w, por, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+            call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_no3, "f_no3", D_no3, w, por, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
             call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
             call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_odu, "f_odu", D_odu, w, por, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
             call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_talk, "f_talk", D_dic, w, por, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
