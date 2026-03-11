@@ -1685,7 +1685,7 @@ contains
 
 
 
-
+       ! ask NIKI: if this would lead to different ans due to indexing and domain decomposition. 
       if (cbed%do_adaptive_time_stepping) then
 
          ! --- NEW: ADAPTIVE TIME-STEPPING CALCULATION (O2, NO3, NH4, ODU) ---
@@ -2262,7 +2262,7 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                !cobalt%b_dic(i,j) = b_dic(i,j)
-               !cobalt%b_o2(i,j)  = b_o2(i,j)
+               cobalt%b_o2(i,j)  = b_o2(i,j)
                !cobalt%b_nh4(i,j) = b_nh4(i,j)
                !cobalt%b_no3(i,j) = b_no3(i,j)
             endif
