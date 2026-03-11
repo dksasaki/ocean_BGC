@@ -2261,10 +2261,10 @@ contains
       ! set the cobalt%b_* terms. These are used in some other places in COBALT as well. So just "b_o2" might not work.
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
-               !cobalt%b_dic(i,j) = b_dic(i,j)
+               cobalt%b_dic(i,j) = b_dic(i,j)
                cobalt%b_o2(i,j)  = b_o2(i,j)
-               !cobalt%b_nh4(i,j) = b_nh4(i,j)
-               !cobalt%b_no3(i,j) = b_no3(i,j)
+               cobalt%b_nh4(i,j) = b_nh4(i,j)
+               cobalt%b_no3(i,j) = b_no3(i,j)
             endif
          enddo; enddo
 
