@@ -1759,7 +1759,7 @@ contains
          ! Cap the maximum number of sub-steps to prevent the ESM from hanging
          ! Note: You may want to increase this cap (e.g., 50) depending on how aggressive
          ! the coastal fluxes get, but 20 is a safe starting point.
-         n_sub = min(n_sub, 20)
+         n_sub = min(n_sub, 60)
          dt_sub = dt / real(n_sub)
 
          ! ! Initialize macro-step accumulators for benthic fluxes to the ocean
