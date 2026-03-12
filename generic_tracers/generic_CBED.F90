@@ -1670,7 +1670,12 @@ contains
       ! some other local variables
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
-               cbed_burial_frac(i,j) = cbed%burial_om(i,j) / (cobalt%fntot_btm(i,j)*cobalt%c_2_n)  ! burial / rain . ratio
+
+               if (cobalt%fntot_btm(i,j) .gt. 0.0) then
+                  cbed_burial_frac(i,j) = cbed%burial_om(i,j) / (cobalt%fntot_btm(i,j)*cobalt%c_2_n)  ! burial / rain . ratio
+               else
+                  cbed_burial_frac(i,j) = 0.0
+               endif
 
                cbed_org_alk(i,j) = sum(dz_cbed(:)*por(i,j,1:nk_cbed)*R_talk(i,j,:))  ! mol m-2 s-1 (net production of alklinity from organic matter degradation)
 
@@ -2284,7 +2289,7 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
 
-               ! the b_dic and b_alk are defined here such that it takes organic part from CBED and CaCO3 part from COBALT. 
+               ! the b_dic and b_alk are defined here such that it takes organic part from CBED and CaCO3 part from COBALT.
                cobalt%b_dic(i,j) =  - cobalt%fcased_redis(i,j) - cobalt%f_cadet_arag_btf(i,j,1) +       &
                   b_dic(i,j)
 
