@@ -1352,6 +1352,9 @@ contains
       real, parameter :: frac_OM2 = 0.20
       real, parameter :: frac_OM3 = 0.10
 
+      real, dimension(isc:iec,jsc:jec) :: cbed_burial_frac  ! = (OM burial / OM rain)  ! replaces cobalt%burial_frac
+      real, dimension(isc:iec,jsc:jec) :: cbed_org_alk  ! organic alkalinity production from OM degradation
+
       !real, parameter :: dt_half = dt/2.0  ! splitting reactions update into half steps for better numerical stability
 
 
@@ -1648,7 +1651,7 @@ contains
             endif
          enddo;enddo
 
-      ! some other diags
+      ! some other diags , other local variables
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
 
@@ -1660,6 +1663,16 @@ contains
                cbed%cbed_k2(i,j) = k2(i,j)
                cbed%cbed_k3(i,j) = k3(i,j)
                cbed%cbed_w(i,j) = w(i,j,1)
+
+            endif
+         enddo;enddo
+
+      ! some other local variables
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               cbed_burial_frac(i,j) = cbed%burial_om(i,j) / (cobalt%fntot_btm(i,j)*cobalt%c_2_n)  ! burial / rain . ratio
+
+               cbed_org_alk(i,j) = sum(dz_cbed(:)*por(i,j,1:nk_cbed)*R_talk(i,j,:))  ! mol m-2 s-1 (net production of alklinity from organic matter degradation)
 
             endif
          enddo;enddo
@@ -1685,7 +1698,7 @@ contains
 
 
 
-       ! ask NIKI: if this would lead to different ans due to indexing and domain decomposition. 
+      ! ask NIKI: if this would lead to different ans due to indexing and domain decomposition.
       if (cbed%do_adaptive_time_stepping) then
 
          ! --- NEW: ADAPTIVE TIME-STEPPING CALCULATION (O2, NO3, NH4, ODU) ---
@@ -2039,6 +2052,15 @@ contains
                   cobalt%fn_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fntot_btm(i,j)
                   cobalt%fp_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fptot_btm(i,j)
 
+                  !-----------------------------------------------
+                  !!! replace cobalt burial with CBED burial calculation
+
+                  cobalt%frac_burial(i,j) = cbed_burial_frac(i,j)
+                  cobalt%fn_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fntot_btm(i,j)
+                  cobalt%fp_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fptot_btm(i,j)
+
+                  !!!------------------------------------------
+
                   ! Denitrification follows Middelburg et al., 1996. Denitrification in marine sediments: a modeling study
                   ! Global Biogeochemical Cycles 10(4).  pp. 661-673.  https://doi.org/10.1029/96GB02562. COBALT uses the
                   ! carbon flux-based relationship based on Middelburg's first extraction of his metamodel (the first
@@ -2261,10 +2283,21 @@ contains
       ! set the cobalt%b_* terms. These are used in some other places in COBALT as well. So just "b_o2" might not work.
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
-               cobalt%b_dic(i,j) = b_dic(i,j)
+
+               ! the b_dic and b_alk are defined here such that it takes organic part from CBED and CaCO3 part from COBALT. 
+               cobalt%b_dic(i,j) =  - cobalt%fcased_redis(i,j) - cobalt%f_cadet_arag_btf(i,j,1) +       &
+                  b_dic(i,j)
+
+               cobalt%b_alk(i,j) = - 2.0*(cobalt%fcased_redis(i,j)+cobalt%f_cadet_arag_btf(i,j,1)) -    &
+                  cbed_org_alk(i,j)
+
+               !cobalt%b_dic(i,j) = b_dic(i,j)
                cobalt%b_o2(i,j)  = b_o2(i,j)
                cobalt%b_nh4(i,j) = b_nh4(i,j)
                cobalt%b_no3(i,j) = b_no3(i,j)
+
+               ! other b terms are also calculated from CBED information. These are done by replacing cobalt%burial_frac with cbed_burial_frac where they are defined.
+
             endif
          enddo; enddo
 
