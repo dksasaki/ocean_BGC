@@ -146,9 +146,6 @@ module generic_CBED
 
    real, parameter :: pi = acos(-1.0)
 
-! porosity. check with Niki
-   !real, dimension(isc:iec,jsc:jec) :: por = 0.8  !niki
-   !real :: por = 0.8
 
    ! grid
    ! local parameters
@@ -346,30 +343,6 @@ contains
       !do k = 1, nk_cbed-1
       !   z_cbed_mid(k+1) = z_cbed_mid(k) + dz_cbed(k)
       !end do
-
-      !!!! grid with increasing thickness. Values are copied from R model (20 layers)
-      !dz_cbed = (/ 0.001999965, 0.002295888, 0.002635596, 0.003025570, 0.003473245, 0.003987160, &
-      !   0.004577116, 0.005254364, 0.006031821, 0.006924313, 0.007948862, 0.009125008, &
-      !   0.010475180, 0.012025129, 0.013804415, 0.015846971, 0.018191752, 0.020883476, &
-      !   0.023973478, 0.027520689 /)
-      !
-      !z_cbed_int = (/ 0.0, 0.001999965, 0.004295853, 0.006931449, 0.009957019, 0.013430264,&
-      !   0.017417424, 0.021994540, 0.027248904, 0.033280725, 0.040205039, 0.048153901, &
-      !   0.057278909, 0.067754089, 0.079779218, 0.093583633, 0.109430604, 0.127622356, &
-      !   0.148505832, 0.172479311, 0.2 /)
-      !
-      !z_cbed_mid = (/ 0.0009999825, 0.0031479088, 0.0056136508, 0.0084442338, 0.0116936411, &
-      !   0.0154238436, 0.0197059818, 0.0246217221, 0.0302648149, 0.0367428821, &
-      !   0.0441794700, 0.0527164049, 0.0625164986, 0.0737666532, 0.0866814254, &
-      !   0.1015071186, 0.1185264802, 0.1380640944, 0.1604925715, 0.1862396553 /)
-
-
-      !!!! grid with increasing thickness. Values are copied from R model (20 layers) (works)
-      !dz_cbed = (/ 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01 /)
-
-      !z_cbed_int = (/ 0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20 /)
-
-      !z_cbed_mid = (/ 0.005, 0.015, 0.025, 0.035, 0.045, 0.055, 0.065, 0.075, 0.085, 0.095, 0.105, 0.115, 0.125, 0.135, 0.145, 0.155, 0.165, 0.175, 0.185, 0.195 /)
 
 
       ! generate grid automatically according to supplied values (length of sediment column, number of layers and thicness of the first layer)
@@ -774,378 +747,17 @@ contains
 
    end subroutine generic_CBED_end
 
+   !-----------------------------------
+   !! Tridiagonal matrix coefficients for tridiagonal solver.
+   ! a(k)= (-ea(i,j,k)-sink(i,j,k))/h_old(k)
+   ! b(k)= (h_old(k)+eb(i,j,k)+ea(i,j,k)+sink(i,j,k+1))/h_old(k)
+   ! c(k)= -eb(i,j,k)/h_old(k)
+   !----------------------------------------
+
+   !! subroutine vertdiff_CBED !!
+   ! VF issue is fixed. logic verified in R, and compared with R model.
+   ! The solver logic reproduces the results of a diagenetic model solved through ReacTran package in R.
 
-
-   ! subroutine vertdiff_CBED(cobalt_tracer_list,cobalt, cbed_field, field_name, D, w, VF, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-   !    type(g_tracer_type),          pointer       :: cobalt_tracer_list
-   !    type(generic_COBALT_type),    intent(inout) :: cobalt
-   !    real, dimension(:,:,:),       intent(inout) :: cbed_field  ! cbed tracer concentration field
-   !    character(len=*),             intent(in)    :: field_name   !Name of the cbed field (e.g., "f_o2" or "f_nh4")
-   !    real, dimension(:,:,:),       intent(in)    :: D   ! diffustion
-   !    real, dimension(:,:,:),       intent(in)    :: w   !sinking velocity or sedimentation rate
-   !    real, dimension(:,:,:),       intent(in)    :: VF    ! volumn fraction
-   !    integer, dimension(:,:),      intent(in)    :: grid_kmt
-   !    real,                         intent(in)    :: dt
-   !    integer,                      intent(in)    :: tau
-   !    integer,                      intent(in)    :: isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed
-
-   !    !Locals
-   !    integer :: i, j, k
-
-   !    real, dimension(nk_cbed) :: a,b,c,f_old,h_old
-   !    real, dimension(isc:iec,jsc:jec,nk_cbed) :: ea,eb
-   !    real, dimension(isc:iec,jsc:jec,nk_cbed+1) :: sink
-
-   !    real :: sfc_src, btm_src
-
-   !    ! local parameters for bgc reactions
-   !    real, parameter :: frac_OM1 = 0.70
-   !    real, parameter :: frac_OM2 = 0.20
-   !    real, parameter :: frac_OM3 = 0.10
-
-
-
-
-   !    ! h_old
-   !    do k = 1, nk_cbed
-   !       h_old(k) = dz_cbed(k)
-   !    enddo
-
-   !    ! ea , eb
-   !    do j = jsc, jec; do i = isc, iec
-   !          if (grid_kmt(i,j) .gt. 0) then
-   !             do k=1,nk_cbed
-   !                ea(i,j,k) = VF(i,j,k)*D(i,j,k)*dt/h_old(k)
-   !                eb(i,j,k) = VF(i,j,k)*D(i,j,k+1)*dt/h_old(k)
-   !             enddo
-   !          endif
-   !       enddo; enddo
-
-
-
-   !    ! sink(k+1)
-   !    do j = jsc, jec; do i = isc, iec
-   !          if (grid_kmt(i,j) .gt. 0) then
-   !             do k=1,nk_cbed+1
-   !                sink(i,j,k) = max(0.0, VF(i,j,k)*w(i,j,k)*dt )
-   !             enddo
-   !          endif
-   !       enddo; enddo
-
-   !    ! a, b, c, f_old
-   !    do j = jsc, jec; do i = isc, iec
-   !          if (grid_kmt(i,j) .gt. 0) then
-
-   !             !! NEED TO TAKE CARE OF THE TOP AND BOTTOM FLUXES
-   !             ! sfc_src = 0.0 ; btm_src = 0.0
-   !             ! if (_ALLOCATED(g_tracer%stf)) sfc_src = (g_tracer%stf(i,j)*dt)*kg_m2_to_H
-   !             ! if (_ALLOCATED(g_tracer%btf)) btm_src = (-g_tracer%btf(i,j)*dt)*kg_m2_to_H
-   !             ! g_tracer%field(i,j,1,tau)  = g_tracer%field(i,j,1,tau)  + sfc_src/h_old(i,j,1)
-   !             ! g_tracer%field(i,j,nz,tau) = g_tracer%field(i,j,nz,tau) + btm_src/h_old(i,j,nz)
-
-   !             sfc_src = 0.0
-
-   !             if ((trim(field_name) == "f_o2")) then
-   !                sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - max(0.0,cbed_field(i,j,1)))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0))*dt ! top flux (diffuvive flux + advective flux)
-   !                cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
-
-   !             else if ((trim(field_name) == "f_nh4")) then
-   !                sfc_src =  (VF(i,j,1)*D(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - max(0.0,cbed_field(i,j,1)))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0))*dt ! top flux
-   !                cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
-
-   !             else if ((trim(field_name) == "f_no3")) then
-   !                sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - max(0.0,cbed_field(i,j,1)))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0))*dt  ! top flux
-   !                cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
-
-   !             else if ((trim(field_name) == "f_dic") ) then
-   !                sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - max(0.0,cbed_field(i,j,1)))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0))*dt ! top flux
-   !                cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
-
-   !             else if ((trim(field_name) == "f_odu") ) then
-   !                sfc_src = VF(i,j,1)*D(i,j,1)*((0.0 - max(0.0,cbed_field(i,j,1)))/(dz_cbed(1)/2.0)) *dt ! top flux
-   !                cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
-
-   !             else if ((trim(field_name) == "f_talk") ) then
-   !                sfc_src = (VF(i,j,1)*D(i,j,1)*((cobalt%btm_alk(i,j)*cobalt%Rho_0 - max(0.0,cbed_field(i,j,1)))/(dz_cbed(1)/2.0)) + VF(i,j,1)*w(i,j,1)*(cobalt%btm_alk(i,j)*cobalt%Rho_0))*dt ! top flux
-   !                cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
-
-   !             else if ((trim(field_name) == "f_om1")) then
-   !                sfc_src = frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-   !                cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
-
-   !             else if ((trim(field_name) == "f_om2")) then
-   !                sfc_src = frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-   !                cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
-
-   !             else if ((trim(field_name) == "f_om3")) then
-   !                sfc_src = frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt ! top flux
-   !                cbed_field(i,j,1)  = cbed_field(i,j,1)  + sfc_src/h_old(1)
-
-   !             endif
-
-   !             ! bottom flux
-   !             btm_src = 0.0
-   !             btm_src = -(cbed_field(i,j,nk_cbed)*VF(i,j,nk_cbed)*w(i,j,nk_cbed+1)*dt) ! bottom flux
-   !             cbed_field(i,j,nk_cbed) = cbed_field(i,j,nk_cbed) + btm_src/h_old(nk_cbed)
-
-
-
-   !             do k=1,nk_cbed
-   !                if (k == 1) then
-
-   !                   a(k)= 0.0
-   !                   b(k)= (h_old(k)+eb(i,j,k)+sink(i,j,k+1))/h_old(k)
-   !                   c(k)= -eb(i,j,k)/h_old(k)
-
-   !                elseif (k == nk_cbed) then
-
-   !                   a(k)= (-ea(i,j,k)-sink(i,j,k))/h_old(k)
-   !                   b(k)= (h_old(k)+ea(i,j,k))/h_old(k)
-   !                   c(k)= 0.0
-
-   !                else
-
-   !                   a(k)= (-ea(i,j,k)-sink(i,j,k))/h_old(k)
-   !                   b(k)= (h_old(k)+eb(i,j,k)+ea(i,j,k)+sink(i,j,k+1))/h_old(k)
-   !                   c(k)= -eb(i,j,k)/h_old(k)
-
-   !                   !f_old(k)= cbed_field(i,j,k)
-
-   !                endif
-
-   !                f_old(k)= cbed_field(i,j,k)
-
-   !             enddo
-
-   !             call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:),nk_cbed)
-
-   !             ! do k = 1, nk_cbed
-   !             !    cbed_field(i,j,k) = max(0.0, cbed_field(i,j,k))
-   !             ! enddo
-
-   !          endif
-   !       enddo; enddo
-
-   ! end subroutine vertdiff_CBED
-
-   ! ! new
-   ! subroutine vertdiff_CBED(cobalt_tracer_list,cobalt, cbed_field, field_name, D, w, VF, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
-   !    type(g_tracer_type),          pointer       :: cobalt_tracer_list
-   !    type(generic_COBALT_type),    intent(inout) :: cobalt
-   !    real, dimension(:,:,:),       intent(inout) :: cbed_field  ! cbed tracer concentration field
-   !    character(len=*),             intent(in)    :: field_name   !Name of the cbed field (e.g., "f_o2" or "f_nh4")
-   !    real, dimension(:,:,:),       intent(in)    :: D   ! diffustion
-   !    real, dimension(:,:,:),       intent(in)    :: w   !sinking velocity or sedimentation rate
-   !    real, dimension(:,:,:),       intent(in)    :: VF    ! volumn fraction
-   !    integer, dimension(:,:),      intent(in)    :: grid_kmt
-   !    real,                         intent(in)    :: dt
-   !    integer,                      intent(in)    :: tau
-   !    integer,                      intent(in)    :: isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed
-
-   !    !Locals
-   !    integer :: i, j, k
-
-   !    real, dimension(nk_cbed) :: a,b,c,f_old,h_old
-   !    real, dimension(isc:iec,jsc:jec,nk_cbed) :: ea,eb
-   !    real, dimension(isc:iec,jsc:jec,nk_cbed+1) :: sink
-
-   !    ! CHANGE 1: Added variables for Robin boundary condition
-   !    ! These implement the implicit boundary flux in the matrix system
-   !    real :: delta_z, alpha, alpha_dt_over_h
-   !    real, dimension(isc:iec,jsc:jec) :: btm_tracer_conc  ! Bottom water concentration for the tracer
-
-   !    real :: sfc_src, btm_src
-
-   !    ! local parameters for bgc reactions
-   !    real, parameter :: frac_OM1 = 0.70
-   !    real, parameter :: frac_OM2 = 0.20
-   !    real, parameter :: frac_OM3 = 0.10
-
-
-
-
-   !    ! h_old
-   !    do k = 1, nk_cbed
-   !       h_old(k) = dz_cbed(k)
-   !    enddo
-
-   !    ! ea , eb
-   !    do j = jsc, jec; do i = isc, iec
-   !          if (grid_kmt(i,j) .gt. 0) then
-   !             do k=1,nk_cbed
-   !                ea(i,j,k) = VF(i,j,k)*D(i,j,k)*dt/h_old(k)
-   !                eb(i,j,k) = VF(i,j,k)*D(i,j,k+1)*dt/h_old(k)
-   !             enddo
-   !          endif
-   !       enddo; enddo
-
-   !    ! sink(k+1)
-   !    do j = jsc, jec; do i = isc, iec
-   !          if (grid_kmt(i,j) .gt. 0) then
-   !             do k=1,nk_cbed+1
-   !                sink(i,j,k) = max(0.0, VF(i,j,k)*w(i,j,k)*dt )
-   !             enddo
-   !          endif
-   !       enddo; enddo
-
-   !    ! CHANGE 3: Get bottom water concentration based on tracer type
-   !    ! This will be used in the Robin boundary condition
-   !    do j = jsc, jec; do i = isc, iec
-   !          if (grid_kmt(i,j) .gt. 0) then
-   !             btm_tracer_conc(i,j) = 0.0
-   !             if ((trim(field_name) == "f_o2")) then
-   !                btm_tracer_conc(i,j) = cobalt%btm_o2(i,j)*cobalt%Rho_0
-   !             else if ((trim(field_name) == "f_nh4")) then
-   !                btm_tracer_conc(i,j) = cobalt%f_nh4(i,j,nk)*cobalt%Rho_0
-   !             else if ((trim(field_name) == "f_no3")) then
-   !                btm_tracer_conc(i,j) = cobalt%btm_no3(i,j)*cobalt%Rho_0
-   !             else if ((trim(field_name) == "f_dic")) then
-   !                btm_tracer_conc(i,j) = cobalt%btm_dic(i,j)*cobalt%Rho_0
-   !             else if ((trim(field_name) == "f_odu")) then
-   !                btm_tracer_conc(i,j) = 0.0
-   !             else if ((trim(field_name) == "f_talk")) then
-   !                btm_tracer_conc(i,j) = cobalt%btm_alk(i,j)*cobalt%Rho_0
-   !             else if ((trim(field_name) == "f_om1")) then
-   !                ! CHANGE 4: For particulate organic matter, add source to RHS
-   !                ! This is handled separately below in f_old(1)
-   !                btm_tracer_conc(i,j) = 0.0
-   !             else if ((trim(field_name) == "f_om2")) then
-   !                btm_tracer_conc(i,j) = 0.0
-   !             else if ((trim(field_name) == "f_om3")) then
-   !                btm_tracer_conc(i,j) = 0.0
-   !             endif
-   !          endif
-   !       enddo; enddo
-
-   !    ! a, b, c, f_old
-   !    do j = jsc, jec; do i = isc, iec
-   !          if (grid_kmt(i,j) .gt. 0) then
-
-   !             ! CHANGE 2: REMOVED explicit flux application before tridiagonal solve
-   !             ! OLD CODE (INCORRECT):
-   !             ! btm_src = -(cbed_field(i,j,nk_cbed)*VF(i,j,nk_cbed)*w(i,j,nk_cbed+1)*dt)
-   !             ! cbed_field(i,j,nk_cbed) = cbed_field(i,j,nk_cbed) + btm_src/h_old(nk_cbed)
-   !             !
-   !             ! WHY REMOVED: Bottom advective loss is already handled by the sink term
-   !             ! in the tridiagonal matrix (sink(nk_cbed+1) in the bottom layer equation).
-   !             ! Applying it explicitly AND implicitly double-counts the loss.
-
-   !             ! CHANGE 6: Build tridiagonal matrix with proper boundary conditions
-   !             do k=1,nk_cbed
-
-   !                if (k == 1) then
-   !                   ! CHANGE 7: TOP LAYER - Different boundary conditions for solutes vs solids
-
-   !                   ! Matrix coefficients for top layer:
-   !                   a(1) = 0.0  ! No layer above
-
-   !                   ! Start with base formulation (internal diffusion + advection to layer 2)
-   !                   b(1) = (h_old(1) + eb(i,j,1) + sink(i,j,2))/h_old(1)
-   !                   c(1) = -eb(i,j,1)/h_old(1)
-
-   !                   ! Determine if this is a SOLUTE (needs Robin BC) or SOLID (no top BC)
-   !                   if ((trim(field_name) /= "f_om1") .and. &
-   !                      (trim(field_name) /= "f_om2") .and. &
-   !                      (trim(field_name) /= "f_om3")) then
-
-   !                      ! SOLUTES: Add Robin boundary condition
-   !                      ! Implements: -D*VF*(dC/dz)|_interface = D*VF*(C_bottom_water - C_sed(1))/(dz/2)
-   !                      ! Plus advection: w*VF*C_bottom_water
-
-   !                      delta_z = dz_cbed(1) / 2.0
-   !                      alpha = VF(i,j,1) * D(i,j,1) / delta_z
-   !                      alpha_dt_over_h = alpha * dt / h_old(1)
-
-   !                      ! CHANGE 8: Add Robin boundary term to diagonal
-   !                      ! This couples sediment surface to bottom water concentration
-   !                      b(1) = b(1) + alpha_dt_over_h
-
-   !                      ! CHANGE 9: Advection INTO top layer from bottom water
-   !                      ! This represents w*VF*C_bottom_water entering from above
-   !                      if (w(i,j,1) > 0.0) then
-   !                         b(1) = b(1) + sink(i,j,1)/h_old(1)
-   !                      endif
-   !                   else
-   !                      ! SOLIDS: No Robin BC at top (no exchange with bottom water)
-   !                      ! Particles don't couple to bottom water concentration
-   !                      ! Only internal bioturbation (eb term already included above)
-   !                      ! No advection IN because particles are delivered as external source
-   !                   endif
-
-   !                   ! RHS: old concentration
-   !                   f_old(1) = cbed_field(i,j,1)
-
-   !                   ! CHANGE 10: Add boundary contributions based on tracer type
-   !                   if ((trim(field_name) /= "f_om1") .and. &
-   !                      (trim(field_name) /= "f_om2") .and. &
-   !                      (trim(field_name) /= "f_om3")) then
-
-   !                      ! SOLUTES: Add Robin boundary contribution
-   !                      ! This brings in the influence of bottom water concentration
-   !                      f_old(1) = f_old(1) + alpha_dt_over_h * btm_tracer_conc(i,j)
-   !                      !f_old(1) = f_old(1) + alpha_dt_over_h * (btm_tracer_conc(i,j) - cbed_field(i,j,1))   ! This would be the full Robin BC contribution, but since cbed_field(i,j,1) is on the LHS, we only add the bottom water part to the RHS. The flux term is split in two parts in the above.
-
-   !                      ! Add advective flux from bottom water
-   !                      if (w(i,j,1) > 0.0) then
-   !                         f_old(1) = f_old(1) + (sink(i,j,1)/h_old(1)) * btm_tracer_conc(i,j)
-   !                      endif
-
-   !                   else
-   !                      ! SOLIDS: Add particulate organic matter source terms
-   !                      ! These are external rain fluxes from the water column
-   !                      if ((trim(field_name) == "f_om1")) then
-   !                         f_old(1) = f_old(1) + frac_OM1*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/h_old(1)
-   !                      else if ((trim(field_name) == "f_om2")) then
-   !                         f_old(1) = f_old(1) + frac_OM2*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/h_old(1)
-   !                      else if ((trim(field_name) == "f_om3")) then
-   !                         f_old(1) = f_old(1) + frac_OM3*cobalt%fntot_btm(i,j)*cobalt%c_2_n*dt/h_old(1)
-   !                      endif
-   !                   endif
-
-   !                else if (k == nk_cbed) then
-   !                   ! CHANGE 13: BOTTOM LAYER - Zero flux at bottom boundary
-   !                   ! Advective loss through bottom is handled by sink(nk_cbed+1)
-
-   !                   a(k) = (-ea(i,j,k) - sink(i,j,k))/h_old(k)
-
-   !                   ! CHANGE 14: Modified b(k) for bottom layer
-   !                   ! OLD: b(k) = (h_old(k) + eb(k) + ea(k) + sink(k+1))/h_old(k)
-   !                   ! NEW: No eb term (no diffusion out of bottom), but keep sink(k+1) for advection out
-   !                   b(k) = (h_old(k) + ea(i,j,k) + sink(i,j,k+1))/h_old(k)
-
-   !                   c(k) = 0.0  ! No layer below
-
-   !                   f_old(k) = cbed_field(i,j,k)
-
-   !                else
-   !                   ! CHANGE 15: INTERIOR LAYERS - Standard advection-diffusion
-   !                   ! sink(k) represents advection FROM layer k-1 (appears in super-diagonal of k-1)
-   !                   ! sink(k+1) represents advection TO layer k+1 (appears in diagonal of k)
-
-   !                   a(k) = (-ea(i,j,k) - sink(i,j,k))/h_old(k)
-
-   !                   b(k) = (h_old(k) + ea(i,j,k) + eb(i,j,k) + sink(i,j,k+1))/h_old(k)
-
-   !                   c(k) = -eb(i,j,k)/h_old(k)
-
-   !                   f_old(k) = cbed_field(i,j,k)
-   !                endif
-
-   !             enddo
-
-   !             call CBED_tridag_solver_Press_et_al(a,b,c,f_old,cbed_field(i,j,:),nk_cbed)
-
-   !             ! do k = 1, nk_cbed
-   !             !    cbed_field(i,j,k) = max(0.0, cbed_field(i,j,k))
-   !             ! enddo
-
-   !          endif
-   !       enddo; enddo
-
-   ! end subroutine vertdiff_CBED
-
-
-   ! VF issue is fixed. logic in R, and compared with R model.
    subroutine vertdiff_CBED(cobalt_tracer_list, cobalt, cbed_field, field_name, D, w, VF, grid_kmt, dt, tau, isc, iec, jsc, jec, isd, ied, jsd, jed, nk, nk_cbed)
       ! Arguments
       type(g_tracer_type),          pointer       :: cobalt_tracer_list
@@ -1177,7 +789,7 @@ contains
       real :: DiffIn, DiffOut, AdvIn, AdvOut
       real :: btm_tracer_conc
 
-      ! Local parameters for bgc reactions
+      ! Local parameters. Fractions of total organic matter flux assigned to each reactivity class.
       real, parameter :: frac_OM1 = 0.70
       real, parameter :: frac_OM2 = 0.20
       real, parameter :: frac_OM3 = 0.10
@@ -1194,7 +806,6 @@ contains
 
       ! -----------------------------------------------------------------------
       ! 2. Compute true distances between cell centers for gradients
-      !    (dz_cbed is assumed to be a 1D array accessible in this scope)
       ! -----------------------------------------------------------------------
       dist(1) = dz_cbed(1) / 2.0
       do k = 2, nk_cbed
@@ -1292,11 +903,6 @@ contains
                ! --- D. Solve the System ---
                call CBED_tridag_solver_Press_et_al(a, b, c, f_old, cbed_field(i,j,:), nk_cbed)
 
-               ! Ensure positivity (optional, but good practice in BGC models)
-               ! do k = 1, nk_cbed
-               !    cbed_field(i,j,k) = max(0.0, cbed_field(i,j,k))
-               ! enddo
-
             endif
          enddo
       enddo
@@ -1354,8 +960,6 @@ contains
 
       real, dimension(isc:iec,jsc:jec) :: cbed_burial_frac  ! = (OM burial / OM rain)  ! replaces cobalt%burial_frac
       real, dimension(isc:iec,jsc:jec) :: cbed_org_alk  ! organic alkalinity production from OM degradation
-
-      !real, parameter :: dt_half = dt/2.0  ! splitting reactions update into half steps for better numerical stability
 
 
       real, parameter :: k_adj_denit = 0.1
@@ -1509,7 +1113,7 @@ contains
          enddo;enddo
 
 
-      !Calculate k1,k2,k3
+      !Calculate k1,k2,k3 [unit: s-1]
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                ! POC flux unit in umol cm-2 y-1. Unit of k is y-1
@@ -1598,9 +1202,15 @@ contains
       ! with cobalt-cbed. The surface flux calculated in the vertdiff_CBED subroutine
       ! is the flux at t-1, so we need to use the t-1 concentration field to calculate the b term,
       ! which will update the bottom flux as the verdiff_G is not yet called for cobalt.
-      ! The CBED reaction rates however are calculated based on the t time step, so they will be
-      ! calculated after source sink calculation and call to vertdiff_CBED.
-      !
+
+      ! The b terms (benthic fluxes at sediment-water interface) are calculated as the sum of diffusive flux, advective flux, and bioirrigation flux.
+      ! The concentration gradient for the diffusive flux is calculated using the t-1 concentration field, and the bioirrigation flux is calculated using the t-1 concentration field and the bioirrigation rate at t-1.
+      ! This way, we ensure that the b term represents the correct fluxes based on the t-1 state of the system.
+
+      ! Negative values of b term would indicate fluxes from the sediment to the water column, while positive values would indicate fluxes from the water column to the sediment i.e. consumption by the sediment.
+
+      ! The concentration fields are updated (to the t time step) once the vertdiff_CBED subroutine is called. (and for COBALT, when the vertdiff_G subroutine is called)
+
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,1))/(dz_cbed(1)/2.0)) + &
@@ -1695,14 +1305,12 @@ contains
          enddo;enddo
 
 
-      !print *, "dt is (s) = ", dt
-
 
 
       ! ask NIKI: if this would lead to different ans due to indexing and domain decomposition.
       if (cbed%do_adaptive_time_stepping) then
 
-         ! --- NEW: ADAPTIVE TIME-STEPPING CALCULATION (O2, NO3, NH4, ODU) ---
+         ! --- ADAPTIVE TIME-STEPPING CALCULATION (O2, NO3, NH4, ODU) ---
 
          n_sub = 1 ! Default to 1 macro step
 
@@ -1724,9 +1332,6 @@ contains
                         ! This is a conservative estimate to ensure we don't overshoot and get negative concentrations.
                         ! We then take the ceiling of this number to get the number of sub-steps needed to ensure that we don't consume more O2 than is available in any sub-step.
                         ! We do this for O2, NO3, and NH4 and take the maximum number of sub-steps required among the three to ensure that we don't violate any of the constraints.
-                        ! Note: This is a simple approach and may be overly conservative, but it is a good starting point to prevent negative concentrations.
-                        ! More sophisticated approaches could involve dynamically adjusting the time step based on the reaction rates and concentrations
-                        ! rather than just taking the ceiling, but this would require more complex logic to ensure stability and mass balance.
 
                         n_req_o2 = ceiling( (max_o2_sink * dt) / (0.8 * c_o2(i,j,k)) )
                         if (n_req_o2 > n_sub) n_sub = n_req_o2
@@ -1755,7 +1360,7 @@ contains
                      endif
 
                      ! ---------------------------------------------------------
-                     ! 3. ODU CONSTRAINT
+                     ! 4. ODU CONSTRAINT
                      ! Sinks: ODU oxidation
                      ! ---------------------------------------------------------
                      if (c_odu(i,j,k) > 1.0e-6) then
@@ -1771,19 +1376,9 @@ contains
          enddo
 
          ! Cap the maximum number of sub-steps to prevent the ESM from hanging
-         ! Note: You may want to increase this cap (e.g., 50) depending on how aggressive
-         ! the coastal fluxes get, but 20 is a safe starting point.
+         ! Note: This cap can be increased depending on how aggressive the coastal fluxes may get.
          n_sub = min(n_sub, 60)
          dt_sub = dt / real(n_sub)
-
-         ! ! Initialize macro-step accumulators for benthic fluxes to the ocean
-         ! cbed%o2_flux = 0.0
-         ! cbed%no3_flux = 0.0
-         ! cbed%nh4_flux = 0.0
-         ! cbed%dic_flux = 0.0
-         ! cbed%talk_flux = 0.0
-         ! cbed%odu_flux = 0.0
-
 
 
          ! --- BEGIN ADAPTIVE SUB-STEPPING LOOP ---
@@ -1841,26 +1436,9 @@ contains
                enddo
             enddo
 
-            ! 2. Calculate Reaction Rates (R_om1_o2, R_nox, etc.) exactly as you currently do
-            ! ... [Your existing reaction rate code] ...
 
-            ! 3. Calculate Benthic Fluxes (b_o2, b_nh4, etc.)
-            ! ... [Your existing b_xxx code] ...
-
-            ! ACCUMULATE the sub-step fluxes for the final macro diagnostic
-            ! do j = jsc, jec
-            !    do i = isc, iec
-            !       if (grid_kmt(i,j) > 0) then
-            !          ! We average the flux over the n_sub steps
-            !          cbed%o2_flux(i,j)  = cbed%o2_flux(i,j)  + b_o2(i,j)  * (1.0 / real(n_sub))
-            !          cbed%nh4_flux(i,j) = cbed%nh4_flux(i,j) + b_nh4(i,j) * (1.0 / real(n_sub))
-            !          ! ... [accumulate other fluxes] ...
-            !       endif
-            !    enddo
-            ! enddo
-
-            ! 4. Source-sink calculations
-            ! IMPORTANT: Change `* dt` to `* dt_sub` in all these equations!
+            ! 2. Source-sink calculations
+            ! Change `* dt` to `* dt_sub` in all these equations to update the concentrations incrementally in each sub-step, which will help prevent negative concentrations and ensure stability.
             do j = jsc, jec
                do i = isc, iec
                   if (grid_kmt(i,j) > 0) then
@@ -1894,8 +1472,8 @@ contains
                enddo
             enddo
 
-            ! 5. Implicit Transport
-            ! IMPORTANT: Pass `dt_sub` into vertdiff_CBED instead of `dt`
+            ! 3. Implicit Transport
+            ! Pass `dt_sub` into vertdiff_CBED instead of `dt`
             call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1, "f_om1", Db,    w, svf, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
             call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2, "f_om2", Db,    w, svf, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
             call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3, "f_om3", Db,    w, svf, grid_kmt, dt_sub, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
@@ -1913,7 +1491,6 @@ contains
 
       else
          ! Source-sink calculations
-         !Test that we can change the value of concentration field of a CBED tracer
          do j = jsc, jec; do i = isc, iec  !{
                if (grid_kmt(i,j) .gt. 0) then
                   do k = 1, nk_cbed
@@ -2055,9 +1632,10 @@ contains
 
                   !-----------------------------------------------
                   !!! replace cobalt burial with CBED burial calculation
+                  !-----------------------------------------------
 
                   !cobalt%frac_burial(i,j) = cbed_burial_frac(i,j)
-                  cobalt%fn_burial(i,j) = cbed%burial_om(i,j) * (1.0/cobalt%c_2_n) 
+                  cobalt%fn_burial(i,j) = cbed%burial_om(i,j) * (1.0/cobalt%c_2_n)
                   cobalt%fp_burial(i,j) = min(1.0, cbed_burial_frac(i,j)) * cobalt%fptot_btm(i,j)
 
                   !!!------------------------------------------
@@ -2286,10 +1864,10 @@ contains
             if (grid_kmt(i,j) .gt. 0) then
 
                ! the b_dic and b_alk are defined here such that it takes organic part from CBED and CaCO3 part from COBALT.
-               ! For b_dic the diffusive flux is added as the organic part as determined by CBED porewater DIC. 
-               ! Later, once CaCO3 is implemented in CBED, the b_dic and b_alk can be fully calculated from CBED from the diffusive 
-               ! gradients of porewater DIC and alk, and COBALT terms can be removed. 
-               ! for the b_alk, the net production of alkalinity from organics is added to the COBALT as porewater alkalinity 
+               ! For b_dic the diffusive flux is added as the organic part as determined by CBED porewater DIC.
+               ! Later, once CaCO3 is implemented in CBED, the b_dic and b_alk can be fully calculated from CBED from the diffusive
+               ! gradients of porewater DIC and alk, and COBALT terms can be removed.
+               ! for the b_alk, the net production of alkalinity from organics is added to the COBALT as porewater alkalinity
                ! profiles and resulting diffive fluxes are imcomplete without CaCO3 implemented in CBED.
 
                cobalt%b_dic(i,j) =  - cobalt%fcased_redis(i,j) - cobalt%f_cadet_arag_btf(i,j,1) +       &
@@ -2305,9 +1883,11 @@ contains
 
                ! other b terms are also calculated from CBED information. These are done by replacing cobalt%burial_frac with cbed_burial_frac where they are defined.
 
+
             endif
          enddo; enddo
 
+      ! CBED is considered in cobalt% b_alk, b_dic, b_nh4, b_no3, b_o2, and b_po4.
 
       call g_tracer_set_values(cobalt_tracer_list,'alk',  'btf', cobalt%b_alk ,isd,jsd)
       call g_tracer_set_values(cobalt_tracer_list,'dic',  'btf', cobalt%b_dic ,isd,jsd)
