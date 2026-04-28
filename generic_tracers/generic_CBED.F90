@@ -1546,7 +1546,7 @@ contains
       ! some other diags , other local variables
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
-               cbed%cbed_k3(i,j) = n_sub(i,j)
+               cbed%cbed_k3(i,j) = real(n_sub(i,j))
             endif
          enddo;enddo
 
