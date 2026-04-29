@@ -1213,6 +1213,8 @@ contains
 
       ! The concentration fields are updated (to the t time step) once the vertdiff_CBED subroutine is called. (and for COBALT, when the vertdiff_G subroutine is called)
 
+      ! further modification related to b_o2, b_dic etc is done when it is passed to cobalt%b_* at the end of the code. 
+
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,1))/(dz_cbed(1)/2.0)) + &
@@ -1271,8 +1273,8 @@ contains
 
                cbed%denit(i,j) = sum(dz_cbed(:)*(svf(i,j,1:nk_cbed)*0.8*cbed%R_om_no3(i,j,:) + por(i,j,1:nk_cbed)*2.0*R_ana(i,j,:)))
 
-               cbed%cbed_k1(i,j) = k1(i,j)
-               cbed%cbed_k2(i,j) = k2(i,j)
+               !cbed%cbed_k1(i,j) = k1(i,j)
+               !cbed%cbed_k2(i,j) = k2(i,j)
                !cbed%cbed_k3(i,j) = k3(i,j)
                cbed%cbed_w(i,j) = w(i,j,1)
 
@@ -1381,7 +1383,7 @@ contains
          ! Note: This cap can be increased depending on how aggressive the coastal fluxes may get.
          do j = jsc, jec
             do i = isc, iec
-               n_sub(i,j) = min(n_sub(i,j), 60)
+               n_sub(i,j) = min(n_sub(i,j), 120)
                dt_sub(i,j) = dt / real(n_sub(i,j))
             enddo
          enddo
@@ -1546,6 +1548,8 @@ contains
       ! some other diags , other local variables
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
+               cbed%cbed_k1(i,j) = grid_kmt(i,j)
+               cbed%cbed_k2(i,j) = cobalt%zt(i,j,nk)
                cbed%cbed_k3(i,j) = real(n_sub(i,j))
             endif
          enddo;enddo
@@ -2106,7 +2110,7 @@ contains
 
 
 
-      ! set the cobalt%b_* terms. These are used in some other places in COBALT as well. So just "b_o2" might not work.
+      ! set the cobalt%b_* terms. These are used in some other places in COBALT as well. So just "b_*" might not work.
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
 
@@ -2124,7 +2128,10 @@ contains
                   cbed_org_alk(i,j)
 
                !cobalt%b_dic(i,j) = b_dic(i,j)
-               cobalt%b_o2(i,j)  = b_o2(i,j)
+               cobalt%b_o2(i,j)  = b_o2(i,j) + max(0.0, -cbed%odu_flux(i,j))  ! Add the ODU flux as added oxygen demand by the sediment because released ODU will be consummed in the bottom water. 
+                                                                              ! In absence of BW O2, it will create -ve O2 conc in BW. cbed%odu_flux(i,j) value is negative meaning efflux of ODU from sediment.
+                                                                              ! Multiply with - sign will convert it to +ve meaning it will effectively "increase" b_o2 i.e. benthic oxygen demand. 
+               
                cobalt%b_nh4(i,j) = b_nh4(i,j)
                cobalt%b_no3(i,j) = b_no3(i,j)
 
