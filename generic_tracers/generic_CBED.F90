@@ -2128,7 +2128,7 @@ contains
                   cbed_org_alk(i,j)
 
                !cobalt%b_dic(i,j) = b_dic(i,j)
-               cobalt%b_o2(i,j)  = b_o2(i,j)  ! + max(0.0, -cbed%odu_flux(i,j))  ! Add the ODU flux as added oxygen demand by the sediment because released ODU will be consummed in the bottom water. 
+               cobalt%b_o2(i,j)  = b_o2(i,j) + max(0.0, - (cbed%odu_flux(i,j)))  ! Add the ODU flux as added oxygen demand by the sediment because released ODU will be consummed in the bottom water. 
                                                                               ! In absence of BW O2, it will create -ve O2 conc in BW. cbed%odu_flux(i,j) value is negative meaning efflux of ODU from sediment.
                                                                               ! Multiply with - sign will convert it to +ve meaning it will effectively "increase" b_o2 i.e. benthic oxygen demand. 
                
