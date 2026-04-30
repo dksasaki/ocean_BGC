@@ -987,7 +987,7 @@ contains
       real, dimension(isc:iec,jsc:jec,nk_cbed) :: c_om1, c_om2, c_om3, c_o2, c_no3, c_nh4, c_dic, c_odu, c_talk
 
       ! b terms
-      real, dimension(isc:iec,jsc:jec) :: b_o2, b_dic, b_nh4, b_no3
+      real, dimension(isc:iec,jsc:jec) :: b_o2, b_dic, b_nh4, b_no3, b_odu
 
       ! variables for sub-stepping reactions | adaptive time stepping for reactions
       integer :: n_req_o2, n_req_no3, n_req_nh4, n_req_odu
@@ -1213,7 +1213,7 @@ contains
 
       ! The concentration fields are updated (to the t time step) once the vertdiff_CBED subroutine is called. (and for COBALT, when the vertdiff_G subroutine is called)
 
-      ! further modification related to b_o2, b_dic etc is done when it is passed to cobalt%b_* at the end of the code. 
+      ! further modification related to b_o2, b_dic etc is done when it is passed to cobalt%b_* at the end of the code.
 
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
@@ -1233,6 +1233,9 @@ contains
                   por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0) + &
                   sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,:)) )
 
+               b_odu(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - c_odu(i,j,1))/(dz_cbed(1)/2.0)) + &
+                  sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - c_odu(i,j,:)) )
+
             endif
          enddo;enddo
 
@@ -1249,8 +1252,7 @@ contains
                   por(i,j,1)*w(i,j,1)*(cobalt%btm_alk(i,j)*cobalt%Rho_0) + &
                   sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_alk(i,j)*cobalt%Rho_0 - c_talk(i,j,:)) )
 
-               cbed%odu_flux(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - c_odu(i,j,1))/(dz_cbed(1)/2.0)) + &
-                  sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - c_odu(i,j,:)) )
+               cbed%odu_flux(i,j) = b_odu(i,j)
 
             endif
          enddo;enddo
@@ -2128,10 +2130,10 @@ contains
                   cbed_org_alk(i,j)
 
                !cobalt%b_dic(i,j) = b_dic(i,j)
-               cobalt%b_o2(i,j)  = b_o2(i,j) + 2.0*b_o2(i,j)   ! + max(0.0, - (cbed%odu_flux(i,j)))  ! Add the ODU flux as added oxygen demand by the sediment because released ODU will be consummed in the bottom water. 
-                                                                              ! In absence of BW O2, it will create -ve O2 conc in BW. cbed%odu_flux(i,j) value is negative meaning efflux of ODU from sediment.
-                                                                              ! Multiply with - sign will convert it to +ve meaning it will effectively "increase" b_o2 i.e. benthic oxygen demand. 
-               
+               cobalt%b_o2(i,j)  = b_o2(i,j) - b_odu(i,j)   ! + max(0.0, - (cbed%odu_flux(i,j)))  ! Add the ODU flux as added oxygen demand by the sediment because released ODU will be consummed in the bottom water.
+               ! In absence of BW O2, it will create -ve O2 conc in BW. cbed%odu_flux(i,j) value is negative meaning efflux of ODU from sediment.
+               ! Multiply with - sign will convert it to +ve meaning it will effectively "increase" b_o2 i.e. benthic oxygen demand.
+
                cobalt%b_nh4(i,j) = b_nh4(i,j)
                cobalt%b_no3(i,j) = b_no3(i,j)
 
