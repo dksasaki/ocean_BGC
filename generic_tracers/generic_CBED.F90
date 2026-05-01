@@ -1236,6 +1236,9 @@ contains
 
                b_odu(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - c_odu(i,j,1))/(dz_cbed(1)/2.0)) + &
                   sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - c_odu(i,j,:)) )
+
+               b_odu(i,j) = max(b_odu(i,j), -1.0e-6 )
+               
                ! check if there is any NaN or inf in b_odu
                if (ieee_is_nan(b_odu(i,j)) .or. .not. ieee_is_finite(b_odu(i,j))) then
                   b_odu(i,j) = 0.0
