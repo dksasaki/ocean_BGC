@@ -13,7 +13,7 @@ module generic_CBED
    use fms2_io_mod, only: FmsNetcdfDomainFile_t, open_file, close_file, read_restart, write_restart
    use fms2_io_mod, only: register_restart_field, register_axis, register_field
    use fms_mod, only: error_mesg, NOTE, WARNING, FATAL
-   use, intrinsic :: ieee_arithmetic ! for checking presence of NaN or inf
+   !use, intrinsic :: ieee_arithmetic ! for checking presence of NaN or inf
 
    implicit none; private
 
@@ -1234,15 +1234,16 @@ contains
                   por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0) + &
                   sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,:)) )
 
-               b_odu(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - c_odu(i,j,1))/(dz_cbed(1)/2.0)) + &
-                  sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - c_odu(i,j,:)) )
+               !b_odu(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - c_odu(i,j,1))/(dz_cbed(1)/2.0)) + &
+               !   sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - c_odu(i,j,:)) )
 
-               b_odu(i,j) = max(b_odu(i,j), -1.0e-6 )
-               
-               ! check if there is any NaN or inf in b_odu
-               if (ieee_is_nan(b_odu(i,j)) .or. .not. ieee_is_finite(b_odu(i,j))) then
-                  b_odu(i,j) = 0.0
-               endif
+               b_odu(i,j) =  -1.0e-5 
+               !b_odu(i,j) = max(b_odu(i,j), -1.0e-6 )
+
+               ! ! check if there is any NaN or inf in b_odu. not required. can be deleted.
+               ! if (ieee_is_nan(b_odu(i,j)) .or. .not. ieee_is_finite(b_odu(i,j))) then
+               !    b_odu(i,j) = 0.0
+               ! endif
 
 
             endif
