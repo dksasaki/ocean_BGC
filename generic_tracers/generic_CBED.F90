@@ -1111,6 +1111,15 @@ contains
                   D_nh4(i,j,k) = ( (0.030926+0.001225*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
                   D_no3(i,j,k) = ( (0.030863+0.001153*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
                   D_odu(i,j,k) = ( (0.028938+0.001314*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
+
+                  b_odu(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - max(0.0,cbed%f_odu(i,j,1)))/(dz_cbed(1)/2.0)) + &
+                  sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - max(0.0,c_odu(i,j,:))) )
+
+                  if ( b_odu(i,j) .lt. -1.0e6 ) then
+                     D_odu(i,j,k) = 0.01 * D_odu(i,j,k)
+                  end if
+
+
                enddo
             endif
          enddo;enddo
