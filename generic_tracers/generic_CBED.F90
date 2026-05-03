@@ -822,10 +822,10 @@ contains
       ! calculate fractions of total organic matter flux assigned to each reactivity class as a func of bathymetric depth (m)
       if (is_solid) then
          do j = jsc, jec; do i = isc, iec
-               if (grid_kmt(i,j) > 0) then
+               if (grid_kmt(i,j) .gt. 0) then
                   if (cbed%use_depth_dependent_OM_frac) then
                      frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.4)
-                     frac_OM2(i,j) = max(0.10, 0.22*(100.0/cobalt%zt(i,k,nk))**(-0.3))
+                     frac_OM2(i,j) = max(0.10, 0.22*(cobalt%zt(i,k,nk)/100.0)**0.3)
                      frac_OM3(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM2(i,j))
                   else
                      frac_OM1(i,j) = 0.70
@@ -838,7 +838,7 @@ contains
 
       do j = jsc, jec
          do i = isc, iec
-            if (grid_kmt(i,j) > 0) then
+            if (grid_kmt(i,j) .gt. 0) then
 
                ! --- A. Get bottom water concentration ---
                btm_tracer_conc = 0.0
@@ -985,7 +985,7 @@ contains
 
 
       real, parameter :: k_adj_denit = 0.1
-      real, parameter :: k_adj_anoxia = 0.005
+      real, parameter :: k_adj_anoxia = 0.001
 
       real, parameter :: ks_o2 = 0.008   ! O2 half saturation constant (mol/m3)
       real, parameter :: ks_no3 = 0.001  ! NO3 half saturation constant (mol/m3)
@@ -1151,8 +1151,8 @@ contains
             if (grid_kmt(i,j) .gt. 0) then
                ! POC flux unit in umol cm-2 y-1. Unit of k is y-1
                k1(i,j) = ( 0.15*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
-               k2(i,j) = ( 0.0023*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
-               k3(i,j) = ( 0.00013*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
+               k2(i,j) = ( 0.0015*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
+               k3(i,j) = ( 0.00009*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
             endif
          enddo;enddo
 
@@ -1589,10 +1589,10 @@ contains
       ! calculate fractions of total organic matter flux assigned to each reactivity class as a func of bathymetric depth (m)
       ! writing here for testing. delete later. 
       do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) > 0) then
+            if (grid_kmt(i,j) .gt. 0) then
                if (cbed%use_depth_dependent_OM_frac) then
                   frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.4)
-                  frac_OM2(i,j) = max(0.10, 0.22*(100.0/cobalt%zt(i,k,nk))**(-0.3))
+                  frac_OM2(i,j) = max(0.10, 0.22*(cobalt%zt(i,k,nk)/100.0)**0.3)
                   frac_OM3(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM2(i,j))
                else
                   frac_OM1(i,j) = 0.70
