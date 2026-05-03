@@ -825,7 +825,7 @@ contains
                if (grid_kmt(i,j) .gt. 0) then
                   if (cbed%use_depth_dependent_OM_frac) then
                      frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.4)
-                     frac_OM2(i,j) = max(0.10, 0.22*(cobalt%zt(i,k,nk)/100.0)**0.3)
+                     frac_OM2(i,j) = max(0.10, 0.22*(100.0/cobalt%zt(i,j,nk))**(-0.3))
                      frac_OM3(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM2(i,j))
                   else
                      frac_OM1(i,j) = 0.70
@@ -1592,7 +1592,7 @@ contains
             if (grid_kmt(i,j) .gt. 0) then
                if (cbed%use_depth_dependent_OM_frac) then
                   frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.4)
-                  frac_OM2(i,j) = max(0.10, 0.22*(cobalt%zt(i,k,nk)/100.0)**0.3)
+                  frac_OM2(i,j) = max(0.10, 0.22*(100.0/cobalt%zt(i,j,nk))**(-0.3))
                   frac_OM3(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM2(i,j))
                else
                   frac_OM1(i,j) = 0.70
