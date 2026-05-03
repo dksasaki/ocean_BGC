@@ -2189,7 +2189,7 @@ contains
                ! In absence of BW O2, it will create -ve O2 conc in BW. cbed%odu_flux(i,j) value is negative meaning efflux of ODU from sediment.
                ! Multiply with - sign will convert it to +ve meaning it will effectively "increase" b_o2 i.e. benthic oxygen demand.
 
-               cobalt%b_o2(i,j)  = b_o2(i,j) ! - b_odu(i,j)  ! + max(0.0, - (cbed%odu_flux(i,j)))  !
+               cobalt%b_o2(i,j)  = b_o2(i,j) - b_odu(i,j)  ! + max(0.0, - (cbed%odu_flux(i,j)))  !
 
 
                cobalt%b_nh4(i,j) = b_nh4(i,j)
