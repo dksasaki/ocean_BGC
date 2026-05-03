@@ -29,6 +29,7 @@ module generic_CBED
    type generic_CBED_type
       ! TODO: change read_porosity_from_file into a namelist variable
       logical :: read_porosity_from_file = .true.   ! flag to read porosity from file
+      logical :: use_depth_dependent_OM_frac = .true.   ! flag to calculate fractions of total organic matter flux assigned to each reactivity class as a func of bathymetric depth (m)
       logical :: do_adaptive_time_stepping = .true.   ! flag to use adaptive time stepping | sub cycle dt over n steps to
       ! ensure that the change in tracer concentration in each step does not exceed a certain threshold.
       ! This is to prevent negative when reaction rates are high and the time step is too large.
@@ -791,9 +792,10 @@ contains
       real :: btm_tracer_conc
 
       ! Local parameters. Fractions of total organic matter flux assigned to each reactivity class.
-      real, parameter :: frac_OM1 = 0.70
-      real, parameter :: frac_OM2 = 0.20
-      real, parameter :: frac_OM3 = 0.10
+      real, dimension(isc:iec,jsc:jec) :: frac_OM1, frac_OM2, frac_OM3
+      !real, parameter :: frac_OM1 = 0.70
+      !real, parameter :: frac_OM2 = 0.20
+      !real, parameter :: frac_OM3 = 0.10
 
       ! -----------------------------------------------------------------------
       ! 1. Determine if the tracer is a solid or a solute
@@ -817,6 +819,23 @@ contains
       ! -----------------------------------------------------------------------
       ! 3. Main spatial loops
       ! -----------------------------------------------------------------------
+      ! calculate fractions of total organic matter flux assigned to each reactivity class as a func of bathymetric depth (m)
+      if (is_solid) then
+         do j = jsc, jec; do i = isc, iec
+               if (grid_kmt(i,j) > 0) then
+                  if (cbed%use_depth_dependent_OM_frac) then
+                     frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.4)
+                     frac_OM2(i,j) = max(0.10, 0.22*(100.0/cobalt%zt(i,k,nk))**(-0.3))
+                     frac_OM3(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM2(i,j))
+                  else
+                     frac_OM1(i,j) = 0.70
+                     frac_OM2(i,j) = 0.20
+                     frac_OM3(i,j) = 0.10
+                  endif
+               endif
+            enddo; enddo
+      endif
+
       do j = jsc, jec
          do i = isc, iec
             if (grid_kmt(i,j) > 0) then
@@ -877,11 +896,11 @@ contains
 
                         ! Add organic matter fluxes normalized by capacity
                         if (trim(field_name) == "f_om1") then
-                           f_old(1) = f_old(1) + (frac_OM1 * cobalt%fntot_btm(i,j) * cobalt%c_2_n * dt) / capacity(1)
+                           f_old(1) = f_old(1) + (frac_OM1(i,j) * cobalt%fntot_btm(i,j) * cobalt%c_2_n * dt) / capacity(1)
                         else if (trim(field_name) == "f_om2") then
-                           f_old(1) = f_old(1) + (frac_OM2 * cobalt%fntot_btm(i,j) * cobalt%c_2_n * dt) / capacity(1)
+                           f_old(1) = f_old(1) + (frac_OM2(i,j) * cobalt%fntot_btm(i,j) * cobalt%c_2_n * dt) / capacity(1)
                         else if (trim(field_name) == "f_om3") then
-                           f_old(1) = f_old(1) + (frac_OM3 * cobalt%fntot_btm(i,j) * cobalt%c_2_n * dt) / capacity(1)
+                           f_old(1) = f_old(1) + (frac_OM3(i,j) * cobalt%fntot_btm(i,j) * cobalt%c_2_n * dt) / capacity(1)
                         endif
                      endif
 
@@ -955,9 +974,11 @@ contains
       real,    dimension(isc:iec,jsc:jec) :: rho_dzt_bot
 
       ! local parameters for bgc reactions
-      real, parameter :: frac_OM1 = 0.70
-      real, parameter :: frac_OM2 = 0.20
-      real, parameter :: frac_OM3 = 0.10
+      ! Local parameters. Fractions of total organic matter flux assigned to each reactivity class. (only needed in vertdiff CBED, writing here for testing)
+      real, dimension(isc:iec,jsc:jec) :: frac_OM1, frac_OM2, frac_OM3
+      !real, parameter :: frac_OM1 = 0.70
+      !real, parameter :: frac_OM2 = 0.20
+      !real, parameter :: frac_OM3 = 0.10
 
       real, dimension(isc:iec,jsc:jec) :: cbed_burial_frac  ! = (OM burial / OM rain)  ! replaces cobalt%burial_frac
       real, dimension(isc:iec,jsc:jec) :: cbed_org_alk  ! organic alkalinity production from OM degradation
@@ -1112,12 +1133,12 @@ contains
                   D_no3(i,j,k) = ( (0.030863+0.001153*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
                   D_odu(i,j,k) = ( (0.028938+0.001314*cobalt%btm_temp(i,j))/(1-2*log(por(i,j,k))) )/spery + Db(i,j,k)
 
-                  b_odu(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - max(0.0,cbed%f_odu(i,j,1)))/(dz_cbed(1)/2.0)) + &
-                  sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - max(0.0,c_odu(i,j,:))) )
+                  ! b_odu(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - max(0.0,cbed%f_odu(i,j,1)))/(dz_cbed(1)/2.0)) + &
+                  ! sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - max(0.0,c_odu(i,j,:))) )
 
-                  if ( b_odu(i,j) .lt. -1.0e6 ) then
-                     D_odu(i,j,k) = 0.01 * D_odu(i,j,k)
-                  end if
+                  ! if ( b_odu(i,j) .lt. -1.0e6 ) then
+                  !    D_odu(i,j,k) = 0.01 * D_odu(i,j,k)
+                  ! end if
 
 
                enddo
@@ -1246,7 +1267,7 @@ contains
                b_odu(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - c_odu(i,j,1))/(dz_cbed(1)/2.0)) + &
                   sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - c_odu(i,j,:)) )
 
-               !b_odu(i,j) =  -1.0e-5 
+               !b_odu(i,j) =  -1.0e-5
                !b_odu(i,j) = max(b_odu(i,j), -1.0e-6 )
 
                ! ! check if there is any NaN or inf in b_odu. not required. can be deleted.
@@ -1565,12 +1586,27 @@ contains
 
       endif
 
+      ! calculate fractions of total organic matter flux assigned to each reactivity class as a func of bathymetric depth (m)
+      ! writing here for testing. delete later. 
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) > 0) then
+               if (cbed%use_depth_dependent_OM_frac) then
+                  frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.4)
+                  frac_OM2(i,j) = max(0.10, 0.22*(100.0/cobalt%zt(i,k,nk))**(-0.3))
+                  frac_OM3(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM2(i,j))
+               else
+                  frac_OM1(i,j) = 0.70
+                  frac_OM2(i,j) = 0.20
+                  frac_OM3(i,j) = 0.10
+               endif
+            endif
+         enddo; enddo
 
       ! some other diags , other local variables
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
-               cbed%cbed_k1(i,j) = grid_kmt(i,j)
-               cbed%cbed_k2(i,j) = cobalt%zt(i,j,nk)
+               cbed%cbed_k1(i,j) = frac_OM1(i,j)
+               cbed%cbed_k2(i,j) = frac_OM2(i,j)
                cbed%cbed_k3(i,j) = real(n_sub(i,j))
             endif
          enddo;enddo
@@ -2153,7 +2189,7 @@ contains
                ! In absence of BW O2, it will create -ve O2 conc in BW. cbed%odu_flux(i,j) value is negative meaning efflux of ODU from sediment.
                ! Multiply with - sign will convert it to +ve meaning it will effectively "increase" b_o2 i.e. benthic oxygen demand.
 
-               cobalt%b_o2(i,j)  = b_o2(i,j) - b_odu(i,j)  ! + max(0.0, - (cbed%odu_flux(i,j)))  !
+               cobalt%b_o2(i,j)  = b_o2(i,j) ! - b_odu(i,j)  ! + max(0.0, - (cbed%odu_flux(i,j)))  !
 
 
                cobalt%b_nh4(i,j) = b_nh4(i,j)
