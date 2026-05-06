@@ -1067,7 +1067,7 @@ contains
       real, dimension(isc:iec,jsc:jec,nk_cbed) :: c_om1, c_om2, c_om3, c_o2, c_no3, c_nh4, c_dic, c_odu, c_talk
 
       ! b terms
-      real, dimension(isc:iec,jsc:jec) :: b_o2, b_dic, b_nh4, b_no3, b_odu
+      real, dimension(isc:iec,jsc:jec) :: b_o2, b_dic, b_nh4, b_no3, b_odu, b_alk_org
       real, dimension(isc:iec,jsc:jec) :: b_o2_sub, b_dic_sub, b_nh4_sub, b_no3_sub, b_odu_sub, b_alk_org_sub
 
       ! variables for sub-stepping reactions | adaptive time stepping for reactions
