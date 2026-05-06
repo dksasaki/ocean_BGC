@@ -74,6 +74,15 @@ module generic_CBED
       !real, dimension(:,:), allocatable :: cbed_anammox
       !real, dimension(:,:), allocatable :: cbed_o2resp
       !real, dimension(:,:), allocatable :: cbed_no3resp
+
+      ! accumulated b_terms for passing to next timestep | used due to adaptive timestepping
+      real, dimension(:,:), allocatable :: cbed_b_o2_acc
+      real, dimension(:,:), allocatable :: cbed_b_dic_acc
+      real, dimension(:,:), allocatable :: cbed_b_nh4_acc
+      real, dimension(:,:), allocatable :: cbed_b_no3_acc
+      real, dimension(:,:), allocatable :: cbed_b_alk_org_acc
+      real, dimension(:,:), allocatable :: cbed_b_odu_acc
+
       ! 3D diags, CBED grid
       real, dimension(:,:,:), allocatable :: dz_cbed             ! cbed grid thickness
       real, dimension(:,:,:), allocatable :: z_cbed_mid          ! cbed layer mid points
@@ -124,6 +133,14 @@ module generic_CBED
       integer :: id_cbed_k2
       integer :: id_cbed_k3
       integer :: id_cbed_w
+
+      integer :: id_cbed_b_o2_acc
+      integer :: id_cbed_b_dic_acc
+      integer :: id_cbed_b_nh4_acc
+      integer :: id_cbed_b_no3_acc
+      integer :: id_cbed_b_alk_org_acc
+      integer :: id_cbed_b_odu_acc
+
       !integer :: id_cbed_anammox
       !integer :: id_cbed_o2resp
       !integer :: id_cbed_no3resp
@@ -286,6 +303,14 @@ contains
       allocate(cbed%cbed_k2(isd:ied,jsd:jed));cbed%cbed_k2=0.0
       allocate(cbed%cbed_k3(isd:ied,jsd:jed));cbed%cbed_k3=0.0
       allocate(cbed%cbed_w(isd:ied,jsd:jed));cbed%cbed_w=0.0
+
+      allocate(cbed%cbed_b_o2_acc(isd:ied,jsd:jed));cbed%cbed_b_o2_acc=0.0
+      allocate(cbed%cbed_b_dic_acc(isd:ied,jsd:jed));cbed%cbed_b_dic_acc=0.0
+      allocate(cbed%cbed_b_nh4_acc(isd:ied,jsd:jed));cbed%cbed_b_nh4_acc=0.0
+      allocate(cbed%cbed_b_no3_acc(isd:ied,jsd:jed));cbed%cbed_b_no3_acc=0.0
+      allocate(cbed%cbed_b_alk_org_acc(isd:ied,jsd:jed));cbed%cbed_b_alk_org_acc=0.0
+      allocate(cbed%cbed_b_odu_acc(isd:ied,jsd:jed));cbed%cbed_b_odu_acc=0.0
+
       !allocate(cbed%cbed_anammox(isd:ied,jsd:jed));cbed%cbed_anammox=0.0
       !allocate(cbed%cbed_o2resp(isd:ied,jsd:jed));cbed%cbed_o2resp=0.0
       !allocate(cbed%cbed_no3resp(isd:ied,jsd:jed));cbed%cbed_no3resp=0.0
@@ -497,6 +522,19 @@ contains
       cbed%id_cbed_w = register_diag_field(package_name, 'cbed_w', (/axes(1),axes(2)/), init_time,&
          'sedimentation rate', 'm/s', missing_value = missing_value1)
 
+      cbed%id_cbed_b_o2_acc = register_diag_field(package_name, 'cbed_b_o2_acc', (/axes(1),axes(2)/), init_time,&
+         'b_o2 to pass to next timestep', 'mol m-2 s-1', missing_value = missing_value1)
+      cbed%id_cbed_b_dic_acc = register_diag_field(package_name, 'cbed_b_dic_acc', (/axes(1),axes(2)/), init_time,&
+         'b_dic to pass to next timestep', 'mol m-2 s-1', missing_value = missing_value1)
+      cbed%id_cbed_b_nh4_acc = register_diag_field(package_name, 'cbed_b_nh4_acc', (/axes(1),axes(2)/), init_time,&
+         'b_nh4 to pass to next timestep', 'mol m-2 s-1', missing_value = missing_value1)
+      cbed%id_cbed_b_no3_acc = register_diag_field(package_name, 'cbed_b_no3_acc', (/axes(1),axes(2)/), init_time,&
+         'b_no3 to pass to next timestep', 'mol m-2 s-1', missing_value = missing_value1)
+      cbed%id_cbed_b_alk_org_acc = register_diag_field(package_name, 'cbed_b_alk_org_acc', (/axes(1),axes(2)/), init_time,&
+         'b_alk_org to pass to next timestep', 'mol m-2 s-1', missing_value = missing_value1)
+      cbed%id_cbed_b_odu_acc = register_diag_field(package_name, 'cbed_b_odu_acc', (/axes(1),axes(2)/), init_time,&
+         'b_odu to pass to next timestep', 'mol m-2 s-1', missing_value = missing_value1)
+
       !cbed%id_cbed_anammox = register_diag_field(package_name, 'cbed_anammox', (/axes(1),axes(2)/), init_time,&
       !   'cbed anammox', 'mol/m2/s', missing_value = missing_value1)
       !cbed%id_cbed_o2resp = register_diag_field(package_name, 'cbed_o2resp', (/axes(1),axes(2)/), init_time,&
@@ -613,6 +651,20 @@ contains
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
       used = send_data(cbed%id_cbed_w, cbed%cbed_w, model_time, rmask = cbed_tmask(:,:,1),&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+
+      used = send_data(cbed%id_cbed_b_o2_acc, cbed%cbed_b_o2_acc, model_time, rmask = cbed_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_cbed_b_dic_acc, cbed%cbed_b_dic_acc, model_time, rmask = cbed_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_cbed_b_nh4_acc, cbed%cbed_b_nh4_acc, model_time, rmask = cbed_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_cbed_b_no3_acc, cbed%cbed_b_no3_acc, model_time, rmask = cbed_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_cbed_b_alk_org_acc, cbed%cbed_b_alk_org_acc, model_time, rmask = cbed_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+      used = send_data(cbed%id_cbed_b_odu_acc, cbed%cbed_b_odu_acc, model_time, rmask = cbed_tmask(:,:,1),&
+         is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+
       ! 1D diags
       used = send_data(cbed%id_dz_cbed, cbed%dz_cbed, model_time, rmask = cbed_tmask,&
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
@@ -713,6 +765,12 @@ contains
       deallocate(cbed%cbed_k2)
       deallocate(cbed%cbed_k3)
       deallocate(cbed%cbed_w)
+      deallocate(cbed%cbed_b_o2_acc)
+      deallocate(cbed%cbed_b_dic_acc)
+      deallocate(cbed%cbed_b_nh4_acc)
+      deallocate(cbed%cbed_b_no3_acc)
+      deallocate(cbed%cbed_b_alk_org_acc)
+      deallocate(cbed%cbed_b_odu_acc)
       ! 3D diags, CBED grid
       deallocate(cbed%dz_cbed)
       deallocate(cbed%z_cbed_mid)
@@ -1010,6 +1068,7 @@ contains
 
       ! b terms
       real, dimension(isc:iec,jsc:jec) :: b_o2, b_dic, b_nh4, b_no3, b_odu
+      real, dimension(isc:iec,jsc:jec) :: b_o2_sub, b_dic_sub, b_nh4_sub, b_no3_sub, b_odu_sub, b_alk_org_sub
 
       ! variables for sub-stepping reactions | adaptive time stepping for reactions
       integer :: n_req_o2, n_req_no3, n_req_nh4, n_req_odu
@@ -1157,6 +1216,21 @@ contains
          enddo;enddo
 
 
+      ! pass the b_terms calculated at t-1 timestep as b_terms
+      do j = jsc, jec; do i = isc, iec
+            if (grid_kmt(i,j) .gt. 0) then
+               b_o2(i,j) = cbed%cbed_b_o2_acc(i,j)
+               b_dic(i,j) = cbed%cbed_b_dic_acc(i,j)
+               b_nh4(i,j) = cbed%cbed_b_nh4_acc(i,j)
+               b_no3(i,j) = cbed%cbed_b_no3_acc(i,j)
+               b_odu(i,j) = cbed%cbed_b_odu_acc(i,j)
+               b_alk_org(i,j) = cbed%cbed_b_alk_org_acc(i,j)
+
+            endif
+         enddo;enddo
+
+
+
       ! Set concentrations to be positive to avoid negative reaction rates.
       ! This can happen when the tracer is very low and the change is large in one time step,
       ! causing it to go negative in the next time step. Setting to zero prevents runaway reactions from negative concentrations.
@@ -1246,38 +1320,38 @@ contains
 
       ! further modification related to b_o2, b_dic etc is done when it is passed to cobalt%b_* at the end of the code.
 
-      do j = jsc, jec; do i = isc, iec
-            if (grid_kmt(i,j) .gt. 0) then
-               b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,1))/(dz_cbed(1)/2.0)) + &
-                  por(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0) + &
-                  sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,:)) )
+      ! do j = jsc, jec; do i = isc, iec
+      !       if (grid_kmt(i,j) .gt. 0) then
+      !          b_o2(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,1))/(dz_cbed(1)/2.0)) + &
+      !             por(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0) + &
+      !             sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,:)) )
 
-               b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,1))/(dz_cbed(1)/2.0)) + &
-                  por(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) + &
-                  sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,:)) )
+      !          b_nh4(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,1))/(dz_cbed(1)/2.0)) + &
+      !             por(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) + &
+      !             sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,:)) )
 
-               b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,1))/(dz_cbed(1)/2.0)) + &
-                  por(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0) + &
-                  sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,:)) )
+      !          b_no3(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,1))/(dz_cbed(1)/2.0)) + &
+      !             por(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0) + &
+      !             sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,:)) )
 
-               b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,1))/(dz_cbed(1)/2.0)) + &
-                  por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0) + &
-                  sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,:)) )
+      !          b_dic(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,1))/(dz_cbed(1)/2.0)) + &
+      !             por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0) + &
+      !             sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,:)) )
 
-               b_odu(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - c_odu(i,j,1))/(dz_cbed(1)/2.0)) + &
-                  sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - c_odu(i,j,:)) )
+      !          b_odu(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - c_odu(i,j,1))/(dz_cbed(1)/2.0)) + &
+      !             sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - c_odu(i,j,:)) )
 
-               !b_odu(i,j) =  -1.0e-5
-               !b_odu(i,j) = max(b_odu(i,j), -1.0e-6 )
+      !          !b_odu(i,j) =  -1.0e-5
+      !          !b_odu(i,j) = max(b_odu(i,j), -1.0e-6 )
 
-               ! ! check if there is any NaN or inf in b_odu. not required. can be deleted.
-               ! if (ieee_is_nan(b_odu(i,j)) .or. .not. ieee_is_finite(b_odu(i,j))) then
-               !    b_odu(i,j) = 0.0
-               ! endif
+      !          ! ! check if there is any NaN or inf in b_odu. not required. can be deleted.
+      !          ! if (ieee_is_nan(b_odu(i,j)) .or. .not. ieee_is_finite(b_odu(i,j))) then
+      !          !    b_odu(i,j) = 0.0
+      !          ! endif
 
 
-            endif
-         enddo;enddo
+      !       endif
+      !    enddo;enddo
 
       ! save the benthic fluxes as diagnostics. 2D diag
       do j = jsc, jec; do i = isc, iec
@@ -1430,6 +1504,14 @@ contains
             enddo
          enddo
 
+         ! Initialize macro-step accumulators for benthic fluxes to the ocean
+         cbed%cbed_b_o2_acc = 0.0
+         cbed%cbed_b_dic_acc = 0.0
+         cbed%cbed_b_nh4_acc = 0.0
+         cbed%cbed_b_no3_acc = 0.0
+         cbed%cbed_b_alk_org_acc = 0.0
+         cbed%cbed_b_odu_acc = 0.0
+
 
          ! --- BEGIN ADAPTIVE SUB-STEPPING LOOP ---
          !do sub_step = 1, n_sub
@@ -1483,6 +1565,47 @@ contains
                            2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k)
 
                      enddo !k
+
+                     ! b terms for averaging throughout adaptive time stepping
+
+                     b_o2_sub(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,1))/(dz_cbed(1)/2.0)) + &
+                        por(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0) + &
+                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,:)) )
+
+                     b_nh4_sub(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,1))/(dz_cbed(1)/2.0)) + &
+                        por(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) + &
+                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,:)) )
+
+                     b_no3_sub(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,1))/(dz_cbed(1)/2.0)) + &
+                        por(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0) + &
+                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,:)) )
+
+                     b_dic_sub(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,1))/(dz_cbed(1)/2.0)) + &
+                        por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0) + &
+                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,:)) )
+
+                     b_odu_sub(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - c_odu(i,j,1))/(dz_cbed(1)/2.0)) + &
+                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - c_odu(i,j,:)) )
+                     
+                     b_alk_org_sub(i,j) = sum(dz_cbed(:)*por(i,j,1:nk_cbed)*R_talk(i,j,:))  ! mol m-2 s-1 (net production of alklinity from organic matter degradation)
+
+                     !b_odu_sub(i,j) =  -1.0e-5
+                     !b_odu_sib(i,j) = max(b_odu_sub(i,j), -1.0e-6 )
+
+                     ! ! check if there is any NaN or inf in b_odu. not required. can be deleted.
+                     ! if (ieee_is_nan(b_odu_sub(i,j)) .or. .not. ieee_is_finite(b_odu_sub(i,j))) then
+                     !    b_odu_sub(i,j) = 0.0
+                     ! endif
+
+                     cbed%cbed_b_o2_acc(i,j)  = cbed%cbed_b_o2_acc(i,j)  + b_o2_sub(i,j)  * (1.0 / real(n_sub(i,j)))
+                     cbed%cbed_b_dic_acc(i,j)  = cbed%cbed_b_dic_acc(i,j)  + b_dic_sub(i,j)  * (1.0 / real(n_sub(i,j)))
+                     cbed%cbed_b_nh4_acc(i,j)  = cbed%cbed_b_nh4_acc(i,j)  + b_nh4_sub(i,j)  * (1.0 / real(n_sub(i,j)))
+                     cbed%cbed_b_no3_acc(i,j)  = cbed%cbed_b_no3_acc(i,j)  + b_no3_sub(i,j)  * (1.0 / real(n_sub(i,j)))
+                     cbed%cbed_b_alk_org_acc(i,j)  = cbed%cbed_b_alk_org_acc(i,j)  + b_alk_org_sub(i,j)  * (1.0 / real(n_sub(i,j)))
+                     cbed%cbed_b_odu_acc(i,j)  = cbed%cbed_b_odu_acc(i,j)  + b_odu_sub(i,j)  * (1.0 / real(n_sub(i,j)))
+
+
+                     !
 
 
                      ! 2. Source-sink calculations
@@ -1587,7 +1710,7 @@ contains
       endif
 
       ! calculate fractions of total organic matter flux assigned to each reactivity class as a func of bathymetric depth (m)
-      ! writing here for testing. delete later. 
+      ! writing here for testing. delete later.
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                if (cbed%use_depth_dependent_OM_frac) then
@@ -2183,13 +2306,13 @@ contains
                   b_dic(i,j)
 
                cobalt%b_alk(i,j) = - 2.0*(cobalt%fcased_redis(i,j)+cobalt%f_cadet_arag_btf(i,j,1)) -    &
-                  cbed_org_alk(i,j)
+                  b_alk_org(i,j) !cbed_org_alk(i,j)
 
                ! Add the ODU flux as added oxygen demand by the sediment because released ODU will be consummed in the bottom water.
                ! In absence of BW O2, it will create -ve O2 conc in BW. cbed%odu_flux(i,j) value is negative meaning efflux of ODU from sediment.
                ! Multiply with - sign will convert it to +ve meaning it will effectively "increase" b_o2 i.e. benthic oxygen demand.
 
-               cobalt%b_o2(i,j)  = b_o2(i,j) - b_odu(i,j)  ! + max(0.0, - (cbed%odu_flux(i,j)))  !
+               cobalt%b_o2(i,j)  = b_o2(i,j) ! - b_odu(i,j)  ! + max(0.0, - (cbed%odu_flux(i,j)))  !
 
 
                cobalt%b_nh4(i,j) = b_nh4(i,j)
