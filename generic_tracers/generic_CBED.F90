@@ -442,6 +442,12 @@ contains
          call register_restart_field(fileobj, "cbed_dic", cbed%f_dic, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_odu", cbed%f_odu, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_talk", cbed%f_talk, (/"x","y","lev"/))
+         call register_restart_field(fileobj, "cbed_b_o2_acc", cbed%cbed_b_o2_acc, (/"x","y"/))     ! b_o2_acc etc terms are needed in restart bcz they are passed to next time step. If not as restart, they will loose information when extending a run (recheck reasoning)
+         call register_restart_field(fileobj, "cbed_b_dic_acc", cbed%cbed_b_dic_acc, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_b_nh4_acc", cbed%cbed_b_nh4_acc, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_b_no3_acc", cbed%cbed_b_no3_acc, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_b_alk_org_acc", cbed%cbed_b_alk_org_acc, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_b_odu_acc", cbed%cbed_b_odu_acc, (/"x","y"/))
 
          call read_restart(fileobj)
       endif
@@ -722,6 +728,12 @@ contains
          call register_restart_field(fileobj, "cbed_dic", cbed%f_dic, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_odu", cbed%f_odu, (/"x","y","lev"/))
          call register_restart_field(fileobj, "cbed_talk", cbed%f_talk, (/"x","y","lev"/))
+         call register_restart_field(fileobj, "cbed_b_o2_acc", cbed%cbed_b_o2_acc, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_b_dic_acc", cbed%cbed_b_dic_acc, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_b_nh4_acc", cbed%cbed_b_nh4_acc, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_b_no3_acc", cbed%cbed_b_no3_acc, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_b_alk_org_acc", cbed%cbed_b_alk_org_acc, (/"x","y"/))
+         call register_restart_field(fileobj, "cbed_b_odu_acc", cbed%cbed_b_odu_acc, (/"x","y"/))
 
          call write_restart(fileobj)
          call close_file(fileobj)
