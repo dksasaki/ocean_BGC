@@ -896,6 +896,10 @@ module cobalt_types
           zsatarag,&
           zsatcalc,&
           daylength,&
+          f_n_det_addition,& !DKS
+          f_pdet_addition,&  !DKS
+          f_fedet_addition,&   !DKS
+
           f_alk_int_100, &
           f_dic_int_100, &
           f_din_int_100, &
