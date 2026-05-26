@@ -45,7 +45,7 @@ module generic_tracer
   use g_tracer_utils, only : g_tracer_get_common, g_tracer_set_common, g_tracer_is_prog
   use g_tracer_utils, only : g_tracer_coupler_set,g_tracer_coupler_get, g_tracer_register_diag
   use g_tracer_utils, only : g_tracer_vertdiff_G, g_tracer_get_next     
-  use g_tracer_utils, only : g_tracer_diag, g_tracer_print_info, g_tracer_vertfill
+  use g_tracer_utils, only : g_tracer_print_info, g_tracer_vertfill
   use g_tracer_utils, only : g_tracer_coupler_accumulate
 
   use generic_abiotic, only : generic_abiotic_register, generic_abiotic_register_diag
@@ -116,7 +116,6 @@ module generic_tracer
   public generic_tracer_init
   public generic_tracer_register_diag
   public generic_tracer_source
-  public generic_tracer_diag
   public generic_tracer_update_from_bottom
   public generic_tracer_coupler_get
   public generic_tracer_coupler_set
@@ -137,14 +136,18 @@ module generic_tracer
   type(g_diag_type), save, pointer :: diag_list => NULL()
 
   logical :: do_generic_tracer = .false.
+  ! do_vertfill_post applies some additional diffusion at the end of the
+  ! g_tracer_vertdiff_G routine to help reduce irregularities in the vanished layers.
+  ! If not specified in the generic_tracer_nml namelist, it defaults to off.
   logical :: do_vertfill_post = .false.
   logical :: generic_tracer_register_called = .false.
   logical :: force_update_fluxes = .false.
   character(len=10) :: as_param   = 'W14'     ! Use Wanninkhoff 2014 parameters for air-sea gas transfer by default
-
+  logical :: use_Press_et_al_tridiag_solver = .false.  ! Use the tridiagonal solver from Press et al. (Numerical Recipes) for vertical diffusion correction
+     
   namelist /generic_tracer_nml/ do_generic_tracer, do_generic_abiotic, do_generic_age, do_generic_argon, do_generic_CFC, &
       do_generic_SF6, do_generic_BLING, do_generic_COBALT, &
-      force_update_fluxes, do_generic_blres, as_param, do_vertfill_post
+      force_update_fluxes, do_generic_blres, as_param, do_vertfill_post, use_Press_et_al_tridiag_solver
 
 contains
 
@@ -412,53 +415,6 @@ contains
 
   end subroutine generic_tracer_coupler_accumulate
 
-
-  ! <SUBROUTINE NAME="generic_tracer_diag">
-  !  <OVERVIEW>
-  !   Do things which must be done after all transports and sources have been calculated
-  !  </OVERVIEW>
-  !  <DESCRIPTION>
-  !   Calls the corresponding generic_X_diag routine for each package X.
-  !  </DESCRIPTION>
-  !  <TEMPLATE>
-  !   call  generic_tracer_diag(tau,model_time)
-  !  </TEMPLATE>
-  !  <IN NAME="ilb,jlb" TYPE="integer">
-  !   Lower bounds of x and y extents of input arrays on data domain
-  !  </IN>
-  !  <IN NAME="tau" TYPE="integer">
-  !   Time step index of %field
-  !  </IN>
-  !  <IN NAME="model_time" TYPE="time_type">
-  !   Model time
-  !  </IN>
-  !  <IN NAME="dzt" TYPE="real, dimension(ilb:,jlb:,:)">
-  !   Ocean layer thickness (meters)
-  !  </IN>
-  ! </SUBROUTINE>
-
-  subroutine generic_tracer_diag(ilb, jlb, tau, taup1, dtts, model_time, dzt, rho_dzt_tau, rho_dzt_taup1)
-    integer,                        intent(in) :: ilb
-    integer,                        intent(in) :: jlb
-    integer,                        intent(in) :: tau
-    integer,                        intent(in) :: taup1
-    real,                           intent(in) :: dtts
-    type(time_type),                intent(in) :: model_time
-    real, dimension(ilb:,jlb:,:),   intent(in) :: dzt
-    real, dimension(ilb:,jlb:,:),   intent(in) :: rho_dzt_tau
-    real, dimension(ilb:,jlb:,:),   intent(in) :: rho_dzt_taup1
-
-    character(len=fm_string_len), parameter :: sub_name = 'generic_tracer_update_from_diag'
-
-!    if(do_generic_miniBLING)  call generic_miniBLING_diag(tracer_list, ilb, jlb, taup1, model_time, dzt, rho_dzt_taup1)
-
-    call g_tracer_diag(tracer_list, ilb, jlb, rho_dzt_tau, rho_dzt_taup1, model_time, tau, taup1, dtts)
-
-    return
-
-  end subroutine generic_tracer_diag
-
-
   ! <SUBROUTINE NAME="generic_tracer_source">
   !  <OVERVIEW>
   !   Update the tracers from sources/sinks
@@ -585,10 +541,12 @@ contains
   !  </IN>
   ! </SUBROUTINE>
 
-  subroutine generic_tracer_update_from_bottom(dt, tau, model_time)
+  subroutine generic_tracer_update_from_bottom(dt, tau, model_time, Temp, Salt, rho_dzt, dzt, ilb, jlb)
     real,    intent(in) :: dt
     integer, intent(in) ::tau
     type(time_type),                intent(in) :: model_time
+    real, dimension(ilb:,jlb:,:),   intent(in) :: Temp,Salt,rho_dzt,dzt
+    integer, intent(in) :: ilb, jlb
 
     character(len=fm_string_len), parameter :: sub_name = 'generic_tracer_update_from_bottom'
 
@@ -610,7 +568,8 @@ contains
 
 !    if(do_generic_miniBLING)  call generic_miniBLING_update_from_bottom(tracer_list,dt, tau)
 
-    if(do_generic_COBALT)  call generic_COBALT_update_from_bottom(tracer_list,dt, tau, model_time)
+    if(do_generic_COBALT)  call generic_COBALT_update_from_bottom(tracer_list,dt, tau, model_time, &
+                                 Temp, Salt, rho_dzt, dzt, ilb, jlb)
 
     return
 
@@ -638,7 +597,6 @@ contains
     real,                   intent(in) :: dt, kg_m2_to_H, m_to_H
     integer,                intent(in) :: tau
     type(g_tracer_type), pointer    :: g_tracer,g_tracer_next
-    real :: KD_SMOOTH = 1.0E-06
 
     !nnz: Should I loop here or inside the sub g_tracer_vertdiff ?    
     !JGJ 2013/05/31  merged COBALT into siena_201303
@@ -648,8 +606,8 @@ contains
        !Go through the list of tracers 
        do  
           if(g_tracer_is_prog(g_tracer)) then
-             call g_tracer_vertdiff_G(g_tracer,h_old, ea, eb, dt, kg_m2_to_H, m_to_H, tau)
-             if(do_vertfill_post) call g_tracer_vertfill(g_tracer, h_old, KD_SMOOTH*dt, tau=1)
+             call g_tracer_vertdiff_G(g_tracer, h_old, ea, eb, dt, &
+                 kg_m2_to_H, m_to_H, tau, use_Press_et_al_tridiag_solver, do_vertfill_post)
           endif
           !traverse the linked list till hit NULL
           call g_tracer_get_next(g_tracer, g_tracer_next)
