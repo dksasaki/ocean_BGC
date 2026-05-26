@@ -3175,6 +3175,12 @@ contains
     real, dimension(:,:,:), Allocatable :: pre_totc, net_srcc, post_totc
     real, dimension(:,:),   Allocatable :: pka_nh3,phos_nh3_exchange
 
+   ! -- DKS changes __
+
+    real, dimension(:,:,:), Allocatable :: e_juptake_no3
+    real, dimension(:,:,:), Allocatable :: e_juptake_po4
+    real, dimension(:,:,:), Allocatable :: e_juptake_fed
+    real, dimension(:,:,:), Allocatable :: mask_e_juptake
     real :: tr,ltr
     real :: imbal
     integer :: stdoutunit, imbal_flag, outunit
@@ -5534,6 +5540,24 @@ contains
     allocate(pre_totfe(isc:iec,jsc:jec,1:nk))
     allocate(net_srcfe(isc:iec,jsc:jec,1:nk))
     allocate(pre_totsi(isc:iec,jsc:jec,1:nk))
+
+   ! -- DKS --
+    allocate(e_juptake_no3(isc:iec,jsc:jec,1:nk)); e_juptake_no3 = 0.0
+    allocate(e_juptake_po4(isc:iec,jsc:jec,1:nk)); e_juptake_po4 = 0.0
+    allocate(e_juptake_fed(isc:iec,jsc:jec,1:nk)); e_juptake_fed = 0.0
+    allocate(mask_e_juptake(isc:iec,jsc:jec,1:nk)); mask_e_juptake = 0.0
+
+    
+    call data_override('OCN', 'e_juptake_no3', cobalt%e_juptake_no3(isc:iec, jsc:jec,1:nk), &
+                       model_time,override=e_no3_add_override)
+    call data_override('OCN', 'e_juptake_po4', cobalt%e_juptake_po4(isc:iec, jsc:jec,1:nk), &
+                       model_time,override=e_po4_add_override)
+    call data_override('OCN', 'e_juptake_fed', cobalt%e_juptake_fed(isc:iec, jsc:jec,1:nk), &
+                       model_time,override=e_fed_add_override)
+    call data_override('OCN', 'mask_e_juptake', mask_e_juptake(isc:iec, jsc:jec,1:nk), &
+                       model_time,override=e_mask_add_override)
+  ! -- DKS --
+
     do k = 1, nk ; do j = jsc, jec ; do i = isc, iec  !{
          pre_totn(i,j,k) = (cobalt%p_no3(i,j,k,tau) + cobalt%p_nh4(i,j,k,tau) + &
                     cobalt%p_ndi(i,j,k,tau) + cobalt%p_nlg(i,j,k,tau) + &
@@ -5576,6 +5600,25 @@ contains
          net_srcfe(i,j,k) = (cobalt%jfe_coast(i,j,k)+cobalt%jfe_iceberg(i,j,k))*dt*grid_tmask(i,j,k)
          pre_totsi(i,j,k) = (cobalt%p_sio4(i,j,k,tau) + cobalt%p_silg(i,j,k,tau) + &
                     cobalt%p_simd(i,j,k,tau) + cobalt%p_sidet(i,j,k,tau))*grid_tmask(i,j,k)
+
+         ! DKS --
+         ! Correction for flux uptake by external sources imposed by data_override
+         
+         if (mask_e_juptake(i,j,k) .gt. 0) then
+            e_juptake_no3(i,j,k) = min(cobalt%e_juptake_no3(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+                                 cobalt%p_no3(i,j,k,tau))
+            e_juptake_po4(i,j,k) = min(cobalt%e_juptake_po4(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+                                 cobalt%p_po4(i,j,k,tau))
+            e_juptake_fed(i,j,k) = min(cobalt%e_juptake_fed(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+                                 cobalt%p_fed(i,j,k,tau))
+         end if
+
+         pre_totn(i,j,k)  = pre_totn(i,j,k) - e_juptake_no3(i,j,k)
+         pre_totp(i,j,k)  = pre_totp(i,j,k) - e_juptake_po4(i,j,k)
+         pre_totfe(i,j,k) = pre_totfe(i,j,k)- e_juptake_fed(i,j,k)
+         pre_totc(i,j,k)  = pre_totc(i,j,k) - cobalt%c_2_n*e_juptake_no3(i,j,k)
+         ! --DKS
+
     enddo; enddo ; enddo  !} i,j,k
 
     call mpp_clock_end(id_clock_source_sink_loop1)
@@ -5764,7 +5807,8 @@ contains
                              cobalt%jno3denit_wc(i,j,k) - cobalt%juptake_no3amx(i,j,k)
        cobalt%jno3h(i,j,k) = cobalt%jno3(i,j,k) * dzt(i,j,k)
        cobalt%p_no3(i,j,k,tau) = cobalt%p_no3(i,j,k,tau) + &
-               (cobalt%jno3(i,j,k)+cobalt%jno3_iceberg(i,j,k))*dt*grid_tmask(i,j,k)
+               (cobalt%jno3(i,j,k)+cobalt%jno3_iceberg(i,j,k))*dt*grid_tmask(i,j,k) -&
+                e_juptake_no3(i,j,k) * grid_tmask(i,j,k) ! DKS
     enddo; enddo ; enddo  !} i,j,k
     !
     !     Other nutrients
@@ -5787,7 +5831,8 @@ contains
                             phyto(SMALL)%juptake_po4(i,j,k)
        cobalt%jpo4h(i,j,k) = cobalt%jpo4(i,j,k) * dzt(i,j,k)
        cobalt%p_po4(i,j,k,tau) = cobalt%p_po4(i,j,k,tau) + &
-              (cobalt%jpo4(i,j,k)+cobalt%jpo4_iceberg(i,j,k)) * dt * grid_tmask(i,j,k)
+              (cobalt%jpo4(i,j,k)+cobalt%jpo4_iceberg(i,j,k)) * dt * grid_tmask(i,j,k) -&
+               e_juptake_po4(i,j,k) * grid_tmask(i,j,k) ! DKS
        !
        ! SiO4
        !
@@ -5805,7 +5850,8 @@ contains
                             cobalt%jfe_iceberg(i,j,k) - phyto(DIAZO)%juptake_fe(i,j,k) - &
                             phyto(LARGE)%juptake_fe(i,j,k) - phyto(MEDIUM)%juptake_fe(i,j,k) - &
                             phyto(SMALL)%juptake_fe(i,j,k) - cobalt%jfe_ads(i,j,k)
-       cobalt%p_fed(i,j,k,tau) = cobalt%p_fed(i,j,k,tau) + cobalt%jfed(i,j,k) * dt * grid_tmask(i,j,k)
+       cobalt%p_fed(i,j,k,tau) = cobalt%p_fed(i,j,k,tau) + cobalt%jfed(i,j,k) * dt * grid_tmask(i,j,k) -&
+                                 e_juptake_fed(i,j,k) * grid_tmask(i,j,k)
     enddo; enddo; enddo  !} i,j,k
 
     call mpp_clock_end(id_clock_source_sink_loop5)
@@ -5927,7 +5973,8 @@ contains
             cobalt%o2_2_nfix*phyto(DIAZO)%juptake_n2(i,j,k)) * grid_tmask(i,j,k)
        cobalt%jo2(i,j,k) = cobalt%jo2(i,j,k) - cobalt%jo2resp_wc(i,j,k)
        cobalt%jo2h(i,j,k) = cobalt%jo2(i,j,k) * dzt(i,j,k)
-       cobalt%p_o2(i,j,k,tau) = cobalt%p_o2(i,j,k,tau) + cobalt%jo2(i,j,k) * dt * grid_tmask(i,j,k)
+       cobalt%p_o2(i,j,k,tau) = cobalt%p_o2(i,j,k,tau) + cobalt%jo2(i,j,k) * dt * grid_tmask(i,j,k) + &
+                                cobalt%o2_2_no3 * e_juptake_no3(i,j,k) ! DKS
     enddo; enddo ; enddo  !} i,j,k
     !
     !     The Carbon system
@@ -5954,7 +6001,8 @@ contains
           phyto(SMALL)%juptake_nh4(i,j,k) - 2.0 * cobalt%juptake_nh4nitrif(i,j,k)
 
        cobalt%jalkh(i,j,k) = cobalt%jalk(i,j,k) * dzt(i,j,k)
-       cobalt%p_alk(i,j,k,tau) = cobalt%p_alk(i,j,k,tau) + cobalt%jalk(i,j,k) * dt * grid_tmask(i,j,k)
+       cobalt%p_alk(i,j,k,tau) = cobalt%p_alk(i,j,k,tau) + cobalt%jalk(i,j,k) * dt * grid_tmask(i,j,k) + &
+                                 e_juptake_no3(i,j,k)* grid_tmask(i,j,k) ! DKS
        !
        ! Dissolved Inorganic Carbon
        !
@@ -5969,7 +6017,8 @@ contains
           cobalt%jprod_cadet_arag(i,j,k) - cobalt%jprod_cadet_calc(i,j,k) - &
           cobalt%jdic_caco3_nerbur(i,j,k))
        cobalt%jdich(i,j,k) = cobalt%jdic(i,j,k) * dzt(i,j,k)
-       cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) + cobalt%jdic(i,j,k) * dt * grid_tmask(i,j,k)
+       cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) + cobalt%jdic(i,j,k) * dt * grid_tmask(i,j,k) - &
+                                 cobalt%c_2_n * e_juptake_no3(i,j,k) ! DKS
     enddo; enddo ; enddo !} i,j,k
 !
 
