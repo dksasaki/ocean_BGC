@@ -428,7 +428,9 @@ module cobalt_types
           tracer_debug, &
           ! << Options for neritic CaCO3 burial and enhanced CaCO3 dissolution
           do_ner_ca_bur, &        ! Apply neritic CaCO3 burial from O'Mara & Dunne (2019)
-          do_resp_ca_diss         ! Apply enhanced CaCO3 dissolution
+          do_resp_ca_diss, &      ! Apply enhanced CaCO3 dissolution
+          do_external_sink        !< activate external sink DKS
+
           ! >>
      real  ::          &
           min_thickness       ! minimum thickness of a layer that will be checked for source/sink imbalances
