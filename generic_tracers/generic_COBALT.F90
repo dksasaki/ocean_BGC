@@ -182,7 +182,8 @@ module generic_COBALT
                                              !! in generic_COBALT_nml.
 
   namelist /generic_COBALT_nml/ co2_calc, do_14c, do_nh3_atm_ocean_exchange, scheme_nitrif, debug, &
-     do_vertfill_pre,imbalance_tolerance,as_param_cobalt
+     do_vertfill_pre,imbalance_tolerance,as_param_cobalt, &
+     do_external_source
 
   !
   ! Array allocations and flux calculations assume that phyto(1) is the
