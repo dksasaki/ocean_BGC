@@ -3152,6 +3152,11 @@ contains
     integer :: yearday
     real :: rev_angle, dec_angle, temp_arg
 
+    ! DKS
+    logical ::  phos_nh3_override,e_no3_add_override, &
+         e_po4_add_override, e_fed_add_override, &
+         e_mask_add_override
+
     !<for dms
     real :: log10chl,log10zeu,log10dmsp_mix,log10dmsp_strat, log10dmsp
     real :: log10dms_mix,log10dms_strat,log10dms
