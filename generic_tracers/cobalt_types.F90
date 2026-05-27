@@ -28,6 +28,7 @@ module cobalt_types
   !
   logical, public :: do_vertfill_pre = .false.
   logical, public :: debug           = .false.             !< not use
+  logical, public :: do_external_source = .false.          !< activate external source DKS
   real, public    :: imbalance_tolerance=1.0e-10           !< the tolerance for non-conservation in C,N,P,Sc,Fe
 
   integer, public :: scheme_no3_nh4_lim = 2 !< Nitrate and ammonia limitation scheme options

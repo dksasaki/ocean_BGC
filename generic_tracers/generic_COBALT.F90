@@ -5138,33 +5138,36 @@ contains
     enddo; enddo; enddo  !} i,j,k
 
     ! --- DKS 2025/02/18 added allocate local variables  --
-    allocate(n_det_override(isc:iec,jsc:jec))
-    allocate( p_det_override(isc:iec,jsc:jec))
-    allocate(fedet_override(isc:iec,jsc:jec))
-    allocate(mask_addition_t(isc:iec,jsc:jec,1:nk))
+    if (cobalt%do_external_source) then
+      allocate(n_det_override(isc:iec,jsc:jec))
+      allocate( p_det_override(isc:iec,jsc:jec))
+      allocate(fedet_override(isc:iec,jsc:jec))
+      allocate(mask_addition_t(isc:iec,jsc:jec,1:nk))
 
-    n_det_override(:,:)    = 0.0
-    p_det_override(:,:)    = 0.0
-    fedet_override(:,:)    = 0.0
-    mask_addition_t(:,:,:) = 0
-
-
-
-   call data_override('OCN', 'ndet_addition', cobalt%f_n_det_addition(isc:iec, jsc:jec), model_time,override=ndet_add_override)
-   call data_override('OCN', 'pdet_addition', cobalt%f_pdet_addition(isc:iec, jsc:jec), model_time,override=pdet_add_override)
-   call data_override('OCN', 'fedet_addition', cobalt%f_fedet_addition(isc:iec, jsc:jec), model_time,override=fedet_add_override)
-   call data_override('OCN', 'mask_addition_t', mask_addition_t(isc:iec, jsc:jec,1:nk), model_time,override=mask_addition_override)
+      n_det_override(:,:)    = 0.0
+      p_det_override(:,:)    = 0.0
+      fedet_override(:,:)    = 0.0
+      mask_addition_t(:,:,:) = 0
 
 
-   do j = jsc, jec; do i = isc, iec
-      k = grid_kmt(i,j) !Get bottom layer
-      if (mask_addition_t(i,j,1) .gt. 0) then
-         ! You would access your override variables here
-         n_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_n_det_addition(i,j)
-         p_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_pdet_addition(i,j)
-         fedet_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_fedet_addition(i,j)
-      endif
-   enddo; enddo !} i,j
+
+      call data_override('OCN', 'ndet_addition', cobalt%f_n_det_addition(isc:iec, jsc:jec), model_time,override=ndet_add_override)
+      call data_override('OCN', 'pdet_addition', cobalt%f_pdet_addition(isc:iec, jsc:jec), model_time,override=pdet_add_override)
+      call data_override('OCN', 'fedet_addition', cobalt%f_fedet_addition(isc:iec, jsc:jec), model_time,override=fedet_add_override)
+      call data_override('OCN', 'mask_addition_t', mask_addition_t(isc:iec, jsc:jec,1:nk), model_time,override=mask_addition_override)
+
+
+      do j = jsc, jec; do i = isc, iec
+         k = grid_kmt(i,j) !Get bottom layer
+         if (mask_addition_t(i,j,1) .gt. 0) then
+            ! You would access your override variables here
+            n_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_n_det_addition(i,j)
+            p_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_pdet_addition(i,j)
+            fedet_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_fedet_addition(i,j)
+         endif
+      enddo; enddo !} i,j
+
+   end if
 !
 !-------------------------------------------------------------------------------------------------
 ! 5: Sediment, coastal and ice dynamics
@@ -5909,7 +5912,9 @@ contains
        cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + cobalt%jfedet(i,j,k)*dt*grid_tmask(i,j,k)
     enddo; enddo; enddo  !} i,j,k
 
+   
    ! DKS 2025/02/18 added detritus variables
+    if (cobalt%do_external_source) then
     do j = jsc, jec; do i= isc, iec
        k = grid_kmt(i,j) !Get bottom layer
        if (mask_addition_t(i,j,1) .gt. 0.0) then
@@ -5931,9 +5936,10 @@ contains
 
       
     deallocate(n_det_override)
-    deallocate( p_det_override)
+    deallocate(p_det_override)
     deallocate(fedet_override)
     deallocate(mask_addition_t)
+   end if
     !
     !     Dissolved Organic Matter
     !
@@ -8081,10 +8087,11 @@ contains
       allocate(cobalt%chl_dmsp(isd:ied, jsd:jed))           ; cobalt%chl_dmsp=0.0
 
       ! DKS 2025/02/18 added detritus variables
-      allocate(cobalt%f_n_det_addition(isd:ied, jsd:jed));  cobalt%f_n_det_addition=0.0
-      allocate(cobalt%f_pdet_addition(isd:ied, jsd:jed));   cobalt%f_pdet_addition=0.0
-      allocate(cobalt%f_fedet_addition(isd:ied, jsd:jed));  cobalt%f_fedet_addition=0.0
-
+      if (cobalt%do_external_source) then
+         allocate(cobalt%f_n_det_addition(isd:ied, jsd:jed));  cobalt%f_n_det_addition=0.0
+         allocate(cobalt%f_pdet_addition(isd:ied, jsd:jed));   cobalt%f_pdet_addition=0.0
+         allocate(cobalt%f_fedet_addition(isd:ied, jsd:jed));  cobalt%f_fedet_addition=0.0
+      end if
   end subroutine user_allocate_arrays
 
   !
@@ -8676,9 +8683,11 @@ contains
       deallocate(cobalt%chl_dmsp)
 
       ! DKS 2025/02/18 added detritus variables
-      deallocate(cobalt%f_n_det_addition)
-      deallocate(cobalt%f_pdet_addition)
-      deallocate(cobalt%f_fedet_addition)
+      if (cobalt%do_external_source) then
+         deallocate(cobalt%f_n_det_addition)
+         deallocate(cobalt%f_pdet_addition)
+         deallocate(cobalt%f_fedet_addition)
+      end if
 
   end subroutine user_deallocate_arrays
 
