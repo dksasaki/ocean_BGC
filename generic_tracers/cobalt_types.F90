@@ -29,6 +29,7 @@ module cobalt_types
   logical, public :: do_vertfill_pre = .false.
   logical, public :: debug           = .false.             !< not use
   logical, public :: do_external_source = .false.          !< activate external source DKS
+  logical, public :: do_external_sink = .false.            !< activate external sink DKS
   real, public    :: imbalance_tolerance=1.0e-10           !< the tolerance for non-conservation in C,N,P,Sc,Fe
 
   integer, public :: scheme_no3_nh4_lim = 2 !< Nitrate and ammonia limitation scheme options
@@ -429,7 +430,9 @@ module cobalt_types
           ! << Options for neritic CaCO3 burial and enhanced CaCO3 dissolution
           do_ner_ca_bur, &        ! Apply neritic CaCO3 burial from O'Mara & Dunne (2019)
           do_resp_ca_diss, &         ! Apply enhanced CaCO3 dissolution
-          do_external_source    ! turn on exteranl nutrient source DKS
+          do_external_source, &    ! turn on exteranl nutrient source DKS
+          do_external_sink        !< activate external sink DKS
+
           ! >>
      real  ::          &
           min_thickness       ! minimum thickness of a layer that will be checked for source/sink imbalances
@@ -808,6 +811,11 @@ module cobalt_types
           tot_layer_int_doc,&
           tot_layer_int_poc,&
           tot_layer_int_dic
+          ! DKS --
+          e_juptake_no3,&
+          e_juptake_po4,&
+          e_juptake_fed
+          ! -- DKS
 
 !==============================================================================================================
 
