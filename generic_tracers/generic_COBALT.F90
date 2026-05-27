@@ -183,7 +183,9 @@ module generic_COBALT
 
   namelist /generic_COBALT_nml/ co2_calc, do_14c, do_nh3_atm_ocean_exchange, scheme_nitrif, debug, &
      do_vertfill_pre,imbalance_tolerance,as_param_cobalt, &
-     do_external_source
+     do_external_source, &
+     do_external_sink !DKS
+
 
   !
   ! Array allocations and flux calculations assume that phyto(1) is the
@@ -1789,7 +1791,10 @@ contains
                    "minimum thickness of a layer that will be checked for source/sink imbalances", &
                    units="m", default= 0.001)
 
-
+   call get_param(param_file, "generic_COBALT", "do_external_sink", cobalt%do_external_sink, &
+                  "Enable 3D external nutrient uptake sinks via data_override", default=.false.)
+   call get_param(param_file, "generic_COBALT", "do_external_source", cobalt%do_external_source, &
+                  "Enable 3D external nutrient uptake sinks via data_override", default=.false.)
     call g_tracer_end_param_list(package_name)
 
 
@@ -3161,6 +3166,12 @@ contains
 
 
     logical ::  phos_nh3_override
+    
+    ! DKS
+    logical:: e_no3_add_override
+    logical:: e_po4_add_override, e_fed_add_override
+    logical:: e_mask_add_override
+    
     logical ::  pha_all_same = .true.
 
     ! << local variables used for neritic CaCO3 burial
@@ -3176,12 +3187,15 @@ contains
     real, dimension(:,:,:), Allocatable :: pre_totc, net_srcc, post_totc
     real, dimension(:,:),   Allocatable :: pka_nh3,phos_nh3_exchange
 
-    real :: tr,ltr
-    real :: imbal
-    integer :: stdoutunit, imbal_flag, outunit
-    type(g_tracer_type), pointer :: g_tracer,g_tracer_next
-    real :: KD_SMOOTH = 1.0E-05
+   ! -- DKS changes __
 
+    real, dimension(:,:,:), Allocatable :: e_juptake_no3
+    real, dimension(:,:,:), Allocatable :: e_juptake_po4
+    real, dimension(:,:,:), Allocatable :: e_juptake_fed
+    real, dimension(:,:,:), Allocatable :: mask_e_juptake
+
+
+    
    ! --- DKS 2025/02/18 added detritus local variables  --
     real, dimension(:,:), Allocatable :: n_det_override
     real, dimension(:,:), Allocatable :: p_det_override
@@ -3194,6 +3208,14 @@ contains
     logical :: mask_addition_override
 
     ! --
+
+
+    real :: tr,ltr
+    real :: imbal
+    integer :: stdoutunit, imbal_flag, outunit
+    type(g_tracer_type), pointer :: g_tracer,g_tracer_next
+    real :: KD_SMOOTH = 1.0E-05
+
     if(do_vertfill_pre) then
       g_tracer => tracer_list
       do
@@ -5578,6 +5600,26 @@ contains
     allocate(pre_totfe(isc:iec,jsc:jec,1:nk))
     allocate(net_srcfe(isc:iec,jsc:jec,1:nk))
     allocate(pre_totsi(isc:iec,jsc:jec,1:nk))
+
+   ! -- DKS --
+    if (cobalt%do_external_sink) then
+      allocate(e_juptake_no3(isc:iec,jsc:jec,1:nk)); e_juptake_no3 = 0.0
+      allocate(e_juptake_po4(isc:iec,jsc:jec,1:nk)); e_juptake_po4 = 0.0
+      allocate(e_juptake_fed(isc:iec,jsc:jec,1:nk)); e_juptake_fed = 0.0
+      allocate(mask_e_juptake(isc:iec,jsc:jec,1:nk)); mask_e_juptake = 0.0
+
+      
+      call data_override('OCN', 'e_juptake_no3', cobalt%e_juptake_no3(isc:iec, jsc:jec,1:nk), &
+                        model_time,override=e_no3_add_override)
+      call data_override('OCN', 'e_juptake_po4', cobalt%e_juptake_po4(isc:iec, jsc:jec,1:nk), &
+                        model_time,override=e_po4_add_override)
+      call data_override('OCN', 'e_juptake_fed', cobalt%e_juptake_fed(isc:iec, jsc:jec,1:nk), &
+                        model_time,override=e_fed_add_override)
+      call data_override('OCN', 'mask_e_juptake', mask_e_juptake(isc:iec, jsc:jec,1:nk), &
+                        model_time,override=e_mask_add_override)
+   ! -- DKS --
+    end if
+
     do k = 1, nk ; do j = jsc, jec ; do i = isc, iec  !{
          pre_totn(i,j,k) = (cobalt%p_no3(i,j,k,tau) + cobalt%p_nh4(i,j,k,tau) + &
                     cobalt%p_ndi(i,j,k,tau) + cobalt%p_nlg(i,j,k,tau) + &
@@ -5621,6 +5663,30 @@ contains
          pre_totsi(i,j,k) = (cobalt%p_sio4(i,j,k,tau) + cobalt%p_silg(i,j,k,tau) + &
                     cobalt%p_simd(i,j,k,tau) + cobalt%p_sidet(i,j,k,tau))*grid_tmask(i,j,k)
     enddo; enddo ; enddo  !} i,j,k
+
+    ! DKS --
+    ! Correction for flux uptake by external sources imposed by data_override
+    if (cobalt%do_external_sink)then
+      do k = 1, nk ; do j = jsc, jec ; do i = isc, iec  !{
+            
+            if (mask_e_juptake(i,j,k) .gt. 0) then
+               e_juptake_no3(i,j,k) = min(cobalt%e_juptake_no3(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+                                    cobalt%p_no3(i,j,k,tau))
+               e_juptake_po4(i,j,k) = min(cobalt%e_juptake_po4(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+                                    cobalt%p_po4(i,j,k,tau))
+               e_juptake_fed(i,j,k) = min(cobalt%e_juptake_fed(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+                                    cobalt%p_fed(i,j,k,tau))
+            end if
+
+            pre_totn(i,j,k)  = pre_totn(i,j,k) - e_juptake_no3(i,j,k)
+            pre_totp(i,j,k)  = pre_totp(i,j,k) - e_juptake_po4(i,j,k)
+            pre_totfe(i,j,k) = pre_totfe(i,j,k)- e_juptake_fed(i,j,k)
+            pre_totc(i,j,k)  = pre_totc(i,j,k) - cobalt%c_2_n*e_juptake_no3(i,j,k)
+
+      enddo; enddo ; enddo  !} i,j,k
+   end if
+   ! --DKS
+
 
     call mpp_clock_end(id_clock_source_sink_loop1)
     !
@@ -5852,6 +5918,17 @@ contains
        cobalt%p_fed(i,j,k,tau) = cobalt%p_fed(i,j,k,tau) + cobalt%jfed(i,j,k) * dt * grid_tmask(i,j,k)
     enddo; enddo; enddo  !} i,j,k
 
+
+    ! DKS
+    if (cobalt%do_external_sink)then
+       cobalt%p_no3(i,j,k,tau) = cobalt%p_no3(i,j,k,tau)-&
+                e_juptake_no3(i,j,k) * grid_tmask(i,j,k) ! DKS
+      cobalt%p_po4(i,j,k,tau) = cobalt%p_po4(i,j,k,tau)  -&
+               e_juptake_po4(i,j,k) * grid_tmask(i,j,k) ! DKS
+       cobalt%p_fed(i,j,k,tau) = cobalt%p_fed(i,j,k,tau)-&
+                                 e_juptake_fed(i,j,k) * grid_tmask(i,j,k)
+    end if
+    !
     call mpp_clock_end(id_clock_source_sink_loop5)
     !
     !-----------------------------------------------------------------------
@@ -6045,6 +6122,26 @@ contains
        cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) + cobalt%jdic(i,j,k) * dt * grid_tmask(i,j,k)
     enddo; enddo ; enddo !} i,j,k
 !
+    if (cobalt%do_external_sink) then
+      do k = 1, nk ; do j = jsc, jec ; do i = isc, iec  !{
+
+         cobalt%p_o2(i,j,k,tau) = cobalt%p_o2(i,j,k,tau) + &
+                                 cobalt%o2_2_no3 * e_juptake_no3(i,j,k) ! DKS
+                                 
+                                 
+         cobalt%p_alk(i,j,k,tau) = cobalt%p_alk(i,j,k,tau) + &
+                                    e_juptake_no3(i,j,k)* grid_tmask(i,j,k) ! DKS
+
+         cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) - &
+                                    cobalt%c_2_n * e_juptake_no3(i,j,k) ! DKS
+      enddo; enddo ; enddo !} i,j,k
+
+      deallocate(e_juptake_no3)
+      deallocate(e_juptake_po4)
+      deallocate(e_juptake_fed)
+      deallocate(mask_e_juptake)
+   end if
+
 
     if (do_14c) then                                        !<<RADIOCARBON
 
