@@ -6010,31 +6010,32 @@ contains
    
    ! DKS 2025/02/18 added detritus variables
     if (cobalt%do_external_source) then
-    do j = jsc, jec; do i= isc, iec
-       k = grid_kmt(i,j) !Get bottom layer
-       if (mask_addition_t(i,j,1) .gt. 0.0) then
-         cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + n_det_override(i,j) * dt
-         cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
-         cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
-       endif
-    enddo; enddo !} i,j
-
-    do j = jsc, jec; do i= isc, iec
-      k = grid_kmt(i,j) !Get bottom layer
+      do j = jsc, jec; do i= isc, iec
+         k = grid_kmt(i,j) !Get bottom layer
          if (mask_addition_t(i,j,1) .gt. 0.0) then
-            pre_totn(i,j,k) = pre_totn(i,j,k) + n_det_override(i,j) * dt 
-            pre_totp(i,j,k) = pre_totp(i,j,k) + p_det_override(i,j) * dt
-            pre_totfe(i,j,k) = pre_totfe(i,j,k) + fedet_override(i,j) *dt 
-            pre_totc(i,j,k) = pre_totc(i,j,k) + cobalt%c_2_n*(n_det_override(i,j) *dt)
+            cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + n_det_override(i,j) * dt
+            cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
+            cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
          endif
       enddo; enddo !} i,j
 
-      
-    deallocate(n_det_override)
-    deallocate(p_det_override)
-    deallocate(fedet_override)
-    deallocate(mask_addition_t)
-   end if
+      do j = jsc, jec; do i= isc, iec
+         k = grid_kmt(i,j) !Get bottom layer
+            if (mask_addition_t(i,j,1) .gt. 0.0) then
+               pre_totn(i,j,k) = pre_totn(i,j,k) + n_det_override(i,j) * dt 
+               pre_totp(i,j,k) = pre_totp(i,j,k) + p_det_override(i,j) * dt
+               pre_totfe(i,j,k) = pre_totfe(i,j,k) + fedet_override(i,j) *dt 
+               pre_totc(i,j,k) = pre_totc(i,j,k) + cobalt%c_2_n*(n_det_override(i,j) *dt)
+            endif
+         enddo; enddo !} i,j
+
+         
+      deallocate(n_det_override)
+      deallocate(p_det_override)
+      deallocate(fedet_override)
+      deallocate(mask_addition_t)
+    end if
+
     !
     !     Dissolved Organic Matter
     !
@@ -8216,7 +8217,7 @@ contains
       end if
 
       ! DKS 2025/02/18 added detritus variables
-      if (cobalt%do_external_source) then
+      if (cobalt%do_external_sink) then
          allocate(cobalt%e_juptake_no3(isd:ied,jsd:jed,1:nk)); cobalt%e_juptake_no3 = 0.0
          allocate(cobalt%e_juptake_po4(isd:ied,jsd:jed,1:nk)); cobalt%e_juptake_po4 = 0.0
          allocate(cobalt%e_juptake_fed(isd:ied,jsd:jed,1:nk)); cobalt%e_juptake_fed = 0.0
