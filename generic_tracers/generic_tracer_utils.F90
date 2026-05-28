@@ -3465,8 +3465,10 @@ contains
 
     ! Do some additional diffusion if requested.
     ! This can help smooth irregularities in the vanished layers.
-    if (present(do_vertfill_post) .and. do_vertfill_post) then
-        call g_tracer_vertfill(g_tracer, h_old, KD_SMOOTH*dt, tau=1)
+    if (present(do_vertfill_post)) then
+        if (do_vertfill_post) then
+            call g_tracer_vertfill(g_tracer, h_old, KD_SMOOTH*dt, tau=1)
+        endif
     endif
 
    !
@@ -3724,12 +3726,6 @@ contains
 
        g_tracer => g_tracer%next
     enddo
-
-    if(errorstring .ne. '') then
-       !The following cannot be FATAL for backward compatibility with MOM5 and GOLD
-       call mpp_error(WARNING, trim(sub_name) // ' : there are tracers with required source properties that are not set '//&
-                      'in the field_table. Grep the stdout for NOTEs from g_tracer_print_info and correct the field_table!')
-    endif
 
     if (verbose >= 3) then
        write(errorstring, '(a,i4)')  ': Number of prognostic generic tracers = ',num_prog

@@ -184,7 +184,9 @@ module generic_COBALT
   logical :: do_CBED = .false. !< If true calls CBED subrotine(s) to calculate and set bottom fluxes
 
   namelist /generic_COBALT_nml/ co2_calc, do_14c, do_nh3_atm_ocean_exchange, scheme_nitrif, debug, &
-     do_vertfill_pre,imbalance_tolerance,as_param_cobalt, do_CBED
+     do_vertfill_pre,imbalance_tolerance,as_param_cobalt, do_CBED &
+     do_external_source, &
+     do_external_sink !DKS
   
   !
   ! Array allocations and flux calculations assume that phyto(1) is the
@@ -1792,7 +1794,10 @@ contains
                    "minimum thickness of a layer that will be checked for source/sink imbalances", &
                    units="m", default= 0.001)
 
-
+   call get_param(param_file, "generic_COBALT", "do_external_sink", cobalt%do_external_sink, &
+                  "Enable 3D external nutrient uptake sinks via data_override", default=.false.)
+   call get_param(param_file, "generic_COBALT", "do_external_source", cobalt%do_external_source, &
+                  "Enable 3D external nutrient uptake sinks via data_override", default=.false.)
     call g_tracer_end_param_list(package_name)
 
 
@@ -3165,6 +3170,12 @@ contains
 
 
     logical ::  phos_nh3_override
+    
+    ! DKS
+    logical:: e_no3_add_override
+    logical:: e_po4_add_override, e_fed_add_override
+    logical:: e_mask_add_override
+    
     logical ::  pha_all_same = .true.
 
     ! << local variables used for neritic CaCO3 burial
@@ -3179,6 +3190,29 @@ contains
     real, dimension(:,:,:), Allocatable :: pre_totfe, net_srcfe, post_totfe
     real, dimension(:,:,:), Allocatable :: pre_totc, net_srcc, post_totc
     real, dimension(:,:),   Allocatable :: pka_nh3,phos_nh3_exchange
+
+   ! -- DKS changes __
+
+    real, dimension(:,:,:), Allocatable :: e_juptake_no3
+    real, dimension(:,:,:), Allocatable :: e_juptake_po4
+    real, dimension(:,:,:), Allocatable :: e_juptake_fed
+    real, dimension(:,:,:), Allocatable :: mask_e_juptake
+
+
+    
+   ! --- DKS 2025/02/18 added detritus local variables  --
+    real, dimension(:,:), Allocatable :: n_det_override
+    real, dimension(:,:), Allocatable :: p_det_override
+    real, dimension(:,:), Allocatable :: fedet_override
+    real, dimension(:,:,:), Allocatable :: mask_addition_t
+
+    logical :: ndet_add_override
+    logical :: pdet_add_override
+    logical :: fedet_add_override
+    logical :: mask_addition_override
+
+    ! --
+
 
     real :: tr,ltr
     real :: imbal
@@ -3553,7 +3587,7 @@ contains
     if (present(photo_acc_dpth)) then
       pha_all_same = all(photo_acc_dpth == photo_acc_dpth(isc,jsc))
       if (pha_all_same) then
-        call mpp_error(WARNING, "Using uniform photoacclimation MLD in COBALTv3 which is not reccomended."//&
+        call mpp_error(FATAL, "Using uniform photoacclimation MLD in COBALTv3 which is not reccomended."//&
                                 "Check that PHA_MLD_CALC is true in the MOM paramter files or you "//&
                                 "may be using an unrealistic constant value!")
       endif
@@ -5130,6 +5164,37 @@ contains
 
     enddo; enddo; enddo  !} i,j,k
 
+    ! --- DKS 2025/02/18 added allocate local variables  --
+    if (cobalt%do_external_source) then
+      allocate(n_det_override(isc:iec,jsc:jec))
+      allocate( p_det_override(isc:iec,jsc:jec))
+      allocate(fedet_override(isc:iec,jsc:jec))
+      allocate(mask_addition_t(isc:iec,jsc:jec,1:nk))
+
+      n_det_override(:,:)    = 0.0
+      p_det_override(:,:)    = 0.0
+      fedet_override(:,:)    = 0.0
+      mask_addition_t(:,:,:) = 0
+
+
+
+      call data_override('OCN', 'ndet_addition', cobalt%f_n_det_addition(isc:iec, jsc:jec), model_time,override=ndet_add_override)
+      call data_override('OCN', 'pdet_addition', cobalt%f_pdet_addition(isc:iec, jsc:jec), model_time,override=pdet_add_override)
+      call data_override('OCN', 'fedet_addition', cobalt%f_fedet_addition(isc:iec, jsc:jec), model_time,override=fedet_add_override)
+      call data_override('OCN', 'mask_addition_t', mask_addition_t(isc:iec, jsc:jec,1:nk), model_time,override=mask_addition_override)
+
+
+      do j = jsc, jec; do i = isc, iec
+         k = grid_kmt(i,j) !Get bottom layer
+         if (mask_addition_t(i,j,1) .gt. 0) then
+            ! You would access your override variables here
+            n_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_n_det_addition(i,j)
+            p_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_pdet_addition(i,j)
+            fedet_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_fedet_addition(i,j)
+         endif
+      enddo; enddo !} i,j
+
+   end if
 !
 !-------------------------------------------------------------------------------------------------
 ! 5: Sediment, coastal and ice dynamics
@@ -5549,6 +5614,26 @@ contains
     allocate(pre_totfe(isc:iec,jsc:jec,1:nk))
     allocate(net_srcfe(isc:iec,jsc:jec,1:nk))
     allocate(pre_totsi(isc:iec,jsc:jec,1:nk))
+
+   ! -- DKS --
+    if (cobalt%do_external_sink) then
+      allocate(e_juptake_no3(isc:iec,jsc:jec,1:nk)); e_juptake_no3 = 0.0
+      allocate(e_juptake_po4(isc:iec,jsc:jec,1:nk)); e_juptake_po4 = 0.0
+      allocate(e_juptake_fed(isc:iec,jsc:jec,1:nk)); e_juptake_fed = 0.0
+      allocate(mask_e_juptake(isc:iec,jsc:jec,1:nk)); mask_e_juptake = 0.0
+
+      
+      call data_override('OCN', 'e_juptake_no3', cobalt%e_juptake_no3(isc:iec, jsc:jec,1:nk), &
+                        model_time,override=e_no3_add_override)
+      call data_override('OCN', 'e_juptake_po4', cobalt%e_juptake_po4(isc:iec, jsc:jec,1:nk), &
+                        model_time,override=e_po4_add_override)
+      call data_override('OCN', 'e_juptake_fed', cobalt%e_juptake_fed(isc:iec, jsc:jec,1:nk), &
+                        model_time,override=e_fed_add_override)
+      call data_override('OCN', 'mask_e_juptake', mask_e_juptake(isc:iec, jsc:jec,1:nk), &
+                        model_time,override=e_mask_add_override)
+   ! -- DKS --
+    end if
+
     do k = 1, nk ; do j = jsc, jec ; do i = isc, iec  !{
          pre_totn(i,j,k) = (cobalt%p_no3(i,j,k,tau) + cobalt%p_nh4(i,j,k,tau) + &
                     cobalt%p_ndi(i,j,k,tau) + cobalt%p_nlg(i,j,k,tau) + &
@@ -5592,6 +5677,30 @@ contains
          pre_totsi(i,j,k) = (cobalt%p_sio4(i,j,k,tau) + cobalt%p_silg(i,j,k,tau) + &
                     cobalt%p_simd(i,j,k,tau) + cobalt%p_sidet(i,j,k,tau))*grid_tmask(i,j,k)
     enddo; enddo ; enddo  !} i,j,k
+
+    ! DKS --
+    ! Correction for flux uptake by external sources imposed by data_override
+    if (cobalt%do_external_sink)then
+      do k = 1, nk ; do j = jsc, jec ; do i = isc, iec  !{
+            
+            if (mask_e_juptake(i,j,k) .gt. 0) then
+               e_juptake_no3(i,j,k) = min(cobalt%e_juptake_no3(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+                                    cobalt%p_no3(i,j,k,tau))
+               e_juptake_po4(i,j,k) = min(cobalt%e_juptake_po4(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+                                    cobalt%p_po4(i,j,k,tau))
+               e_juptake_fed(i,j,k) = min(cobalt%e_juptake_fed(i,j,k)*mask_e_juptake(i,j,k)*dt,&
+                                    cobalt%p_fed(i,j,k,tau))
+            end if
+
+            pre_totn(i,j,k)  = pre_totn(i,j,k) - e_juptake_no3(i,j,k)
+            pre_totp(i,j,k)  = pre_totp(i,j,k) - e_juptake_po4(i,j,k)
+            pre_totfe(i,j,k) = pre_totfe(i,j,k)- e_juptake_fed(i,j,k)
+            pre_totc(i,j,k)  = pre_totc(i,j,k) - cobalt%c_2_n*e_juptake_no3(i,j,k)
+
+      enddo; enddo ; enddo  !} i,j,k
+   end if
+   ! --DKS
+
 
     call mpp_clock_end(id_clock_source_sink_loop1)
     !
@@ -5823,6 +5932,17 @@ contains
        cobalt%p_fed(i,j,k,tau) = cobalt%p_fed(i,j,k,tau) + cobalt%jfed(i,j,k) * dt * grid_tmask(i,j,k)
     enddo; enddo; enddo  !} i,j,k
 
+
+    ! DKS
+    if (cobalt%do_external_sink)then
+       cobalt%p_no3(i,j,k,tau) = cobalt%p_no3(i,j,k,tau)-&
+                e_juptake_no3(i,j,k) * grid_tmask(i,j,k) ! DKS
+      cobalt%p_po4(i,j,k,tau) = cobalt%p_po4(i,j,k,tau)  -&
+               e_juptake_po4(i,j,k) * grid_tmask(i,j,k) ! DKS
+       cobalt%p_fed(i,j,k,tau) = cobalt%p_fed(i,j,k,tau)-&
+                                 e_juptake_fed(i,j,k) * grid_tmask(i,j,k)
+    end if
+    !
     call mpp_clock_end(id_clock_source_sink_loop5)
     !
     !-----------------------------------------------------------------------
@@ -5883,6 +6003,35 @@ contains
                               cobalt%det_jhploss_fe(i,j,k)
        cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + cobalt%jfedet(i,j,k)*dt*grid_tmask(i,j,k)
     enddo; enddo; enddo  !} i,j,k
+
+   
+   ! DKS 2025/02/18 added detritus variables
+    if (cobalt%do_external_source) then
+    do j = jsc, jec; do i= isc, iec
+       k = grid_kmt(i,j) !Get bottom layer
+       if (mask_addition_t(i,j,1) .gt. 0.0) then
+         cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + n_det_override(i,j) * dt
+         cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
+         cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
+       endif
+    enddo; enddo !} i,j
+
+    do j = jsc, jec; do i= isc, iec
+      k = grid_kmt(i,j) !Get bottom layer
+         if (mask_addition_t(i,j,1) .gt. 0.0) then
+            pre_totn(i,j,k) = pre_totn(i,j,k) + n_det_override(i,j) * dt 
+            pre_totp(i,j,k) = pre_totp(i,j,k) + p_det_override(i,j) * dt
+            pre_totfe(i,j,k) = pre_totfe(i,j,k) + fedet_override(i,j) *dt 
+            pre_totc(i,j,k) = pre_totc(i,j,k) + cobalt%c_2_n*(n_det_override(i,j) *dt)
+         endif
+      enddo; enddo !} i,j
+
+      
+    deallocate(n_det_override)
+    deallocate(p_det_override)
+    deallocate(fedet_override)
+    deallocate(mask_addition_t)
+   end if
     !
     !     Dissolved Organic Matter
     !
@@ -5987,6 +6136,26 @@ contains
        cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) + cobalt%jdic(i,j,k) * dt * grid_tmask(i,j,k)
     enddo; enddo ; enddo !} i,j,k
 !
+    if (cobalt%do_external_sink) then
+      do k = 1, nk ; do j = jsc, jec ; do i = isc, iec  !{
+
+         cobalt%p_o2(i,j,k,tau) = cobalt%p_o2(i,j,k,tau) + &
+                                 cobalt%o2_2_no3 * e_juptake_no3(i,j,k) ! DKS
+                                 
+                                 
+         cobalt%p_alk(i,j,k,tau) = cobalt%p_alk(i,j,k,tau) + &
+                                    e_juptake_no3(i,j,k)* grid_tmask(i,j,k) ! DKS
+
+         cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) - &
+                                    cobalt%c_2_n * e_juptake_no3(i,j,k) ! DKS
+      enddo; enddo ; enddo !} i,j,k
+
+      deallocate(e_juptake_no3)
+      deallocate(e_juptake_po4)
+      deallocate(e_juptake_fed)
+      deallocate(mask_e_juptake)
+   end if
+
 
     if (do_14c) then                                        !<<RADIOCARBON
 
@@ -6434,7 +6603,8 @@ contains
                phyto(LARGE)%jprod_n(i,j,k)*phyto(LARGE)%silim(i,j,k))*rho_dzt(i,j,k)*grid_tmask(i,j,k)
           cobalt%wc_vert_int_npp_diaz(i,j) = cobalt%wc_vert_int_npp_diaz(i,j) +  phyto(DIAZO)%jprod_n(i,j,k) * &
                rho_dzt(i,j,k)*grid_tmask(i,j,k)
-          cobalt%wc_vert_int_npp_misc(i,j) = (phyto(MEDIUM)%jprod_n(i,j,k)*(1.0 - phyto(MEDIUM)%silim(i,j,k)) + &
+          cobalt%wc_vert_int_npp_misc(i,j) = cobalt%wc_vert_int_npp_misc(i,j) + &
+              (phyto(MEDIUM)%jprod_n(i,j,k)*(1.0 - phyto(MEDIUM)%silim(i,j,k)) + &
                phyto(LARGE)%jprod_n(i,j,k)*(1.0 - phyto(LARGE)%silim(i,j,k)))*rho_dzt(i,j,k)*grid_tmask(i,j,k)
           cobalt%wc_vert_int_npp_pico(i,j) = cobalt%wc_vert_int_npp_pico(i,j) +  phyto(SMALL)%jprod_n(i,j,k) * &
                rho_dzt(i,j,k)*grid_tmask(i,j,k)
@@ -8035,6 +8205,12 @@ contains
       allocate(cobalt%irr_sfc_dms(isd:ied, jsd:jed))        ; cobalt%irr_sfc_dms=0.0
       allocate(cobalt%chl_dmsp(isd:ied, jsd:jed))           ; cobalt%chl_dmsp=0.0
 
+      ! DKS 2025/02/18 added detritus variables
+      if (cobalt%do_external_source) then
+         allocate(cobalt%f_n_det_addition(isd:ied, jsd:jed));  cobalt%f_n_det_addition=0.0
+         allocate(cobalt%f_pdet_addition(isd:ied, jsd:jed));   cobalt%f_pdet_addition=0.0
+         allocate(cobalt%f_fedet_addition(isd:ied, jsd:jed));  cobalt%f_fedet_addition=0.0
+      end if
   end subroutine user_allocate_arrays
 
   !
@@ -8624,6 +8800,13 @@ contains
       deallocate(cobalt%irr_aclm_sfc_dayint)
       deallocate(cobalt%irr_sfc_dms)
       deallocate(cobalt%chl_dmsp)
+
+      ! DKS 2025/02/18 added detritus variables
+      if (cobalt%do_external_source) then
+         deallocate(cobalt%f_n_det_addition)
+         deallocate(cobalt%f_pdet_addition)
+         deallocate(cobalt%f_fedet_addition)
+      end if
 
   end subroutine user_deallocate_arrays
 
