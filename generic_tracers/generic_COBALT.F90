@@ -5629,11 +5629,9 @@ contains
                         model_time,override=e_po4_add_override)
       call data_override('OCN', 'e_juptake_fed', cobalt%e_juptake_fed(isc:iec, jsc:jec,1:nk), &
                         model_time,override=e_fed_add_override)
-      call data_override('OCN', 'mask_e_juptake', cobalt%mask_e_juptake(isc:iec, jsc:jec,1:nk), &
+      call data_override('OCN', 'mask_e_juptake', mask_e_juptake(isc:iec, jsc:jec,1:nk), &
                         model_time,override=e_mask_add_override)
 
-   ! -- DKS --
-    end if
 
     do k = 1, nk ; do j = jsc, jec ; do i = isc, iec  !{
          pre_totn(i,j,k) = (cobalt%p_no3(i,j,k,tau) + cobalt%p_nh4(i,j,k,tau) + &
