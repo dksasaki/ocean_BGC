@@ -5935,12 +5935,14 @@ contains
 
     ! DKS
     if (cobalt%do_external_sink)then
-       cobalt%p_no3(i,j,k,tau) = cobalt%p_no3(i,j,k,tau)-&
-                e_juptake_no3(i,j,k) * grid_tmask(i,j,k) ! DKS
-      cobalt%p_po4(i,j,k,tau) = cobalt%p_po4(i,j,k,tau)  -&
-               e_juptake_po4(i,j,k) * grid_tmask(i,j,k) ! DKS
-       cobalt%p_fed(i,j,k,tau) = cobalt%p_fed(i,j,k,tau)-&
-                                 e_juptake_fed(i,j,k) * grid_tmask(i,j,k)
+       do k = 1, nk ; do j = jsc, jec ; do i = isc, iec  !{
+         cobalt%p_no3(i,j,k,tau) = cobalt%p_no3(i,j,k,tau)-&
+                  e_juptake_no3(i,j,k) * grid_tmask(i,j,k) ! DKS
+         cobalt%p_po4(i,j,k,tau) = cobalt%p_po4(i,j,k,tau)  -&
+                  e_juptake_po4(i,j,k) * grid_tmask(i,j,k) ! DKS
+         cobalt%p_fed(i,j,k,tau) = cobalt%p_fed(i,j,k,tau)-&
+                                    e_juptake_fed(i,j,k) * grid_tmask(i,j,k)
+         enddo; enddo; enddo  !} i,j,k
     end if
     !
     call mpp_clock_end(id_clock_source_sink_loop5)
