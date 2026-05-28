@@ -5623,13 +5623,13 @@ contains
       allocate(mask_e_juptake(isc:iec,jsc:jec,1:nk)); mask_e_juptake = 0.0
 
       
-      call data_override('OCN', 'e_juptake_no3', e_juptake_no3(isc:iec, jsc:jec,1:nk), &
+      call data_override('OCN', 'e_juptake_no3', cobalt%e_juptake_no3(isc:iec, jsc:jec,1:nk), &
                         model_time,override=e_no3_add_override)
-      call data_override('OCN', 'e_juptake_po4', e_juptake_po4(isc:iec, jsc:jec,1:nk), &
+      call data_override('OCN', 'e_juptake_po4', cobalt%e_juptake_po4(isc:iec, jsc:jec,1:nk), &
                         model_time,override=e_po4_add_override)
-      call data_override('OCN', 'e_juptake_fed', e_juptake_fed(isc:iec, jsc:jec,1:nk), &
+      call data_override('OCN', 'e_juptake_fed', cobalt%e_juptake_fed(isc:iec, jsc:jec,1:nk), &
                         model_time,override=e_fed_add_override)
-      call data_override('OCN', 'mask_e_juptake', mask_e_juptake(isc:iec, jsc:jec,1:nk), &
+      call data_override('OCN', 'mask_e_juptake', cobalt%mask_e_juptake(isc:iec, jsc:jec,1:nk), &
                         model_time,override=e_mask_add_override)
 
    ! -- DKS --
