@@ -5623,14 +5623,15 @@ contains
       allocate(mask_e_juptake(isc:iec,jsc:jec,1:nk)); mask_e_juptake = 0.0
 
       
-      call data_override('OCN', 'e_juptake_no3', cobalt%e_juptake_no3(isc:iec, jsc:jec,1:nk), &
+      call data_override('OCN', 'e_juptake_no3', e_juptake_no3(isc:iec, jsc:jec,1:nk), &
                         model_time,override=e_no3_add_override)
-      call data_override('OCN', 'e_juptake_po4', cobalt%e_juptake_po4(isc:iec, jsc:jec,1:nk), &
+      call data_override('OCN', 'e_juptake_po4', e_juptake_po4(isc:iec, jsc:jec,1:nk), &
                         model_time,override=e_po4_add_override)
-      call data_override('OCN', 'e_juptake_fed', cobalt%e_juptake_fed(isc:iec, jsc:jec,1:nk), &
+      call data_override('OCN', 'e_juptake_fed', e_juptake_fed(isc:iec, jsc:jec,1:nk), &
                         model_time,override=e_fed_add_override)
       call data_override('OCN', 'mask_e_juptake', mask_e_juptake(isc:iec, jsc:jec,1:nk), &
                         model_time,override=e_mask_add_override)
+
    ! -- DKS --
     end if
 
@@ -8213,6 +8214,13 @@ contains
          allocate(cobalt%f_pdet_addition(isd:ied, jsd:jed));   cobalt%f_pdet_addition=0.0
          allocate(cobalt%f_fedet_addition(isd:ied, jsd:jed));  cobalt%f_fedet_addition=0.0
       end if
+
+      ! DKS 2025/02/18 added detritus variables
+      if (cobalt%do_external_source) then
+         allocate(cobalt%e_juptake_no3(isd:ied,jsd:jed,1:nk)); cobalt%e_juptake_no3 = 0.0
+         allocate(cobalt%e_juptake_po4(isd:ied,jsd:jed,1:nk)); cobalt%e_juptake_po4 = 0.0
+         allocate(cobalt%e_juptake_fed(isd:ied,jsd:jed,1:nk)); cobalt%e_juptake_fed = 0.0
+      end if
   end subroutine user_allocate_arrays
 
   !
@@ -8802,6 +8810,15 @@ contains
       deallocate(cobalt%irr_aclm_sfc_dayint)
       deallocate(cobalt%irr_sfc_dms)
       deallocate(cobalt%chl_dmsp)
+
+
+      ! DKS 2025/02/18 added detritus variables
+      if (cobalt%do_external_sink) then
+         deallocate(cobalt%e_juptake_no3)
+         deallocate(cobalt%e_juptake_po4)
+         deallocate(cobalt%e_juptake_fed)
+      end if
+
 
       ! DKS 2025/02/18 added detritus variables
       if (cobalt%do_external_source) then
