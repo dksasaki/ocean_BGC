@@ -184,7 +184,7 @@ module generic_COBALT
   logical :: do_CBED = .false. !< If true calls CBED subrotine(s) to calculate and set bottom fluxes
 
   namelist /generic_COBALT_nml/ co2_calc, do_14c, do_nh3_atm_ocean_exchange, scheme_nitrif, debug, &
-     do_vertfill_pre,imbalance_tolerance,as_param_cobalt, do_CBED &
+     do_vertfill_pre,imbalance_tolerance,as_param_cobalt, do_CBED, &
      do_external_source, &
      do_external_sink !DKS
   
