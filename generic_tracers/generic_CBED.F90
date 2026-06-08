@@ -894,9 +894,9 @@ contains
          do j = jsc, jec; do i = isc, iec
                if (grid_kmt(i,j) .gt. 0) then
                   if (cbed%use_depth_dependent_OM_frac) then
-                     frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.4)
-                     frac_OM2(i,j) = max(0.10, 0.22*(100.0/cobalt%zt(i,j,nk))**(-0.3))
-                     frac_OM3(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM2(i,j))
+                     frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.5)
+                     frac_OM3(i,j) = max(0.03, 0.04*(100.0/cobalt%zt(i,j,nk))**(-0.3))
+                     frac_OM2(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM3(i,j))
                   else
                      frac_OM1(i,j) = 0.70
                      frac_OM2(i,j) = 0.20
@@ -1598,7 +1598,7 @@ contains
 
                      b_odu_sub(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - c_odu(i,j,1))/(dz_cbed(1)/2.0)) + &
                         sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - c_odu(i,j,:)) )
-                     
+
                      b_alk_org_sub(i,j) = sum(dz_cbed(:)*por(i,j,1:nk_cbed)*R_talk(i,j,:))  ! mol m-2 s-1 (net production of alklinity from organic matter degradation)
 
                      !b_odu_sub(i,j) =  -1.0e-5
@@ -1726,9 +1726,9 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                if (cbed%use_depth_dependent_OM_frac) then
-                  frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.4)
-                  frac_OM2(i,j) = max(0.10, 0.22*(100.0/cobalt%zt(i,j,nk))**(-0.3))
-                  frac_OM3(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM2(i,j))
+                  frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.5)
+                  frac_OM3(i,j) = max(0.03, 0.04*(100.0/cobalt%zt(i,j,nk))**(-0.3))
+                  frac_OM2(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM3(i,j))
                else
                   frac_OM1(i,j) = 0.70
                   frac_OM2(i,j) = 0.20
