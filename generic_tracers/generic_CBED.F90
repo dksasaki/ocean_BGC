@@ -1168,7 +1168,7 @@ contains
             if (grid_kmt(i,j) .gt. 0) then
                do k = 1, nk_cbed+1
                   ! relation from Archer. POC flux unit in umol cm-2 y-1.
-                  Db(i,j,k) = max(0.0, Db_0(i,j)*exp(-(z_cbed_int(k)/Db_l)**2)*(cobalt%btm_o2(i,j)*cobalt%Rho_0/(cobalt%btm_o2(i,j)*cobalt%Rho_0+(20/1e3))) )
+                  Db(i,j,k) = max(0.0, Db_0(i,j)*exp(-(z_cbed_int(k)/Db_l)**2)*(max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)/(max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)+(20/1e3))) )
                enddo
             endif
          enddo;enddo
@@ -1178,7 +1178,7 @@ contains
             if (grid_kmt(i,j) .gt. 0) then
                ! relation from Archer. POC flux unit in umol cm-2 y-1.
                bioirri_0(i,j) = ( 11*(((atan((5*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery) -400)/400))/pi)+0.5) &
-                  - 0.9 + 20*((cobalt%btm_o2(i,j)*cobalt%Rho_0)/(cobalt%btm_o2(i,j)*cobalt%Rho_0+0.01)) * exp(-cobalt%btm_o2(i,j)*cobalt%Rho_0/0.01) * &
+                  - 0.9 + 20*((max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0))/(max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)+0.01)) * exp(-max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)/0.01) * &
                   ((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)/((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)+30)) )/spery   ! in cobalt unit s^-1
 
             endif
