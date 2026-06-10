@@ -894,9 +894,9 @@ contains
          do j = jsc, jec; do i = isc, iec
                if (grid_kmt(i,j) .gt. 0) then
                   if (cbed%use_depth_dependent_OM_frac) then
-                     frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.4)
-                     frac_OM2(i,j) = max(0.10, 0.22*(100.0/cobalt%zt(i,j,nk))**(-0.3))
-                     frac_OM3(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM2(i,j))
+                     frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.5)
+                     frac_OM3(i,j) = max(0.03, 0.04*(100.0/cobalt%zt(i,j,nk))**(-0.3))
+                     frac_OM2(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM3(i,j))
                   else
                      frac_OM1(i,j) = 0.70
                      frac_OM2(i,j) = 0.20
@@ -913,17 +913,17 @@ contains
                ! --- A. Get bottom water concentration ---
                btm_tracer_conc = 0.0
                if (trim(field_name) == "f_o2") then
-                  btm_tracer_conc = cobalt%btm_o2(i,j) * cobalt%Rho_0
+                  btm_tracer_conc = max(0.0, cobalt%btm_o2(i,j) * cobalt%Rho_0)
                else if (trim(field_name) == "f_nh4") then
-                  btm_tracer_conc = cobalt%f_nh4(i,j,nk) * cobalt%Rho_0
+                  btm_tracer_conc = max(0.0, cobalt%f_nh4(i,j,nk) * cobalt%Rho_0)
                else if (trim(field_name) == "f_no3") then
-                  btm_tracer_conc = cobalt%btm_no3(i,j) * cobalt%Rho_0
+                  btm_tracer_conc = max(0.0, cobalt%btm_no3(i,j) * cobalt%Rho_0)
                else if (trim(field_name) == "f_dic") then
-                  btm_tracer_conc = cobalt%btm_dic(i,j) * cobalt%Rho_0
+                  btm_tracer_conc = max(0.0, cobalt%btm_dic(i,j) * cobalt%Rho_0)
                else if (trim(field_name) == "f_odu") then
-                  btm_tracer_conc = 0.0
+                  btm_tracer_conc = abs(min(0.0, cobalt%btm_o2(i,j) * cobalt%Rho_0))
                else if (trim(field_name) == "f_talk") then
-                  btm_tracer_conc = cobalt%btm_alk(i,j) * cobalt%Rho_0
+                  btm_tracer_conc = max(0.0, cobalt%btm_alk(i,j) * cobalt%Rho_0)
                endif
 
                ! --- B. Compute Cell Capacities and Interface Conductances ---
@@ -1168,7 +1168,7 @@ contains
             if (grid_kmt(i,j) .gt. 0) then
                do k = 1, nk_cbed+1
                   ! relation from Archer. POC flux unit in umol cm-2 y-1.
-                  Db(i,j,k) = max(0.0, Db_0(i,j)*exp(-(z_cbed_int(k)/Db_l)**2)*(cobalt%btm_o2(i,j)*cobalt%Rho_0/(cobalt%btm_o2(i,j)*cobalt%Rho_0+(20/1e3))) )
+                  Db(i,j,k) = max(0.0, Db_0(i,j)*exp(-(z_cbed_int(k)/Db_l)**2)*(max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)/(max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)+(20/1e3))) )
                enddo
             endif
          enddo;enddo
@@ -1178,7 +1178,7 @@ contains
             if (grid_kmt(i,j) .gt. 0) then
                ! relation from Archer. POC flux unit in umol cm-2 y-1.
                bioirri_0(i,j) = ( 11*(((atan((5*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery) -400)/400))/pi)+0.5) &
-                  - 0.9 + 20*((cobalt%btm_o2(i,j)*cobalt%Rho_0)/(cobalt%btm_o2(i,j)*cobalt%Rho_0+0.01)) * exp(-cobalt%btm_o2(i,j)*cobalt%Rho_0/0.01) * &
+                  - 0.9 + 20*((max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0))/(max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)+0.01)) * exp(-max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)/0.01) * &
                   ((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)/((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)+30)) )/spery   ! in cobalt unit s^-1
 
             endif
@@ -1299,7 +1299,7 @@ contains
                   R_talk(i,j,k) = svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) + &
                      svf(i,j,k)/por(i,j,k)*(0.8+1.0/cobalt%c_2_n)*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
                      svf(i,j,k)/por(i,j,k)*(1.0+1.0/cobalt%c_2_n)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
-                     2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k)
+                     2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k) - 0.4*R_ana(i,j,k)
 
                   ! calculations for diagnostics
                   cbed%R_om_o2(i,j,k) = R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)
@@ -1374,9 +1374,9 @@ contains
                cbed%no3_flux(i,j) = b_no3(i,j)
                cbed%dic_flux(i,j) = b_dic(i,j)
 
-               cbed%talk_flux(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_alk(i,j)*cobalt%Rho_0 - c_talk(i,j,1))/(dz_cbed(1)/2.0)) + &
-                  por(i,j,1)*w(i,j,1)*(cobalt%btm_alk(i,j)*cobalt%Rho_0) + &
-                  sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_alk(i,j)*cobalt%Rho_0 - c_talk(i,j,:)) )
+               cbed%talk_flux(i,j) = por(i,j,1)*D_dic(i,j,1)*((max(0.0,cobalt%btm_alk(i,j)*cobalt%Rho_0) - c_talk(i,j,1))/(dz_cbed(1)/2.0)) + &
+                  por(i,j,1)*w(i,j,1)*max(0.0,cobalt%btm_alk(i,j)*cobalt%Rho_0) + &
+                  sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(max(0.0,cobalt%btm_alk(i,j)*cobalt%Rho_0) - c_talk(i,j,:)) )
 
                cbed%odu_flux(i,j) = b_odu(i,j)
 
@@ -1399,7 +1399,7 @@ contains
 
                cbed%burial_om(i,j)  = (c_om1(i,j,nk_cbed)+c_om2(i,j,nk_cbed)+c_om3(i,j,nk_cbed))*w(i,j,nk_cbed+1) * svf(i,j,nk_cbed+1) ! mol/m2/s
 
-               cbed%denit(i,j) = sum(dz_cbed(:)*(svf(i,j,1:nk_cbed)*0.8*cbed%R_om_no3(i,j,:) + por(i,j,1:nk_cbed)*2.0*R_ana(i,j,:)))
+               cbed%denit(i,j) = sum(dz_cbed(:)*(svf(i,j,1:nk_cbed)*0.8*cbed%R_om_no3(i,j,:) + por(i,j,1:nk_cbed)*1.6*R_ana(i,j,:)))
 
                !cbed%cbed_k1(i,j) = k1(i,j)
                !cbed%cbed_k2(i,j) = k2(i,j)
@@ -1574,31 +1574,32 @@ contains
                         R_talk(i,j,k) = svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) + &
                            svf(i,j,k)/por(i,j,k)*(0.8+1.0/cobalt%c_2_n)*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
                            svf(i,j,k)/por(i,j,k)*(1.0+1.0/cobalt%c_2_n)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
-                           2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k)
+                           2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k) - 0.4*R_ana(i,j,k)
 
                      enddo !k
 
                      ! b terms for averaging throughout adaptive time stepping
 
-                     b_o2_sub(i,j) = por(i,j,1)*D_o2(i,j,1)*((cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,1))/(dz_cbed(1)/2.0)) + &
-                        por(i,j,1)*w(i,j,1)*(cobalt%btm_o2(i,j)*cobalt%Rho_0) + &
-                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,:)) )
+                     b_o2_sub(i,j) = por(i,j,1)*D_o2(i,j,1)*((max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0) - c_o2(i,j,1))/(dz_cbed(1)/2.0)) + &
+                        por(i,j,1)*w(i,j,1)*max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0) + &
+                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0) - c_o2(i,j,:)) )
 
-                     b_nh4_sub(i,j) = por(i,j,1)*D_nh4(i,j,1)*((cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,1))/(dz_cbed(1)/2.0)) + &
-                        por(i,j,1)*w(i,j,1)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) + &
-                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,:)) )
+                     b_nh4_sub(i,j) = por(i,j,1)*D_nh4(i,j,1)*((max(0.0,cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) - c_nh4(i,j,1))/(dz_cbed(1)/2.0)) + &
+                        por(i,j,1)*w(i,j,1)*max(0.0,cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) + &
+                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(max(0.0,cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) - c_nh4(i,j,:)) )
 
-                     b_no3_sub(i,j) = por(i,j,1)*D_no3(i,j,1)*((cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,1))/(dz_cbed(1)/2.0)) + &
-                        por(i,j,1)*w(i,j,1)*(cobalt%btm_no3(i,j)*cobalt%Rho_0) + &
-                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,:)) )
+                     b_no3_sub(i,j) = por(i,j,1)*D_no3(i,j,1)*((max(0.0,cobalt%btm_no3(i,j)*cobalt%Rho_0) - c_no3(i,j,1))/(dz_cbed(1)/2.0)) + &
+                        por(i,j,1)*w(i,j,1)*max(0.0,cobalt%btm_no3(i,j)*cobalt%Rho_0) + &
+                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(max(0.0,cobalt%btm_no3(i,j)*cobalt%Rho_0) - c_no3(i,j,:)) )
 
-                     b_dic_sub(i,j) = por(i,j,1)*D_dic(i,j,1)*((cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,1))/(dz_cbed(1)/2.0)) + &
-                        por(i,j,1)*w(i,j,1)*(cobalt%btm_dic(i,j)*cobalt%Rho_0) + &
-                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,:)) )
+                     b_dic_sub(i,j) = por(i,j,1)*D_dic(i,j,1)*((max(0.0,cobalt%btm_dic(i,j)*cobalt%Rho_0) - c_dic(i,j,1))/(dz_cbed(1)/2.0)) + &
+                        por(i,j,1)*w(i,j,1)*max(0.0,cobalt%btm_dic(i,j)*cobalt%Rho_0) + &
+                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(max(0.0,cobalt%btm_dic(i,j)*cobalt%Rho_0) - c_dic(i,j,:)) )
 
-                     b_odu_sub(i,j) = por(i,j,1)*D_odu(i,j,1)*((0.0 - c_odu(i,j,1))/(dz_cbed(1)/2.0)) + &
-                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(0.0 - c_odu(i,j,:)) )
-                     
+                     b_odu_sub(i,j) = por(i,j,1)*D_odu(i,j,1)*((abs(min(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)) - c_odu(i,j,1))/(dz_cbed(1)/2.0)) + &
+                        por(i,j,1)*w(i,j,1)*abs(min(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)) + &
+                        sum(dz_cbed(:)*por(i,j,1:nk_cbed)* bioirri(i,j,:)*(abs(min(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)) - c_odu(i,j,:)) )
+
                      b_alk_org_sub(i,j) = sum(dz_cbed(:)*por(i,j,1:nk_cbed)*R_talk(i,j,:))  ! mol m-2 s-1 (net production of alklinity from organic matter degradation)
 
                      !b_odu_sub(i,j) =  -1.0e-5
@@ -1626,7 +1627,7 @@ contains
                      do k = 1, nk_cbed
 
                         cbed%f_o2(i,j,k)  = cbed%f_o2(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) - &
-                           (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_o2(i,j)*cobalt%Rho_0 - c_o2(i,j,k)) )*dt_sub(i,j)
+                           (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0) - c_o2(i,j,k)) )*dt_sub(i,j)
 
                         cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt_sub(i,j)
 
@@ -1635,18 +1636,18 @@ contains
                         cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt_sub(i,j)
 
                         cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                           ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,k)) )*dt_sub(i,j)
+                           ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(max(0.0,cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) - c_nh4(i,j,k)) )*dt_sub(i,j)
 
                         cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                           (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,k)) )*dt_sub(i,j)
+                           (R_nox(i,j,k) - 0.6*R_ana(i,j,k)) + bioirri(i,j,k)*(max(0.0,cobalt%btm_no3(i,j)*cobalt%Rho_0) - c_no3(i,j,k)) )*dt_sub(i,j)
 
                         cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                           bioirri(i,j,k)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,k)) )*dt_sub(i,j)
+                           bioirri(i,j,k)*(max(0.0,cobalt%btm_dic(i,j)*cobalt%Rho_0) - c_dic(i,j,k)) )*dt_sub(i,j)
 
                         cbed%f_odu(i,j,k) = cbed%f_odu(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
-                           R_oduox(i,j,k) - svf(i,j,k)/por(i,j,k)*odu_depo(i,j,k)  + bioirri(i,j,k)*(0.0 - c_odu(i,j,k)) )*dt_sub(i,j)
+                           R_oduox(i,j,k) - svf(i,j,k)/por(i,j,k)*odu_depo(i,j,k)  + bioirri(i,j,k)*(abs(min(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)) - c_odu(i,j,k)) )*dt_sub(i,j)
 
-                        cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(cobalt%btm_alk(i,j)*cobalt%Rho_0 - c_talk(i,j,k)) )*dt_sub(i,j)
+                        cbed%f_talk(i,j,k) = cbed%f_talk(i,j,k) + ( + R_talk(i,j,k) + bioirri(i,j,k)*(max(0.0,cobalt%btm_alk(i,j)*cobalt%Rho_0) - c_talk(i,j,k)) )*dt_sub(i,j)
 
                      enddo
 
@@ -1691,7 +1692,7 @@ contains
                         ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%f_nh4(i,j,nk)*cobalt%Rho_0 - c_nh4(i,j,k)) )*dt
 
                      cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                        (R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,k)) )*dt
+                        (R_nox(i,j,k) - 0.6*R_ana(i,j,k)) + bioirri(i,j,k)*(cobalt%btm_no3(i,j)*cobalt%Rho_0 - c_no3(i,j,k)) )*dt
 
                      cbed%f_dic(i,j,k) = cbed%f_dic(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
                         bioirri(i,j,k)*(cobalt%btm_dic(i,j)*cobalt%Rho_0 - c_dic(i,j,k)) )*dt
@@ -1726,9 +1727,9 @@ contains
       do j = jsc, jec; do i = isc, iec
             if (grid_kmt(i,j) .gt. 0) then
                if (cbed%use_depth_dependent_OM_frac) then
-                  frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.4)
-                  frac_OM2(i,j) = max(0.10, 0.22*(100.0/cobalt%zt(i,j,nk))**(-0.3))
-                  frac_OM3(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM2(i,j))
+                  frac_OM1(i,j) = min(0.80, 0.65*(100.0/cobalt%zt(i,j,nk))**0.5)
+                  frac_OM3(i,j) = max(0.03, 0.04*(100.0/cobalt%zt(i,j,nk))**(-0.3))
+                  frac_OM2(i,j) = 1.0 - (frac_OM1(i,j) + frac_OM3(i,j))
                else
                   frac_OM1(i,j) = 0.70
                   frac_OM2(i,j) = 0.20
@@ -2324,7 +2325,7 @@ contains
                ! In absence of BW O2, it will create -ve O2 conc in BW. cbed%odu_flux(i,j) value is negative meaning efflux of ODU from sediment.
                ! Multiply with - sign will convert it to +ve meaning it will effectively "increase" b_o2 i.e. benthic oxygen demand.
 
-               cobalt%b_o2(i,j)  = b_o2(i,j) ! - b_odu(i,j)  ! + max(0.0, - (cbed%odu_flux(i,j)))  !
+               cobalt%b_o2(i,j)  = b_o2(i,j) + (- b_odu(i,j)) 
 
 
                cobalt%b_nh4(i,j) = b_nh4(i,j)
