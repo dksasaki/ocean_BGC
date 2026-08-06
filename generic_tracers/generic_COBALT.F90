@@ -3009,18 +3009,35 @@ contains
     call g_tracer_get_values(tracer_list,'femd_btf','field',cobalt%f_femd_btf,isd,jsd)
     call g_tracer_get_values(tracer_list,'fesm_btf','field',cobalt%f_fesm_btf,isd,jsd)
 
-    do j = jsc, jec; do i = isc, iec  !{
-       if (grid_kmt(i,j) .gt. 0) then !{
-          cobalt%fntot_btm(i,j) = cobalt%f_ndet_btf(i,j,1) + cobalt%f_ndet_fast_btf(i,j,1) + cobalt%f_ndi_btf(i,j,1) + &
-            cobalt%f_nsm_btf(i,j,1) + cobalt%f_nmd_btf(i,j,1) + cobalt%f_nlg_btf(i,j,1)
-          cobalt%fptot_btm(i,j) = cobalt%f_pdet_btf(i,j,1) + cobalt%f_pdet_fast_btf(i,j,1) + cobalt%f_pdi_btf(i,j,1) + &
-            cobalt%f_psm_btf(i,j,1) + cobalt%f_pmd_btf(i,j,1) + cobalt%f_plg_btf(i,j,1)
-          cobalt%ffetot_btm(i,j) = cobalt%f_fedet_btf(i,j,1) + cobalt%f_fedi_btf(i,j,1) + &
-            cobalt%f_fesm_btf(i,j,1) + cobalt%f_femd_btf(i,j,1) + cobalt%f_felg_btf(i,j,1)
-          cobalt%fsitot_btm(i,j) = cobalt%f_sidet_btf(i,j,1) + cobalt%f_silg_btf(i,j,1) + &
-            cobalt%f_simd_btf(i,j,1)
-       endif !}
-    enddo; enddo  !} i, j
+    !DKSmod adjust bottom concentrations by including kelp (generic_COBALT_update_from_bottom)
+    if (.not. cobalt%do_external_source) then
+      do j = jsc, jec; do i = isc, iec  !{
+         if (grid_kmt(i,j) .gt. 0) then !{
+            cobalt%fntot_btm(i,j) = cobalt%f_ndet_btf(i,j,1) + cobalt%f_ndet_fast_btf(i,j,1) + cobalt%f_ndi_btf(i,j,1) + &
+               cobalt%f_nsm_btf(i,j,1) + cobalt%f_nmd_btf(i,j,1) + cobalt%f_nlg_btf(i,j,1)
+            cobalt%fptot_btm(i,j) = cobalt%f_pdet_btf(i,j,1) + cobalt%f_pdet_fast_btf(i,j,1) + cobalt%f_pdi_btf(i,j,1) + &
+               cobalt%f_psm_btf(i,j,1) + cobalt%f_pmd_btf(i,j,1) + cobalt%f_plg_btf(i,j,1)
+            cobalt%ffetot_btm(i,j) = cobalt%f_fedet_btf(i,j,1) + cobalt%f_fedi_btf(i,j,1) + &
+               cobalt%f_fesm_btf(i,j,1) + cobalt%f_femd_btf(i,j,1) + cobalt%f_felg_btf(i,j,1)
+            cobalt%fsitot_btm(i,j) = cobalt%f_sidet_btf(i,j,1) + cobalt%f_silg_btf(i,j,1) + &
+               cobalt%f_simd_btf(i,j,1)
+         endif !}
+      enddo; enddo  !} i, j
+    else
+      ! DMSmod external source with kelp TODO P and Fe
+      do j = jsc, jec; do i = isc, iec  !{
+         if (grid_kmt(i,j) .gt. 0) then !{
+            cobalt%fntot_btm(i,j) = cobalt%f_ndet_btf(i,j,1) + cobalt%f_ndet_fast_btf(i,j,1) + cobalt%f_ndi_btf(i,j,1) + &
+               cobalt%f_nsm_btf(i,j,1) + cobalt%f_nmd_btf(i,j,1) + cobalt%f_nlg_btf(i,j,1) + f_ndet_kelp(i,j)
+            cobalt%fptot_btm(i,j) = cobalt%f_pdet_btf(i,j,1) + cobalt%f_pdet_fast_btf(i,j,1) + cobalt%f_pdi_btf(i,j,1) + &
+               cobalt%f_psm_btf(i,j,1) + cobalt%f_pmd_btf(i,j,1) + cobalt%f_plg_btf(i,j,1)
+            cobalt%ffetot_btm(i,j) = cobalt%f_fedet_btf(i,j,1) + cobalt%f_fedi_btf(i,j,1) + &
+               cobalt%f_fesm_btf(i,j,1) + cobalt%f_femd_btf(i,j,1) + cobalt%f_felg_btf(i,j,1)
+            cobalt%fsitot_btm(i,j) = cobalt%f_sidet_btf(i,j,1) + cobalt%f_silg_btf(i,j,1) + &
+               cobalt%f_simd_btf(i,j,1)
+         endif !}
+      enddo; enddo  !} i, j
+ 
 
     used = g_send_data(cobalt%id_ffetot_btm,   cobalt%ffetot_btm,             &
     model_time, rmask = grid_tmask(:,:,1),&
@@ -4157,7 +4174,7 @@ contains
        ! remineralization of organic N to nh4 = difference between uptake and production
        ! bact(1)%jprod_n < 0 results in dissolved organic matter production addressed later
        bact(1)%jprod_nh4(i,j,k) = bact(1)%juptake_ldon(i,j,k) - max(bact(1)%jprod_n(i,j,k),0.0)
-       cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + bact(1)%jprod_nh4(i,j,k)
+       cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + bact(1)%jprod_nh4(i,j,k)  !DKSmod TODO include jprod_nh4_kelp?
 
        if (cobalt%f_o2(i,j,k) .gt. cobalt%o2_min) then  !{
           ! aerobic remineralization, nh4 production, o2 respired
@@ -4165,7 +4182,7 @@ contains
        else
           ! low o2 leads to water column denitrification. nh4 is created, but no o2 is used
           cobalt%jno3denit_wc(i,j,k) = cobalt%jno3denit_wc(i,j,k) + &
-                                       bact(1)%jprod_nh4(i,j,k)*cobalt%n_2_n_denit
+                                       bact(1)%jprod_nh4(i,j,k)*cobalt%n_2_n_denit  !DKSmod TODO include jprod_nh4_kelp?
        endif  !}
 
        ! produce phosphate
@@ -5164,13 +5181,13 @@ contains
             ! remineralization to mimic the effect of a sequestration agent, and is a tunable
             ! namelist parameter. The depth ramp zbot/(zbot+remin_ramp_scale) is omitted
             ! since deposition occurs at the seafloor where it approaches 1.
-            cobalt%jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,k) * &
+            jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,k) * &
                cobalt%f_o2(i,j,k) / ( cobalt%k_o2 + cobalt%f_o2(i,j,k) ) * &
-               max(0.0, cobalt%f_ndet_kelp(i,j) * (1.0 - rp_kelp_agent)) ! DKSmod TODO define rp_kelp_agent
+               max(0.0, f_ndet_kelp(i,j) * (1.0 - rp_kelp_agent)) ! DKSmod TODO define rp_kelp_agent
 
-            cobalt%jprod_nh4_kelp(i,j) = cobalt%jprod_nh4_kelp(i,j) + cobalt%jremin_ndet_kelp(i,j)
+            jprod_nh4_kelp(i,j) = jprod_nh4_kelp(i,j) + jremin_ndet_kelp(i,j)
             cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + &
-               (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k) + cobalt%jremin_ndet_kelp(i,j)) * cobalt%o2_2_nh4
+               (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k) + jremin_ndet_kelp(i,j)) * cobalt%o2_2_nh4
          end if !}
 
       
@@ -5200,16 +5217,16 @@ contains
           cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet(i,j,k) +&
                                     cobalt%jremin_ndet_fast(i,j,k)
          else !}{
-          cobalt%jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%f_ndet_kelp(i,j) * &
+          jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * f_ndet_kelp(i,j) * &
                                         (cobalt%o2_min / (cobalt%k_o2 + cobalt%o2_min)) * &
                                         (cobalt%f_no3(i,j,k) / (cobalt%k_no3_denit + cobalt%f_no3(i,j,k))) * &
                                         (1.0 - rp_kelp_agent)
           cobalt%jno3denit_wc(i,j,k) = cobalt%jno3denit_wc(i,j,k) + &
                                        (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k) + &
-                                       cobalt%jremin_ndet_kelp(i,j)) * cobalt%n_2_n_denit
+                                       jremin_ndet_kelp(i,j)) * cobalt%n_2_n_denit
           cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet(i,j,k) + &
                                     cobalt%jremin_ndet_fast(i,j,k)
-          cobalt%jprod_nh4_kelp(i,j) = cobalt%jprod_nh4_kelp(i,j) + cobalt%jremin_ndet_kelp(i,j) 
+          jprod_nh4_kelp(i,j) = jprod_nh4_kelp(i,j) + jremin_ndet_kelp(i,j) 
 
          end if  !}
        endif !}
@@ -5249,7 +5266,7 @@ contains
     ! This routine applies a fixed ratio between POC remineralization and additional CaCO3 dissolution
 
    if (cobalt%do_resp_ca_diss) then
-      if (.not. cobalt%do_external) then
+      if (.not. cobalt%do_external_source) then
          ! DKSmod original COBALT behavior (CaCO3 dissolution)
          do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
             cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
@@ -5275,10 +5292,10 @@ contains
                else
                   cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
                                                    cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * &
-                                                   (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_kelp(i,j))
+                                                   (cobalt%jremin_ndet(i,j,k) + jremin_ndet_kelp(i,j))
                   cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
                                                    cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * &
-                                                   (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_kelp(i,j))
+                                                   (cobalt%jremin_ndet(i,j,k) + jremin_ndet_kelp(i,j))
                end if
             enddo; enddo; enddo  !} i,j,k
       endif
@@ -5439,17 +5456,27 @@ contains
     do j = jsc, jec; do i = isc, iec  !{
        if (grid_kmt(i,j) .gt. 0) then !{
 
-          ! Add the phytoplankton fluxes to the detritus fluxes to get total flux to benthos
-          cobalt%fntot_btm(i,j) = cobalt%f_ndet_btf(i,j,1) + cobalt%f_ndet_fast_btf(i,j,1) + cobalt%f_ndi_btf(i,j,1) + &
-            cobalt%f_nsm_btf(i,j,1) + cobalt%f_nmd_btf(i,j,1) + cobalt%f_nlg_btf(i,j,1)
-          cobalt%fptot_btm(i,j) = cobalt%f_pdet_btf(i,j,1) + cobalt%f_pdet_fast_btf(i,j,1) + cobalt%f_pdi_btf(i,j,1) + &
-            cobalt%f_psm_btf(i,j,1) + cobalt%f_pmd_btf(i,j,1) + cobalt%f_plg_btf(i,j,1)
-          cobalt%ffetot_btm(i,j) = cobalt%f_fedet_btf(i,j,1) + cobalt%f_fedi_btf(i,j,1) + &
-            cobalt%f_fesm_btf(i,j,1) + cobalt%f_femd_btf(i,j,1) + cobalt%f_felg_btf(i,j,1)
-          cobalt%fsitot_btm(i,j) = cobalt%f_sidet_btf(i,j,1) + cobalt%f_silg_btf(i,j,1) + &
-            cobalt%f_simd_btf(i,j,1)
+         ! DKSmod fntot_btm -> included f_ndet_kelp (which already is in the bottom)
+         ! Add the phytoplankton fluxes to the detritus fluxes to get total flux to benthos
+         if (.not. cobalt%do_external_source) then
+            cobalt%fntot_btm(i,j) = cobalt%f_ndet_btf(i,j,1) + cobalt%f_ndet_fast_btf(i,j,1) + cobalt%f_ndi_btf(i,j,1) + &
+               cobalt%f_nsm_btf(i,j,1) + cobalt%f_nmd_btf(i,j,1) + cobalt%f_nlg_btf(i,j,1)
+            cobalt%fptot_btm(i,j) = cobalt%f_pdet_btf(i,j,1) + cobalt%f_pdet_fast_btf(i,j,1) + cobalt%f_pdi_btf(i,j,1) + &
+               cobalt%f_psm_btf(i,j,1) + cobalt%f_pmd_btf(i,j,1) + cobalt%f_plg_btf(i,j,1)
+            cobalt%ffetot_btm(i,j) = cobalt%f_fedet_btf(i,j,1) + cobalt%f_fedi_btf(i,j,1) + &
+               cobalt%f_fesm_btf(i,j,1) + cobalt%f_femd_btf(i,j,1) + cobalt%f_felg_btf(i,j,1)
+            cobalt%fsitot_btm(i,j) = cobalt%f_sidet_btf(i,j,1) + cobalt%f_silg_btf(i,j,1) + &
+               cobalt%f_simd_btf(i,j,1)
+         else
+            cobalt%fntot_btm(i,j) = cobalt%f_ndet_btf(i,j,1) + cobalt%f_ndet_fast_btf(i,j,1) + cobalt%f_ndi_btf(i,j,1) + &
+               cobalt%f_nsm_btf(i,j,1) + cobalt%f_nmd_btf(i,j,1) + cobalt%f_nlg_btf(i,j,1) + f_ndet_kelp(i,j)
+            cobalt%fptot_btm(i,j) = cobalt%f_pdet_btf(i,j,1) + cobalt%f_pdet_fast_btf(i,j,1) + cobalt%f_pdi_btf(i,j,1) + &
+               cobalt%f_psm_btf(i,j,1) + cobalt%f_pmd_btf(i,j,1) + cobalt%f_plg_btf(i,j,1)
+            cobalt%ffetot_btm(i,j) = cobalt%f_fedet_btf(i,j,1) + cobalt%f_fedi_btf(i,j,1) + &
+               cobalt%f_fesm_btf(i,j,1) + cobalt%f_femd_btf(i,j,1) + cobalt%f_felg_btf(i,j,1)
+            cobalt%fsitot_btm(i,j) = cobalt%f_sidet_btf(i,j,1) + cobalt%f_silg_btf(i,j,1) + &
+               cobalt%f_simd_btf(i,j,1)
 
-         ! DKSmod fntot_btm -> include f_ndet_kelp (which already is in the bottom)
 
           ! Calculate the values of tracers influencing the sedimentary transformations
           ! and fluxes over a layer defined by "bottom_thickess".
@@ -5581,7 +5608,7 @@ contains
                   cobalt%n_2_n_denit*cobalt%btm_no3(i,j)/(cobalt%k_no3_denit + cobalt%btm_no3(i,j)))) * &
                   cobalt%zt(i,j,k) / (cobalt%z_denit + cobalt%zt(i,j,k))
 
-            ! DKSmod fno3denit_sed -> need to to include think abot btm_no3
+            ! DKSmod fno3denit_sed -> need to to include think abot btm_no3 
 
              ! Calculate the rate of organic matter degradation in the sediment after accounting for burial
              ! and denitrification.  Two pathways are tracked:
@@ -6269,8 +6296,8 @@ contains
       do j = jsc, jec; do i= isc, iec
          k = grid_kmt(i,j) !Get bottom layer
          if (mask_addition_t(i,j,1) .gt. 0.0) then
-            ndet_kelp =  n_det_override(i,j) * dt 
-            cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + ndet_kep
+            f_ndet_kelp(i,j) =  n_det_override(i,j) * dt 
+            cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + f_ndet_kelp
             cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
             cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
          endif
@@ -6279,11 +6306,11 @@ contains
       do j = jsc, jec; do i= isc, iec
          k = grid_kmt(i,j) !Get bottom layer
             if (mask_addition_t(i,j,1) .gt. 0.0) then
-               ndet_kelp =  n_det_override(i,j) * dt 
-               ! pre_totn(i,j,k) = pre_totn(i,j,k) + n_det_override(i,j) * dt 
+               !f_ndet_kelp(i,j) =  n_det_override(i,j) * dt
+               pre_totn(i,j,k) = pre_totn(i,j,k) +f_ndet_kelp(i,j)
                pre_totp(i,j,k) = pre_totp(i,j,k) + p_det_override(i,j) * dt
                pre_totfe(i,j,k) = pre_totfe(i,j,k) + fedet_override(i,j) *dt 
-               pre_totc(i,j,k) = pre_totc(i,j,k) + 9*ndet_kelp
+               pre_totc(i,j,k) = pre_totc(i,j,k) + 9*f_ndet_kelp(i,j)
 
             endif
          enddo; enddo !} i,j
@@ -6386,7 +6413,7 @@ contains
        ! Dissolved Inorganic Carbon
        !
 
-       cobalt%jdic(i,j,k) =(cobalt%c_2_n * (cobalt%jprod_nh4(i,j,k) - &  !jprod_nh4_kel DKS
+       cobalt%jdic(i,j,k) =(cobalt%c_2_n * (cobalt%jprod_nh4(i,j,k) - &  !DKSmod TODO jprod_nh4_kel 
           phyto(DIAZO)%juptake_no3(i,j,k) - phyto(LARGE)%juptake_no3(i,j,k) - &
           phyto(MEDIUM)%juptake_no3(i,j,k) - phyto(SMALL)%juptake_no3(i,j,k) - &
           phyto(DIAZO)%juptake_nh4(i,j,k) - phyto(LARGE)%juptake_nh4(i,j,k) - &
@@ -6900,7 +6927,7 @@ contains
              (phyto(SMALL)%juptake_nh4(i,j,k)+phyto(MEDIUM)%juptake_nh4(i,j,k)+phyto(LARGE)%juptake_nh4(i,j,k)+ &
               phyto(DIAZO)%juptake_nh4(i,j,k) )*rho_dzt(i,j,k) * grid_tmask(i,j,k)
           cobalt%wc_vert_int_jprod_nh4(i,j) = cobalt%wc_vert_int_jprod_nh4(i,j) +  &
-             cobalt%jprod_nh4(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
+             cobalt%jprod_nh4(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)  !DKSmod include jprod_nh4_kelp?
           cobalt%wc_vert_int_juptake_no3(i,j) = cobalt%wc_vert_int_juptake_no3(i,j) + &
              (phyto(SMALL)%juptake_no3(i,j,k) + phyto(MEDIUM)%juptake_no3(i,j,k) + phyto(LARGE)%juptake_no3(i,j,k) + &
               phyto(DIAZO)%juptake_no3(i,j,k))*rho_dzt(i,j,k) * grid_tmask(i,j,k)
@@ -6934,7 +6961,7 @@ contains
     do j = jsc, jec ; do i = isc, iec ; do k = 1, nk  !{
        cobalt%jdiss_cadet_calc_plus_btm(i,j,k)  = cobalt%jdiss_cadet_calc(i,j,k)
        cobalt%jdiss_cadet_arag_plus_btm(i,j,k)  = cobalt%jdiss_cadet_arag(i,j,k)
-       cobalt%jprod_nh4_plus_btm(i,j,k) = cobalt%jprod_nh4(i,j,k)
+       cobalt%jprod_nh4_plus_btm(i,j,k) = cobalt%jprod_nh4(i,j,k) 
        cobalt%jalk_plus_btm(i,j,k)  = cobalt%jalk(i,j,k)
        cobalt%jdic_plus_btm(i,j,k)  = cobalt%jdic(i,j,k)
        cobalt%jfed_plus_btm(i,j,k)  = cobalt%jfed(i,j,k)
