@@ -3567,6 +3567,16 @@ contains
          endif
       enddo; enddo !} i,j
 
+      do j = jsc, jec; do i= isc, iec
+         k = grid_kmt(i,j) !Get bottom layer
+         if (mask_addition_t(i,j,1) .gt. 0.0) then
+            f_ndet_kelp(i,j) =  n_det_override(i,j) * dt 
+            ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + f_ndet_kelp
+            cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
+            cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
+         endif
+      enddo; enddo !} i,j
+
    end if
 !
 !
@@ -4174,7 +4184,7 @@ contains
        ! remineralization of organic N to nh4 = difference between uptake and production
        ! bact(1)%jprod_n < 0 results in dissolved organic matter production addressed later
        bact(1)%jprod_nh4(i,j,k) = bact(1)%juptake_ldon(i,j,k) - max(bact(1)%jprod_n(i,j,k),0.0)
-       cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + bact(1)%jprod_nh4(i,j,k)  !DKSmod TODO include jprod_nh4_kelp?
+       cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + bact(1)%jprod_nh4(i,j,k)
 
        if (cobalt%f_o2(i,j,k) .gt. cobalt%o2_min) then  !{
           ! aerobic remineralization, nh4 production, o2 respired
@@ -4182,7 +4192,7 @@ contains
        else
           ! low o2 leads to water column denitrification. nh4 is created, but no o2 is used
           cobalt%jno3denit_wc(i,j,k) = cobalt%jno3denit_wc(i,j,k) + &
-                                       bact(1)%jprod_nh4(i,j,k)*cobalt%n_2_n_denit  !DKSmod TODO include jprod_nh4_kelp?
+                                       bact(1)%jprod_nh4(i,j,k)*cobalt%n_2_n_denit
        endif  !}
 
        ! produce phosphate
@@ -5083,8 +5093,6 @@ contains
     ! Dunne et al., 2005: https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2004GB002390
     !
 
-    if (.not. cobalt%do_external_source) then
-      ! original COBALT implementation
       do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
          cobalt%expkreminT(i,j,k) = exp(cobalt%kappa_remin * Temp(i,j,k))
          ! Calculate remineralization under aerobic remineralization
@@ -5103,7 +5111,13 @@ contains
             cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + &
                (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)) * cobalt%o2_2_nh4
 
-
+            if (cobalt%do_external_source .and. k .eq. grid_kmt(i,j)) then
+               jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,k) * &
+                                       cobalt%f_o2(i,j,k) / ( cobalt%k_o2 + cobalt%f_o2(i,j,k) ) * &
+                                       max(0.0, f_ndet_kelp(i,j) * (1.0 - rp_kelp_agent))
+               jprod_nh4_kelp(i,j) = jprod_nh4_kelp(i,j) + jremin_ndet_kelp(i,j)
+               cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + jremin_ndet_kelp(i,j) * cobalt%o2_2_nh4
+            endif
 
          ! Calculate remineralization under anaerobic conditions
          else !}{
@@ -5121,6 +5135,18 @@ contains
             cobalt%jno3denit_wc(i,j,k) = cobalt%jno3denit_wc(i,j,k) + &
                (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)) * cobalt%n_2_n_denit
             cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)
+
+
+            if (cobalt%do_external_source .and. k .eq. grid_kmt(i,j)) then
+               jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * f_ndet_kelp(i,j) * &
+                                       (cobalt%o2_min / (cobalt%k_o2 + cobalt%o2_min)) * &
+                                       (cobalt%f_no3(i,j,k) / (cobalt%k_no3_denit + cobalt%f_no3(i,j,k))) * &
+                                       (1.0 - rp_kelp_agent)
+               cobalt%jno3denit_wc(i,j,k) = cobalt%jno3denit_wc(i,j,k) + &
+                                          jremin_ndet_kelp(i,j) * cobalt%n_2_n_denit
+               jprod_nh4_kelp(i,j) = jprod_nh4_kelp(i,j) + jremin_ndet_kelp(i,j)
+            endif
+
 
          endif !}
 
@@ -5144,121 +5170,11 @@ contains
 
          cobalt%jprod_fed(i,j,k) = cobalt%jprod_fed(i,j,k) + cobalt%jremin_fedet(i,j,k)
 
-      enddo; enddo; enddo  !} i,j,k
-
-   else
-    ! implementation considering external source of kelp detritus
-    do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
-       cobalt%expkreminT(i,j,k) = exp(cobalt%kappa_remin * Temp(i,j,k))
-
-       ! Calculate remineralization under aerobic remineralization
-       if (cobalt%f_o2(i,j,k) .gt. cobalt%o2_min) then  !{
-          cobalt%jremin_ndet(i,j,k) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,k) * &
-               zbot(i,j,k)/(zbot(i,j,k) + cobalt%remin_ramp_scale) * cobalt%f_o2(i,j,k) / &
-               ( cobalt%k_o2 + cobalt%f_o2(i,j,k) )*max( 0.0, cobalt%f_ndet(i,j,k) - &
-               cobalt%rpcaco3*(cobalt%f_cadet_arag(i,j,k) + cobalt%f_cadet_calc(i,j,k)) - &
-               cobalt%rplith*cobalt%f_lithdet(i,j,k) - cobalt%rpsio2*cobalt%f_sidet(i,j,k) )
-         ! Adding in the remineralization from fast sinking detritus
-          ! Unprotected organic matter assumed to decay at the same rate (gamma_ndet) whether it sinks quickly or not
-         cobalt%jremin_ndet_fast(i,j,k) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,k) * &
-              cobalt%f_ndet_fast(i,j,k) * (cobalt%f_o2(i,j,k) / (cobalt%k_o2 + cobalt%f_o2(i,j,k)))
-         ! Augment total nh4 production and o2 consumption
-         cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)
-
-         ! DKSmod treating deepest water grid with external source considerations (kelp detritus)
-         ! DKSmod jremin_ndet_kelp(i,j) = follow jremin_ndet_fast and use f_ndet_kelp
-         ! DKSmod jprod_nh4_kelp(i,j) = follow jprod_nh4 
-         ! DKSmod jo2resp_wc need to update, while considering jremin_ndet_kelp
-
-         if (k .ne.grid_kmt(i,j) ) then !{ 
-            ! Augment total nh4 production and o2 consumption
-            cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + &
-               (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)) * cobalt%o2_2_nh4
-         else !}{
-            ! DKSmod: Kelp detritus remineralization at the bottom cell (kbot).
-            ! Follows jremin_ndet_fast (aerobic, no mineral ballast protection) but applied to
-            ! the 2D bottom field f_ndet_kelp. The factor (1 - rp_kelp_agent) reduces
-            ! remineralization to mimic the effect of a sequestration agent, and is a tunable
-            ! namelist parameter. The depth ramp zbot/(zbot+remin_ramp_scale) is omitted
-            ! since deposition occurs at the seafloor where it approaches 1.
-            jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,k) * &
-               cobalt%f_o2(i,j,k) / ( cobalt%k_o2 + cobalt%f_o2(i,j,k) ) * &
-               max(0.0, f_ndet_kelp(i,j) * (1.0 - rp_kelp_agent)) ! DKSmod TODO define rp_kelp_agent
-
-            jprod_nh4_kelp(i,j) = jprod_nh4_kelp(i,j) + jremin_ndet_kelp(i,j)
-            cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + &
-               (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k) + jremin_ndet_kelp(i,j)) * cobalt%o2_2_nh4
-         end if !}
-
-      
-
-       ! Calculate remineralization under anaerobic conditions
-       else !}{
-         cobalt%jremin_ndet(i,j,k) = cobalt%gamma_ndet * cobalt%o2_min / &
-               (cobalt%k_o2 + cobalt%o2_min)* &
-               cobalt%f_no3(i,j,k) / (cobalt%k_no3_denit + cobalt%f_no3(i,j,k))* &
-               max(0.0, cobalt%f_ndet(i,j,k) - &
-               cobalt%rpcaco3*(cobalt%f_cadet_arag(i,j,k) + cobalt%f_cadet_calc(i,j,k)) - &
-               cobalt%rplith*cobalt%f_lithdet(i,j,k) - cobalt%rpsio2*cobalt%f_sidet(i,j,k) )
-         ! Adding in the remineralization from fast sinking detritus
-         cobalt%jremin_ndet_fast(i,j,k) = cobalt%gamma_ndet * cobalt%f_ndet_fast(i,j,k) * &
-               (cobalt%o2_min / (cobalt%k_o2 + cobalt%o2_min)) * &
-               (cobalt%f_no3(i,j,k) / (cobalt%k_no3_denit + cobalt%f_no3(i,j,k)))
-
-         ! DKSmod treating deepest water grid with external source considerations (kelp detritus)
-         ! DKSmod jremin_ndet_kelp(i,j) = follow jremin_ndet_fast and use f_ndet_kelp
-         ! DKSmod jprod_nh4_kelp(i,j) = follow jprod_nh4 
-         ! DKSmod jo2resp_wc need to update, while considering jremin_ndet_kelp
-
-         if (k .ne.grid_kmt(i,j) ) then !{ 
-          ! Augment total nh4 production and no3 consumption
-          cobalt%jno3denit_wc(i,j,k) = cobalt%jno3denit_wc(i,j,k) + &
-             (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)) * cobalt%n_2_n_denit
-          cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet(i,j,k) +&
-                                    cobalt%jremin_ndet_fast(i,j,k)
-         else !}{
-          jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * f_ndet_kelp(i,j) * &
-                                        (cobalt%o2_min / (cobalt%k_o2 + cobalt%o2_min)) * &
-                                        (cobalt%f_no3(i,j,k) / (cobalt%k_no3_denit + cobalt%f_no3(i,j,k))) * &
-                                        (1.0 - rp_kelp_agent)
-          cobalt%jno3denit_wc(i,j,k) = cobalt%jno3denit_wc(i,j,k) + &
-                                       (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k) + &
-                                       jremin_ndet_kelp(i,j)) * cobalt%n_2_n_denit
-          cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet(i,j,k) + &
-                                    cobalt%jremin_ndet_fast(i,j,k)
-          jprod_nh4_kelp(i,j) = jprod_nh4_kelp(i,j) + jremin_ndet_kelp(i,j) 
-
-         end if  !}
-       endif !}
-
-
-
-       ! P is assumed to be remineralized in direct proportion to N, resulting in PO4 release
-       cobalt%jremin_pdet(i,j,k) = cobalt%jremin_ndet(i,j,k) / &
-	       (cobalt%f_ndet(i,j,k) + epsln) * cobalt%f_pdet(i,j,k)
-       cobalt%jremin_pdet_fast(i,j,k) = cobalt%jremin_ndet_fast(i,j,k) / &
-           (cobalt%f_ndet_fast(i,j,k) + epsln) * cobalt%f_pdet_fast(i,j,k)
-
-
-       cobalt%jprod_po4(i,j,k) = cobalt%jprod_po4(i,j,k) + cobalt%jremin_pdet(i,j,k) + cobalt%jremin_pdet_fast(i,j,k)
-
-       ! Fe is assumed to be remineralized in proportion to N, but the proportionality is dictated by a
-       ! remineralization efficiency (remin_eff_fedet) which has been coarsely tuned to the ferrocline depth.
-       ! In addition, it was noted in COBALTv2 (see Stock et al., 2020) that the proportionality between organic matter
-       ! and iron remineralization can lead to iron minima in low oxygen zones where organic remineralization is low.
-       ! Since low O2 is actually conducive to solubilizing iron, O2 inhibition of iron remineralization was removed.
-       cobalt%jremin_fedet(i,j,k) = (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)) * &
-         (cobalt%k_o2 + max(cobalt%f_o2(i,j,k),cobalt%o2_min))/max(cobalt%f_o2(i,j,k),cobalt%o2_min) / &
-         (cobalt%f_ndet(i,j,k) + cobalt%f_ndet_fast(i,j,k) + epsln) * cobalt%remin_eff_fedet*cobalt%f_fedet(i,j,k)
-
-       cobalt%jprod_fed(i,j,k) = cobalt%jprod_fed(i,j,k) + cobalt%jremin_fedet(i,j,k)
-
-       !DKS  TODO jremin_pdet: need override jremin_pdet
-       !DKS  TODO jremin_fedet: need override jremin_fedet
+         !DKS  TODO jremin_pdet: need override jremin_pdet
+         !DKS  TODO jremin_fedet: need override jremin_fedet
 
       enddo; enddo; enddo  !} i,j,k
 
-   end if !}
 
     ! << Enhanced CaCO3 dissolution driven by localized undersaturation around sinking particles >>
     ! Add CaCO3 dissolution enhancement associated with organic matter (OM) decomposition
@@ -5266,8 +5182,6 @@ contains
     ! This routine applies a fixed ratio between POC remineralization and additional CaCO3 dissolution
 
    if (cobalt%do_resp_ca_diss) then
-      if (.not. cobalt%do_external_source) then
-         ! DKSmod original COBALT behavior (CaCO3 dissolution)
          do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
             cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
                                              cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * &
@@ -5275,31 +5189,20 @@ contains
             cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
                                              cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * &
                                              cobalt%jremin_ndet(i,j,k)
-         enddo; enddo; enddo  !} i,j,k
-      else
-         ! DKSmod adding external source of kelp detrius behavior
-         ! DKSmod modified jdiss_cadet_arag to include jremin_ndet_kelp
-         ! DKSmod modified jdiss_cadet_calc to include jremin_ndet_kelp
 
-         do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
-               if (k .ne. grid_kmt(i,j)) then
-                  cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
-                                                   cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * &
-                                                   cobalt%jremin_ndet(i,j,k)
-                  cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
-                                                   cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * &
-                                                   cobalt%jremin_ndet(i,j,k)
-               else
-                  cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
-                                                   cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * &
-                                                   (cobalt%jremin_ndet(i,j,k) + jremin_ndet_kelp(i,j))
-                  cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
-                                                   cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * &
-                                                   (cobalt%jremin_ndet(i,j,k) + jremin_ndet_kelp(i,j))
-               end if
-            enddo; enddo; enddo  !} i,j,k
-      endif
-   endif
+            if (cobalt%do_external_source .and. k .eq. grid_kmt(i,j)) then
+               ! DKSmod adding external source of kelp detrius behavior
+               ! DKSmod modified jdiss_cadet_arag to include jremin_ndet_kelp
+               ! DKSmod modified jdiss_cadet_calc to include jremin_ndet_kelp
+               cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
+                  cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * jremin_ndet_kelp(i,j)
+               cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
+                  cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * jremin_ndet_kelp(i,j)
+            endif
+            
+         enddo; enddo; enddo  !} i,j,k
+   end if
+
 
     ! >>
 
@@ -6184,9 +6087,19 @@ contains
        cobalt%jnh4(i,j,k) = cobalt%jprod_nh4(i,j,k) - phyto(DIAZO)%juptake_nh4(i,j,k) - &
                             phyto(LARGE)%juptake_nh4(i,j,k) - phyto(MEDIUM)%juptake_nh4(i,j,k) - &
                             phyto(SMALL)%juptake_nh4(i,j,k) - &
-                            cobalt%juptake_nh4nitrif(i,j,k) - cobalt%juptake_nh4amx(i,j,k)
+                            cobalt%juptake_nh4nitrif(i,j,k) - cobalt%juptake_nh4amx(i,j,k) ! DKSmod TODO include jprod_nh4?
+
+       ! DKSmod: add kelp NH4 production at bottom cell
+       if (cobalt%do_external_source) then
+          if (k .eq. grid_kmt(i,j)) then
+             cobalt%jnh4(i,j,k) = cobalt%jnh4(i,j,k) + jprod_nh4_kelp(i,j)
+          endif
+       endif
+
        cobalt%jnh4h(i,j,k) = cobalt%jnh4(i,j,k) * dzt(i,j,k)
        cobalt%p_nh4(i,j,k,tau) = cobalt%p_nh4(i,j,k,tau) + cobalt%jnh4(i,j,k) * dt * grid_tmask(i,j,k)
+
+       
        !
        ! PO4
        !
@@ -6293,15 +6206,15 @@ contains
    
    ! DKS 2025/02/18 added detritus variables
     if (cobalt%do_external_source) then
-      do j = jsc, jec; do i= isc, iec
-         k = grid_kmt(i,j) !Get bottom layer
-         if (mask_addition_t(i,j,1) .gt. 0.0) then
-            f_ndet_kelp(i,j) =  n_det_override(i,j) * dt 
-            cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + f_ndet_kelp
-            cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
-            cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
-         endif
-      enddo; enddo !} i,j
+      ! do j = jsc, jec; do i= isc, iec
+      !    k = grid_kmt(i,j) !Get bottom layer
+      !    if (mask_addition_t(i,j,1) .gt. 0.0) then
+      !       f_ndet_kelp(i,j) =  n_det_override(i,j) * dt 
+      !       ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + f_ndet_kelp
+      !       cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
+      !       cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
+      !    endif
+      ! enddo; enddo !} i,j
 
       do j = jsc, jec; do i= isc, iec
          k = grid_kmt(i,j) !Get bottom layer
@@ -6316,6 +6229,7 @@ contains
          enddo; enddo !} i,j
 
          
+      
       deallocate(n_det_override)
       deallocate(p_det_override)
       deallocate(fedet_override)
@@ -6413,7 +6327,7 @@ contains
        ! Dissolved Inorganic Carbon
        !
 
-       cobalt%jdic(i,j,k) =(cobalt%c_2_n * (cobalt%jprod_nh4(i,j,k) - &  !DKSmod TODO jprod_nh4_kel 
+       cobalt%jdic(i,j,k) = (cobalt%c_2_n * (cobalt%jprod_nh4(i,j,k) - &
           phyto(DIAZO)%juptake_no3(i,j,k) - phyto(LARGE)%juptake_no3(i,j,k) - &
           phyto(MEDIUM)%juptake_no3(i,j,k) - phyto(SMALL)%juptake_no3(i,j,k) - &
           phyto(DIAZO)%juptake_nh4(i,j,k) - phyto(LARGE)%juptake_nh4(i,j,k) - &
@@ -6422,9 +6336,17 @@ contains
           cobalt%jdiss_cadet_arag(i,j,k) + cobalt%jdiss_cadet_calc(i,j,k) - &
           cobalt%jprod_cadet_arag(i,j,k) - cobalt%jprod_cadet_calc(i,j,k) - &
           cobalt%jdic_caco3_nerbur(i,j,k))
+
+       ! DKSmod: add kelp remineralization DIC contribution at bottom cell
+       if (cobalt%do_external_source) then
+          if (k .eq. grid_kmt(i,j)) then
+             cobalt%jdic(i,j,k) = cobalt%jdic(i,j,k) + c_2_n_kelp * jprod_nh4_kelp(i,j)
+          endif
+       endif
+
+
        cobalt%jdich(i,j,k) = cobalt%jdic(i,j,k) * dzt(i,j,k)
        cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) + cobalt%jdic(i,j,k) * dt * grid_tmask(i,j,k)
-      ! DKSmod cobalt%jdic(i,j,k) need to include c_2_n_kelp and jprod_nh4_kelp
     enddo; enddo ; enddo !} i,j,k
 !
     if (cobalt%do_external_sink) then
@@ -6636,6 +6558,12 @@ contains
          endif
       endif
     enddo; enddo ; enddo  !} i,j,k
+
+    if (cobalt%do_external_source) then
+       deallocate(jremin_ndet_kelp)
+       deallocate(jprod_nh4_kelp)
+       deallocate(f_ndet_kelp)
+    endif
 
     !
     !----------------
