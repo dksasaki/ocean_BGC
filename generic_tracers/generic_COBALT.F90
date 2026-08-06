@@ -5166,7 +5166,7 @@ contains
             ! since deposition occurs at the seafloor where it approaches 1.
             cobalt%jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,k) * &
                cobalt%f_o2(i,j,k) / ( cobalt%k_o2 + cobalt%f_o2(i,j,k) ) * &
-               max(0.0, cobalt%f_ndet_kelp(i,j) * (1.0 - rp_kelp_agent))
+               max(0.0, cobalt%f_ndet_kelp(i,j) * (1.0 - rp_kelp_agent)) ! DKSmod TODO define rp_kelp_agent
 
             cobalt%jprod_nh4_kelp(i,j) = cobalt%jprod_nh4_kelp(i,j) + cobalt%jremin_ndet_kelp(i,j)
             cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + &
@@ -5247,19 +5247,42 @@ contains
     ! Add CaCO3 dissolution enhancement associated with organic matter (OM) decomposition
     !
     ! This routine applies a fixed ratio between POC remineralization and additional CaCO3 dissolution
-    if (cobalt%do_resp_ca_diss) then
-        do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
-           cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
-                                            cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * &
-                                            cobalt%jremin_ndet(i,j,k)
-           cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
-                                            cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * &
-                                            cobalt%jremin_ndet(i,j,k)
-        enddo; enddo; enddo  !} i,j,k
-    endif
 
-    ! DKSmod need to modify jdiss_cadet_arag to include jremin_ndet_kelp
-    ! DKSmod need to modify jdiss_cadet_calc to include jremin_ndet_kelp
+   if (cobalt%do_resp_ca_diss) then
+      if (.not. cobalt%do_external) then
+         ! DKSmod original COBALT behavior (CaCO3 dissolution)
+         do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
+            cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
+                                             cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * &
+                                             cobalt%jremin_ndet(i,j,k)
+            cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
+                                             cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * &
+                                             cobalt%jremin_ndet(i,j,k)
+         enddo; enddo; enddo  !} i,j,k
+      else
+         ! DKSmod adding external source of kelp detrius behavior
+         ! DKSmod modified jdiss_cadet_arag to include jremin_ndet_kelp
+         ! DKSmod modified jdiss_cadet_calc to include jremin_ndet_kelp
+
+         do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
+               if (k .ne. grid_kmt(i,j)) then
+                  cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
+                                                   cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * &
+                                                   cobalt%jremin_ndet(i,j,k)
+                  cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
+                                                   cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * &
+                                                   cobalt%jremin_ndet(i,j,k)
+               else
+                  cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
+                                                   cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * &
+                                                   (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_kelp(i,j))
+                  cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
+                                                   cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * &
+                                                   (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_kelp(i,j))
+               end if
+            enddo; enddo; enddo  !} i,j,k
+      endif
+   endif
 
     ! >>
 
@@ -5338,7 +5361,7 @@ contains
        ! Add a limiter so you don't scavenge more than half the available iron in a single time step.
        cobalt%jfe_ads(i,j,k) = min(cobalt%jfe_ads(i,j,k),cobalt%f_fed(i,j,k)/(2.0*dt))
 
-       ! DKSmod jfe_ads should also consider f_ndet_kelp
+       ! DKSmod TODO jfe_ads should also consider f_fedet_kelp
 
     enddo; enddo; enddo  !} i,j,k
 
@@ -5485,6 +5508,7 @@ contains
    ! denitrification, and remineralization via sulfate reduction.  Note that the latter pathway is effectively
    ! a "catch all" for any other anaerobic pathway and the sulfate cycle is not explicitly modeled.
 
+    ! DKSmod (entering CBED)
    if (do_CBED) then
       !Note that CBED subroutine MUST set the '_btm' fluxes
       call generic_CBED_update_from_source(tracer_list, cobalt, phyto, ilb, jlb, mask_coast, &
