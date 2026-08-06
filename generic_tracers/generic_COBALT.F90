@@ -5092,7 +5092,6 @@ contains
     ! Klaas and Archer, 2002: https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2001GB001765
     ! Dunne et al., 2005: https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2004GB002390
     !
-
       do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
          cobalt%expkreminT(i,j,k) = exp(cobalt%kappa_remin * Temp(i,j,k))
          ! Calculate remineralization under aerobic remineralization
