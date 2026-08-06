@@ -5174,15 +5174,14 @@ contains
     ! Add CaCO3 dissolution enhancement associated with organic matter (OM) decomposition
     !
     ! This routine applies a fixed ratio between POC remineralization and additional CaCO3 dissolution
-
-   if (cobalt%do_resp_ca_diss) then
-         do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
-            cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
-                                             cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * &
-                                             cobalt%jremin_ndet(i,j,k)
-            cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
-                                             cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * &
-                                             cobalt%jremin_ndet(i,j,k)
+    if (cobalt%do_resp_ca_diss) then
+        do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
+           cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
+                                            cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * &
+                                            cobalt%jremin_ndet(i,j,k)
+           cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
+                                            cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * &
+                                            cobalt%jremin_ndet(i,j,k)
 
             if (cobalt%do_external_source .and. k .eq. grid_kmt(i,j)) then
                ! DKSmod adding external source of kelp detrius behavior
@@ -5193,9 +5192,9 @@ contains
                cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
                   cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * jremin_ndet_kelp(i,j)
             endif
-            
-         enddo; enddo; enddo  !} i,j,k
-   end if
+
+        enddo; enddo; enddo  !} i,j,k
+    endif
 
 
     ! >>
