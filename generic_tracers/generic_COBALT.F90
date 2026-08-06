@@ -5094,7 +5094,7 @@ contains
     !
        cobalt%expkreminT(i,j,k) = exp(cobalt%kappa_remin * Temp(i,j,k))
        ! Calculate remineralization under aerobic remineralization
-       if (cobalt%f_o2(i,j,k) .gt. cobalt%o2_min) then  !{
+        if (cobalt%f_o2(i,j,k) .gt. cobalt%o2_min) then  !{
           cobalt%jremin_ndet(i,j,k) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,k) * &
                zbot(i,j,k)/(zbot(i,j,k) + cobalt%remin_ramp_scale) * cobalt%f_o2(i,j,k) / &
                ( cobalt%k_o2 + cobalt%f_o2(i,j,k) )*max( 0.0, cobalt%f_ndet(i,j,k) - &
@@ -5117,8 +5117,8 @@ contains
                 cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + jremin_ndet_kelp(i,j) * cobalt%o2_2_nh4
             endif
 
-       ! Calculate remineralization under anaerobic conditions
-       else !}{
+        ! Calculate remineralization under anaerobic conditions
+        else !}{
           cobalt%jremin_ndet(i,j,k) = cobalt%gamma_ndet * cobalt%o2_min / &
                (cobalt%k_o2 + cobalt%o2_min)* &
                cobalt%f_no3(i,j,k) / (cobalt%k_no3_denit + cobalt%f_no3(i,j,k))* &
@@ -5147,25 +5147,22 @@ contains
         endif !}
 
 
-    ! P is assumed to be remineralized in direct proportion to N, resulting in PO4 release
-    cobalt%jremin_pdet(i,j,k) = cobalt%jremin_ndet(i,j,k) / &
-        (cobalt%f_ndet(i,j,k) + epsln) * cobalt%f_pdet(i,j,k)
-    cobalt%jremin_pdet_fast(i,j,k) = cobalt%jremin_ndet_fast(i,j,k) / &
-        (cobalt%f_ndet_fast(i,j,k) + epsln) * cobalt%f_pdet_fast(i,j,k)
+       ! P is assumed to be remineralized in direct proportion to N, resulting in PO4 release
+       cobalt%jremin_pdet(i,j,k) = cobalt%jremin_ndet(i,j,k) / &
+	       (cobalt%f_ndet(i,j,k) + epsln) * cobalt%f_pdet(i,j,k)
+       cobalt%jremin_pdet_fast(i,j,k) = cobalt%jremin_ndet_fast(i,j,k) / &
+           (cobalt%f_ndet_fast(i,j,k) + epsln) * cobalt%f_pdet_fast(i,j,k)
 
+       cobalt%jprod_po4(i,j,k) = cobalt%jprod_po4(i,j,k) + cobalt%jremin_pdet(i,j,k) + cobalt%jremin_pdet_fast(i,j,k)
 
-    cobalt%jprod_po4(i,j,k) = cobalt%jprod_po4(i,j,k) + cobalt%jremin_pdet(i,j,k) + cobalt%jremin_pdet_fast(i,j,k)
-
-    ! Fe is assumed to be remineralized in proportion to N, but the proportionality is dictated by a
-    ! remineralization efficiency (remin_eff_fedet) which has been coarsely tuned to the ferrocline depth.
-    ! In addition, it was noted in COBALTv2 (see Stock et al., 2020) that the proportionality between organic matter
-    ! and iron remineralization can lead to iron minima in low oxygen zones where organic remineralization is low.
-    ! Since low O2 is actually conducive to solubilizing iron, O2 inhibition of iron remineralization was removed.
-    cobalt%jremin_fedet(i,j,k) = (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)) * &
-        (cobalt%k_o2 + max(cobalt%f_o2(i,j,k),cobalt%o2_min))/max(cobalt%f_o2(i,j,k),cobalt%o2_min) / &
-        (cobalt%f_ndet(i,j,k) + cobalt%f_ndet_fast(i,j,k) + epsln) * cobalt%remin_eff_fedet*cobalt%f_fedet(i,j,k)
-
-    cobalt%jprod_fed(i,j,k) = cobalt%jprod_fed(i,j,k) + cobalt%jremin_fedet(i,j,k)
+       ! Fe is assumed to be remineralized in proportion to N, but the proportionality is dictated by a
+       ! remineralization efficiency (remin_eff_fedet) which has been coarsely tuned to the ferrocline depth.
+       ! In addition, it was noted in COBALTv2 (see Stock et al., 2020) that the proportionality between organic matter
+       ! and iron remineralization can lead to iron minima in low oxygen zones where organic remineralization is low.
+       ! Since low O2 is actually conducive to solubilizing iron, O2 inhibition of iron remineralization was removed.
+       cobalt%jremin_fedet(i,j,k) = (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)) * &
+         (cobalt%k_o2 + max(cobalt%f_o2(i,j,k),cobalt%o2_min))/max(cobalt%f_o2(i,j,k),cobalt%o2_min) / &
+         (cobalt%f_ndet(i,j,k) + cobalt%f_ndet_fast(i,j,k) + epsln) * cobalt%remin_eff_fedet*cobalt%f_fedet(i,j,k)
 
     !DKS  TODO jremin_pdet: need override jremin_pdet
     !DKS  TODO jremin_fedet: need override jremin_fedet
