@@ -3010,33 +3010,21 @@ contains
     call g_tracer_get_values(tracer_list,'fesm_btf','field',cobalt%f_fesm_btf,isd,jsd)
 
     !DKSmod adjust bottom concentrations by including kelp (generic_COBALT_update_from_bottom)
-    if (.not. cobalt%do_external_source) then
-      do j = jsc, jec; do i = isc, iec  !{
-         if (grid_kmt(i,j) .gt. 0) then !{
-            cobalt%fntot_btm(i,j) = cobalt%f_ndet_btf(i,j,1) + cobalt%f_ndet_fast_btf(i,j,1) + cobalt%f_ndi_btf(i,j,1) + &
-               cobalt%f_nsm_btf(i,j,1) + cobalt%f_nmd_btf(i,j,1) + cobalt%f_nlg_btf(i,j,1)
-            cobalt%fptot_btm(i,j) = cobalt%f_pdet_btf(i,j,1) + cobalt%f_pdet_fast_btf(i,j,1) + cobalt%f_pdi_btf(i,j,1) + &
-               cobalt%f_psm_btf(i,j,1) + cobalt%f_pmd_btf(i,j,1) + cobalt%f_plg_btf(i,j,1)
-            cobalt%ffetot_btm(i,j) = cobalt%f_fedet_btf(i,j,1) + cobalt%f_fedi_btf(i,j,1) + &
-               cobalt%f_fesm_btf(i,j,1) + cobalt%f_femd_btf(i,j,1) + cobalt%f_felg_btf(i,j,1)
-            cobalt%fsitot_btm(i,j) = cobalt%f_sidet_btf(i,j,1) + cobalt%f_silg_btf(i,j,1) + &
-               cobalt%f_simd_btf(i,j,1)
-         endif !}
-      enddo; enddo  !} i, j
-    else
-      ! DMSmod external source with kelp TODO P and Fe
-      do j = jsc, jec; do i = isc, iec  !{
-         if (grid_kmt(i,j) .gt. 0) then !{
-            cobalt%fntot_btm(i,j) = cobalt%f_ndet_btf(i,j,1) + cobalt%f_ndet_fast_btf(i,j,1) + cobalt%f_ndi_btf(i,j,1) + &
-               cobalt%f_nsm_btf(i,j,1) + cobalt%f_nmd_btf(i,j,1) + cobalt%f_nlg_btf(i,j,1) + f_ndet_kelp(i,j)
-            cobalt%fptot_btm(i,j) = cobalt%f_pdet_btf(i,j,1) + cobalt%f_pdet_fast_btf(i,j,1) + cobalt%f_pdi_btf(i,j,1) + &
-               cobalt%f_psm_btf(i,j,1) + cobalt%f_pmd_btf(i,j,1) + cobalt%f_plg_btf(i,j,1)
-            cobalt%ffetot_btm(i,j) = cobalt%f_fedet_btf(i,j,1) + cobalt%f_fedi_btf(i,j,1) + &
-               cobalt%f_fesm_btf(i,j,1) + cobalt%f_femd_btf(i,j,1) + cobalt%f_felg_btf(i,j,1)
-            cobalt%fsitot_btm(i,j) = cobalt%f_sidet_btf(i,j,1) + cobalt%f_silg_btf(i,j,1) + &
-               cobalt%f_simd_btf(i,j,1)
-         endif !}
-      enddo; enddo  !} i, j
+    do j = jsc, jec; do i = isc, iec  !{
+       if (grid_kmt(i,j) .gt. 0) then !{
+          cobalt%fntot_btm(i,j) = cobalt%f_ndet_btf(i,j,1) + cobalt%f_ndet_fast_btf(i,j,1) + cobalt%f_ndi_btf(i,j,1) + &
+            cobalt%f_nsm_btf(i,j,1) + cobalt%f_nmd_btf(i,j,1) + cobalt%f_nlg_btf(i,j,1)
+          cobalt%fptot_btm(i,j) = cobalt%f_pdet_btf(i,j,1) + cobalt%f_pdet_fast_btf(i,j,1) + cobalt%f_pdi_btf(i,j,1) + &
+            cobalt%f_psm_btf(i,j,1) + cobalt%f_pmd_btf(i,j,1) + cobalt%f_plg_btf(i,j,1)
+          cobalt%ffetot_btm(i,j) = cobalt%f_fedet_btf(i,j,1) + cobalt%f_fedi_btf(i,j,1) + &
+            cobalt%f_fesm_btf(i,j,1) + cobalt%f_femd_btf(i,j,1) + cobalt%f_felg_btf(i,j,1)
+          cobalt%fsitot_btm(i,j) = cobalt%f_sidet_btf(i,j,1) + cobalt%f_silg_btf(i,j,1) + &
+            cobalt%f_simd_btf(i,j,1)
+          if (cobalt%do_external_source) &
+             cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + f_ndet_kelp(i,j)
+          endif
+       endif !}
+    enddo; enddo  !} i, j
  
 
     used = g_send_data(cobalt%id_ffetot_btm,   cobalt%ffetot_btm,             &
