@@ -3560,7 +3560,7 @@ contains
       do j = jsc, jec; do i= isc, iec
          k = grid_kmt(i,j) !Get bottom layer
          if (mask_addition_t(i,j,1) .gt. 0.0) then
-            cobalt%f_ndet_kelp(i,j) =   = cobalt%f_ndet_kelp(i,j) + n_det_override(i,j) * dt 
+            cobalt%f_ndet_kelp(i,j) =  cobalt%f_ndet_kelp(i,j) + n_det_override(i,j) * dt 
             ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + cobalt%f_ndet_kelp
             cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
             cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
