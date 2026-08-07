@@ -6494,13 +6494,10 @@ contains
                     cobalt%p_nlgz(i,j,k,tau))*grid_tmask(i,j,k)
          ! DKSmod need to include p_ndet_kelp in post_totn
          if (cobalt%do_external_source) then
-            do j = jsc, jec; do i = isc, iec
-               k = grid_kmt(i,j)
-               if (k .gt. 0) then
-                  pre_totn(i,j,k) = pre_totn(i,j,k) + cobalt%f_ndet_kelp(i,j)
-                  pre_totc(i,j,k) = pre_totc(i,j,k) + c_2_n_kelp * cobalt%f_ndet_kelp(i,j)
+               if (k .eq. grid_kmt(i,j)) then
+                  post_totn(i,j,k) = post_totn(i,j,k) + cobalt%f_ndet_kelp(i,j)
+                  ! post_totc(i,j,k) = post_totc(i,j,k) + c_2_n_kelp * cobalt%f_ndet_kelp(i,j)
                endif
-            enddo; enddo
          endif
 
          imbal = (post_totn(i,j,k) - pre_totn(i,j,k) - net_srcn(i,j,k))*86400.0/dt*1.03e6
@@ -6518,6 +6515,15 @@ contains
 					cobalt%p_ndet_fast(i,j,k,tau) + &
                     cobalt%p_nsmz(i,j,k,tau) + cobalt%p_nmdz(i,j,k,tau) + &
                     cobalt%p_nlgz(i,j,k,tau)))*grid_tmask(i,j,k)
+
+         ! DKSmod need to include p_ndet_kelp * c_2_n_kelp in post_totc
+         if (cobalt%do_external_source) then
+               if (k .eq. grid_kmt(i,j)) then
+                  ! post_totn(i,j,k) = post_totn(i,j,k) + cobalt%f_ndet_kelp(i,j)
+                  post_totc(i,j,k) = post_totc(i,j,k) + c_2_n_kelp * cobalt%f_ndet_kelp(i,j)
+               endif
+         endif
+
         imbal = (post_totc(i,j,k) - pre_totc(i,j,k) - net_srcc(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
            call mpp_error(FATAL,&
