@@ -5154,6 +5154,8 @@ contains
          (cobalt%k_o2 + max(cobalt%f_o2(i,j,k),cobalt%o2_min))/max(cobalt%f_o2(i,j,k),cobalt%o2_min) / &
          (cobalt%f_ndet(i,j,k) + cobalt%f_ndet_fast(i,j,k) + epsln) * cobalt%remin_eff_fedet*cobalt%f_fedet(i,j,k)
 
+       cobalt%jprod_fed(i,j,k) = cobalt%jprod_fed(i,j,k) + cobalt%jremin_fedet(i,j,k)
+
     !DKS  TODO jremin_pdet: need override jremin_pdet
     !DKS  TODO jremin_fedet: need override jremin_fedet
 
