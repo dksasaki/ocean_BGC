@@ -3021,7 +3021,7 @@ contains
             cobalt%f_simd_btf(i,j,1)
 
           !DKSmod adjust bottom concentrations by including kelp (generic_COBALT_update_from_bottom)
-          if (cobalt%do_external_source) &
+          if (cobalt%do_external_source) then
              cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + cobalt%f_ndet_kelp(i,j)
           endif
        endif !}
