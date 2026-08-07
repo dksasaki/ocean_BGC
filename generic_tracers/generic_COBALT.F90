@@ -2382,16 +2382,6 @@ contains
          prog       = .true.)
       endif                                                   !RADIOCARBON>>
 
-   if (cobalt%do_external_source) then
-      call g_tracer_add(tracer_list, package_name,             &
-         name       = 'ndet_kelp',                           &
-         longname   = 'Kelp detritus nitrogen standing stock', &
-         units      = 'mol/kg',                              &
-         prog       = .true.,                                &
-         flux_bottom = .true.,                               &
-         init_value  = 0.0)
-   endif
-
     !===========================================================
     !Diagnostic Tracers
     !===========================================================
@@ -5775,10 +5765,6 @@ contains
        call g_tracer_get_pointer(tracer_list,'do14c','field',cobalt%p_do14c)
     endif
 
-   !  if (cobalt%do_external_source) then
-   !    call g_tracer_get_pointer(tracer_list, 'ndet_kelp', 'field', cobalt%p_ndet_kelp)
-   !  end if
-
     ! CAS calculate total N and P before source/sink
     ! calculate internal sources (those not applied as air-sea or benthos
     ! exchanges) to close the balance
@@ -8427,7 +8413,7 @@ contains
 
          allocate(cobalt%jremin_ndet_kelp(isd:ied, jsd:jed));  cobalt%jremin_ndet_kelp=0.0
          allocate(cobalt%jprod_nh4_kelp(isd:ied, jsd:jed));    cobalt%jprod_nh4_kelp=0.0
-         ! allocate(cobalt%f_ndet_kelp(isd:ied, jsd:jed));       cobalt%f_ndet_kelp=0.0
+         allocate(cobalt%f_ndet_kelp(isd:ied, jsd:jed));       cobalt%f_ndet_kelp=0.0
       end if
 
       ! DKS 2025/02/18 added detritus variables
