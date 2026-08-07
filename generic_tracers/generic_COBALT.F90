@@ -3528,6 +3528,9 @@ contains
 
 
     ! --- DKS 2025/02/18 added allocate local variables  --
+      c_2_n_kelp = 9.0
+      rp_kelp_agent = 0.0
+
     if (cobalt%do_external_source) then
       allocate(n_det_override(isc:iec,jsc:jec))
       allocate( p_det_override(isc:iec,jsc:jec))
@@ -3539,8 +3542,6 @@ contains
       ! allocate(jprod_nh4_kelp(isc:iec, jsc:jec))
       ! allocate(f_ndet_kelp(isc:iec, jsc:jec))
       
-      c_2_n_kelp = 9.0
-      rp_kelp_agent = 0.0
 
       n_det_override(:,:)    = 0.0
       p_det_override(:,:)    = 0.0
@@ -3549,7 +3550,6 @@ contains
 
       cobalt%jremin_ndet_kelp = 0.0
       cobalt%jprod_nh4_kelp   = 0.0
-      ! f_ndet_kelp      = 0.0
 
       call data_override('OCN', 'ndet_addition', cobalt%f_n_det_addition(isc:iec, jsc:jec), model_time,override=ndet_add_override)
       call data_override('OCN', 'pdet_addition', cobalt%f_pdet_addition(isc:iec, jsc:jec), model_time,override=pdet_add_override)
@@ -3572,8 +3572,8 @@ contains
          if (mask_addition_t(i,j,1) .gt. 0.0) then
             cobalt%f_ndet_kelp(i,j) =  cobalt%f_ndet_kelp(i,j) + n_det_override(i,j) * dt 
             ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + cobalt%f_ndet_kelp
-            cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
-            cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
+            ! cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
+            ! cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
          endif
       enddo; enddo !} i,j
 
@@ -5143,7 +5143,7 @@ contains
                                             cobalt%jremin_ndet_kelp(i,j) * cobalt%n_2_n_denit
                 cobalt%jprod_nh4_kelp(i,j) = cobalt%jprod_nh4_kelp(i,j) + cobalt%jremin_ndet_kelp(i,j)
 
-                cobalt%f_ndet_kelp(i,j) = cobalt%f_ndet_kelp(i,j) - cobalt%jremin_ndet_kelp(i,j) * dt
+               !  cobalt%f_ndet_kelp(i,j) = cobalt%f_ndet_kelp(i,j) - cobalt%jremin_ndet_kelp(i,j) * dt
 
             endif
 
@@ -6196,15 +6196,15 @@ contains
    
    ! DKS 2025/02/18 added detritus variables
     if (cobalt%do_external_source) then
-      ! do j = jsc, jec; do i= isc, iec
-      !    k = grid_kmt(i,j) !Get bottom layer
-      !    if (mask_addition_t(i,j,1) .gt. 0.0) then
-      !       cobalt%f_ndet_kelp(i,j) =  n_det_override(i,j) * dt 
-      !       ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + cobalt%f_ndet_kelp
-      !       cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
-      !       cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
-      !    endif
-      ! enddo; enddo !} i,j
+      do j = jsc, jec; do i= isc, iec
+         k = grid_kmt(i,j) !Get bottom layer
+         if (k .gt. 0 .and. mask_addition_t(i,j,1) .gt. 0.0) then
+            ! cobalt%f_ndet_kelp(i,j) =  n_det_override(i,j) * dt 
+            ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + cobalt%f_ndet_kelp
+            cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
+            cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
+         endif
+      enddo; enddo !} i,j
 
       do j = jsc, jec; do i= isc, iec
          k = grid_kmt(i,j) !Get bottom layer
