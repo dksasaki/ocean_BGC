@@ -5143,17 +5143,8 @@ contains
                                             cobalt%jremin_ndet_kelp(i,j) * cobalt%n_2_n_denit
                 cobalt%jprod_nh4_kelp(i,j) = cobalt%jprod_nh4_kelp(i,j) + cobalt%jremin_ndet_kelp(i,j)
 
-               if (isnan(cobalt%jprod_nh4_kelp(i,j))) then
-                  write(*,*) 'NaN in jprod_nh4_kelp at i,j=',i,j
-                  call mpp_error(FATAL,'NaN detected in jprod_nh4_kelp')
-               endif
+                cobalt%f_ndet_kelp(i,j) = cobalt%f_ndet_kelp(i,j) - cobalt%jremin_ndet_kelp(i,j) * dt
 
-               if (isnan(cobalt%f_ndet_kelp(i,j))) then
-                  write(*,'(a,2i5,4es14.6)') 'NaN in f_ndet_kelp at i,j,jremin,jprod_nh4=', &
-                     i, j, cobalt%jremin_ndet_kelp(i,j), cobalt%jprod_nh4_kelp(i,j), &
-                     cobalt%f_ndet_kelp(i,j), cobalt%f_o2(i,j,k)
-                  call mpp_error(FATAL, 'NaN detected in f_ndet_kelp')
-               endif
             endif
 
         endif !}
