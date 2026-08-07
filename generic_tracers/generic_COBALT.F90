@@ -3022,7 +3022,7 @@ contains
 
           !DKSmod adjust bottom concentrations by including kelp (generic_COBALT_update_from_bottom)
           if (cobalt%do_external_source) &
-             cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + f_ndet_kelp(i,j)
+             cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + cobalt%f_ndet_kelp(i,j)
           endif
        endif !}
     enddo; enddo  !} i, j
@@ -6492,7 +6492,7 @@ contains
                     cobalt%p_srdon(i,j,k,tau) + cobalt%p_ndet(i,j,k,tau) + &
 					cobalt%p_ndet_fast(i,j,k,tau) + &
                     cobalt%p_nsmz(i,j,k,tau) + cobalt%p_nmdz(i,j,k,tau) + &
-                    cobalt%p_nlgz(i,j,k,tau)))*grid_tmask(i,j,k)\
+                    cobalt%p_nlgz(i,j,k,tau)))*grid_tmask(i,j,k)
         imbal = (post_totc(i,j,k) - pre_totc(i,j,k) - net_srcc(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
            call mpp_error(FATAL,&
