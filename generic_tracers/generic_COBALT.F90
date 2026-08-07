@@ -2382,15 +2382,15 @@ contains
          prog       = .true.)
       endif                                                   !RADIOCARBON>>
 
-   ! if (cobalt%do_external_source) then
-   !    call g_tracer_add(tracer_list, package_name,             &
-   !       name       = 'ndet_kelp',                           &
-   !       longname   = 'Kelp detritus nitrogen standing stock', &
-   !       units      = 'mol/kg',                              &
-   !       prog       = .true.,                                &
-   !       flux_bottom = .true.,                               &
-   !       init_value  = 0.0)
-   ! endif
+   if (cobalt%do_external_source) then
+      call g_tracer_add(tracer_list, package_name,             &
+         name       = 'ndet_kelp',                           &
+         longname   = 'Kelp detritus nitrogen standing stock', &
+         units      = 'mol/kg',                              &
+         prog       = .true.,                                &
+         flux_bottom = .true.,                               &
+         init_value  = 0.0)
+   endif
 
     !===========================================================
     !Diagnostic Tracers
@@ -3571,9 +3571,6 @@ contains
          k = grid_kmt(i,j) !Get bottom layer
          if (k .gt. 0 .and. mask_addition_t(i,j,1) .gt. 0.0) then
             cobalt%f_ndet_kelp(i,j) =  cobalt%f_ndet_kelp(i,j) + n_det_override(i,j) * dt 
-            ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + cobalt%f_ndet_kelp
-            ! cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
-            ! cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
          endif
       enddo; enddo !} i,j
 
@@ -5778,6 +5775,9 @@ contains
        call g_tracer_get_pointer(tracer_list,'do14c','field',cobalt%p_do14c)
     endif
 
+    if (cobalt%do_external_source) then
+      call g_tracer_get_pointer(tracer_list, 'ndet_kelp', 'field', cobalt%p_ndet_kelp)
+    end if
 
     ! CAS calculate total N and P before source/sink
     ! calculate internal sources (those not applied as air-sea or benthos
@@ -8427,7 +8427,7 @@ contains
 
          allocate(cobalt%jremin_ndet_kelp(isd:ied, jsd:jed));  cobalt%jremin_ndet_kelp=0.0
          allocate(cobalt%jprod_nh4_kelp(isd:ied, jsd:jed));    cobalt%jprod_nh4_kelp=0.0
-         allocate(cobalt%f_ndet_kelp(isd:ied, jsd:jed));       cobalt%f_ndet_kelp=0.0
+         ! allocate(cobalt%f_ndet_kelp(isd:ied, jsd:jed));       cobalt%f_ndet_kelp=0.0
       end if
 
       ! DKS 2025/02/18 added detritus variables
