@@ -2382,6 +2382,16 @@ contains
          prog       = .true.)
       endif                                                   !RADIOCARBON>>
 
+   ! if (cobalt%do_external_source) then
+   !    call g_tracer_add(tracer_list, package_name,             &
+   !       name       = 'ndet_kelp',                           &
+   !       longname   = 'Kelp detritus nitrogen standing stock', &
+   !       units      = 'mol/kg',                              &
+   !       prog       = .true.,                                &
+   !       flux_bottom = .true.,                               &
+   !       init_value  = 0.0)
+   ! endif
+
     !===========================================================
     !Diagnostic Tracers
     !===========================================================
@@ -3538,7 +3548,7 @@ contains
       mask_addition_t(:,:,:) = 0
 
       cobalt%jremin_ndet_kelp = 0.0
-      cobalt % jprod_nh4_kelp   = 0.0
+      cobalt%jprod_nh4_kelp   = 0.0
       ! f_ndet_kelp      = 0.0
 
       call data_override('OCN', 'ndet_addition', cobalt%f_n_det_addition(isc:iec, jsc:jec), model_time,override=ndet_add_override)
@@ -5132,6 +5142,11 @@ contains
                 cobalt%jno3denit_wc(i,j,k) = cobalt%jno3denit_wc(i,j,k) + &
                                             cobalt%jremin_ndet_kelp(i,j) * cobalt%n_2_n_denit
                 cobalt%jprod_nh4_kelp(i,j) = cobalt%jprod_nh4_kelp(i,j) + cobalt%jremin_ndet_kelp(i,j)
+
+                if (isnan(cobalt%jprod_nh4_kelp(i,j))) then
+                  write(*,*) 'NaN in jprod_nh4_kelp at i,j=',i,j
+                  call mpp_error(FATAL,'NaN detected in jprod_nh4_kelp')
+               endif
             endif
 
         endif !}
