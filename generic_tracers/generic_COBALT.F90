@@ -3537,8 +3537,8 @@ contains
       fedet_override(:,:)    = 0.0
       mask_addition_t(:,:,:) = 0
 
-      ! cobalt%jremin_ndet_kelp = 0.0
-      ! jprod_nh4_kelp   = 0.0
+      cobalt%jremin_ndet_kelp = 0.0
+      cobalt % jprod_nh4_kelp   = 0.0
       ! f_ndet_kelp      = 0.0
 
       call data_override('OCN', 'ndet_addition', cobalt%f_n_det_addition(isc:iec, jsc:jec), model_time,override=ndet_add_override)
