@@ -3009,7 +3009,6 @@ contains
     call g_tracer_get_values(tracer_list,'femd_btf','field',cobalt%f_femd_btf,isd,jsd)
     call g_tracer_get_values(tracer_list,'fesm_btf','field',cobalt%f_fesm_btf,isd,jsd)
 
-    !DKSmod adjust bottom concentrations by including kelp (generic_COBALT_update_from_bottom)
     do j = jsc, jec; do i = isc, iec  !{
        if (grid_kmt(i,j) .gt. 0) then !{
           cobalt%fntot_btm(i,j) = cobalt%f_ndet_btf(i,j,1) + cobalt%f_ndet_fast_btf(i,j,1) + cobalt%f_ndi_btf(i,j,1) + &
@@ -3020,6 +3019,8 @@ contains
             cobalt%f_fesm_btf(i,j,1) + cobalt%f_femd_btf(i,j,1) + cobalt%f_felg_btf(i,j,1)
           cobalt%fsitot_btm(i,j) = cobalt%f_sidet_btf(i,j,1) + cobalt%f_silg_btf(i,j,1) + &
             cobalt%f_simd_btf(i,j,1)
+
+          !DKSmod adjust bottom concentrations by including kelp (generic_COBALT_update_from_bottom)
           if (cobalt%do_external_source) &
              cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + f_ndet_kelp(i,j)
           endif
@@ -3216,12 +3217,12 @@ contains
     logical :: fedet_add_override
     logical :: mask_addition_override
 
-    ! DKSmod  (update_from_source initialize kelp variables)
-    real, dimension(:,:), Allocatable :: jremin_ndet_kelp
-    real, dimension(:,:), Allocatable :: jprod_nh4_kelp
-    real, dimension(:,:), Allocatable :: f_ndet_kelp
+   !  ! DKSmod  (update_from_source initialize kelp variables)
+   !  real, dimension(:,:), Allocatable :: jremin_ndet_kelp
+   !  real, dimension(:,:), Allocatable :: jprod_nh4_kelp
+   !  real, dimension(:,:), Allocatable :: f_ndet_kelp
     real :: c_2_n_kelp
-
+    real :: rp_kelp_agent
     ! --
 
 
@@ -3523,21 +3524,22 @@ contains
       allocate(fedet_override(isc:iec,jsc:jec))
       allocate(mask_addition_t(isc:iec,jsc:jec,1:nk))
 
-      ! DKSmod (update_from_source allocate kelp variables)
-      allocate(jremin_ndet_kelp(isc:iec, jsc:jec))
-      allocate(jprod_nh4_kelp(isc:iec, jsc:jec))
-      allocate(f_ndet_kelp(isc:iec, jsc:jec))
+      ! ! DKSmod (update_from_source allocate kelp variables)
+      ! allocate(jremin_ndet_kelp(isc:iec, jsc:jec))
+      ! allocate(jprod_nh4_kelp(isc:iec, jsc:jec))
+      ! allocate(f_ndet_kelp(isc:iec, jsc:jec))
       
       c_2_n_kelp = 9.0
+      rp_kelp_agent = 0.0
 
-      n_det_override(:,:)    = 0.0
-      p_det_override(:,:)    = 0.0
-      fedet_override(:,:)    = 0.0
+      ! n_det_override(:,:)    = 0.0
+      ! p_det_override(:,:)    = 0.0
+      ! fedet_override(:,:)    = 0.0
       mask_addition_t(:,:,:) = 0
 
-      jremin_ndet_kelp = 0.0
-      jprod_nh4_kelp   = 0.0
-      f_ndet_kelp      = 0.0
+      ! cobalt%jremin_ndet_kelp = 0.0
+      ! jprod_nh4_kelp   = 0.0
+      ! f_ndet_kelp      = 0.0
 
       call data_override('OCN', 'ndet_addition', cobalt%f_n_det_addition(isc:iec, jsc:jec), model_time,override=ndet_add_override)
       call data_override('OCN', 'pdet_addition', cobalt%f_pdet_addition(isc:iec, jsc:jec), model_time,override=pdet_add_override)
@@ -3558,8 +3560,8 @@ contains
       do j = jsc, jec; do i= isc, iec
          k = grid_kmt(i,j) !Get bottom layer
          if (mask_addition_t(i,j,1) .gt. 0.0) then
-            f_ndet_kelp(i,j) =  n_det_override(i,j) * dt 
-            ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + f_ndet_kelp
+            cobalt%f_ndet_kelp(i,j) =  n_det_override(i,j) * dt 
+            ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + cobalt%f_ndet_kelp
             cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
             cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
          endif
@@ -5098,11 +5100,11 @@ contains
 		        (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)) * cobalt%o2_2_nh4
 
             if (cobalt%do_external_source .and. k .eq. grid_kmt(i,j)) then
-                jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,k) * &
+                cobalt%jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,k) * &
                                         cobalt%f_o2(i,j,k) / ( cobalt%k_o2 + cobalt%f_o2(i,j,k) ) * &
-                                        max(0.0, f_ndet_kelp(i,j) * (1.0 - rp_kelp_agent))
-                jprod_nh4_kelp(i,j) = jprod_nh4_kelp(i,j) + jremin_ndet_kelp(i,j)
-                cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + jremin_ndet_kelp(i,j) * cobalt%o2_2_nh4
+                                        max(0.0, cobalt%f_ndet_kelp(i,j) * (1.0 - rp_kelp_agent))
+                cobalt%jprod_nh4_kelp(i,j) = cobalt%jprod_nh4_kelp(i,j) + cobalt%jremin_ndet_kelp(i,j)
+                cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + cobalt%jremin_ndet_kelp(i,j) * cobalt%o2_2_nh4
             endif
 
         ! Calculate remineralization under anaerobic conditions
@@ -5123,13 +5125,13 @@ contains
           cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)
 
             if (cobalt%do_external_source .and. k .eq. grid_kmt(i,j)) then
-                jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * f_ndet_kelp(i,j) * &
+                cobalt%jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%f_ndet_kelp(i,j) * &
                                         (cobalt%o2_min / (cobalt%k_o2 + cobalt%o2_min)) * &
                                         (cobalt%f_no3(i,j,k) / (cobalt%k_no3_denit + cobalt%f_no3(i,j,k))) * &
                                         (1.0 - rp_kelp_agent)
                 cobalt%jno3denit_wc(i,j,k) = cobalt%jno3denit_wc(i,j,k) + &
-                                            jremin_ndet_kelp(i,j) * cobalt%n_2_n_denit
-                jprod_nh4_kelp(i,j) = jprod_nh4_kelp(i,j) + jremin_ndet_kelp(i,j)
+                                            cobalt%jremin_ndet_kelp(i,j) * cobalt%n_2_n_denit
+                cobalt%jprod_nh4_kelp(i,j) = cobalt%jprod_nh4_kelp(i,j) + cobalt%jremin_ndet_kelp(i,j)
             endif
 
         endif !}
@@ -5173,12 +5175,12 @@ contains
 
             if (cobalt%do_external_source .and. k .eq. grid_kmt(i,j)) then
                ! DKSmod adding external source of kelp detrius behavior
-               ! DKSmod modified jdiss_cadet_arag to include jremin_ndet_kelp
-               ! DKSmod modified jdiss_cadet_calc to include jremin_ndet_kelp
+               ! DKSmod modified jdiss_cadet_arag to include cobalt%jremin_ndet_kelp
+               ! DKSmod modified jdiss_cadet_calc to include cobalt%jremin_ndet_kelp
                cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
-                  cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * jremin_ndet_kelp(i,j)
+                  cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * cobalt%jremin_ndet_kelp(i,j)
                cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
-                  cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * jremin_ndet_kelp(i,j)
+                  cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * cobalt%jremin_ndet_kelp(i,j)
             endif
 
         enddo; enddo; enddo  !} i,j,k
@@ -5348,9 +5350,9 @@ contains
           cobalt%fsitot_btm(i,j) = cobalt%f_sidet_btf(i,j,1) + cobalt%f_silg_btf(i,j,1) + &
             cobalt%f_simd_btf(i,j,1)
             
-         ! DKSmod fntot_btm -> included f_ndet_kelp (which already is in the bottom)
+         ! DKSmod fntot_btm -> included cobalt%f_ndet_kelp (which already is in the bottom)
          if (cobalt%do_external_source) &
-            cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + f_ndet_kelp(i,j)
+            cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + cobalt%f_ndet_kelp(i,j)
 
 
 
@@ -5449,7 +5451,7 @@ contains
              cobalt%fn_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fntot_btm(i,j)
              cobalt%fp_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fptot_btm(i,j)
 
-            ! DKSmod fpoc_btm need to remove f_ndet_kelp to do c_2_n and then need to add it, but multiply by c_2_n_kelp
+            ! DKSmod fpoc_btm need to remove cobalt%f_ndet_kelp to do c_2_n and then need to add it, but multiply by c_2_n_kelp
             ! DKSmod frac_burial will be adjusted here
 
              ! Denitrification follows Middelburg et al., 1996. Denitrification in marine sediments: a modeling study
@@ -5540,7 +5542,7 @@ contains
           cobalt%ffe_sed(i,j) = cobalt%ffe_sed_max * tanh( (cobalt%fntot_btm(i,j)*cobalt%c_2_n*sperd*1.0e3)/ &
                                 max(cobalt%btm_o2(i,j)*1.0e6,epsln) )
 
-         ! DKSmod ffe_sed need to remove f_ndet_kelp to do c_2_n and then need to add it, but multiply by c_2_n_kelp
+         ! DKSmod ffe_sed need to remove cobalt%f_ndet_kelp to do c_2_n and then need to add it, but multiply by c_2_n_kelp
 
 
           ! Additional coastal iron (Optional, default fe_coast = 0)
@@ -5609,14 +5611,14 @@ contains
           cobalt%fcased_redis_surfresp(i,j)=min(0.5*cobalt%f_cadet_calc_btf(i,j,1), &
             cobalt%phi_surfresp_cased*cobalt%fntot_btm(i,j)*cobalt%c_2_n)
 
-         ! DKSmod fcased_redis_surfresp -> need to consider whether we will need to add f_ndet_kelp
+         ! DKSmod fcased_redis_surfresp -> need to consider whether we will need to add cobalt%f_ndet_kelp
 
           ! Ca-specific dissolution coeficient, depends on calcite saturation state and is enhanced by
           ! respiration deep in the sediment (s-1), non-linearity controlled by alpha_cased
           cobalt%cased_redis_coef(i,j) = cobalt%gamma_cased*max(0.0,1.0-cobalt%btm_omega_calc(i,j)+ &
             cobalt%phi_deepresp_cased*cobalt%fntot_btm(i,j)*cobalt%c_2_n*spery)**cobalt%alpha_cased
 
-         ! DKSmod cased_redis_coef -> need to consider whether we will need to add f_ndet_kelp
+         ! DKSmod cased_redis_coef -> need to consider whether we will need to add cobalt%f_ndet_kelp
 
 
           ! Effective thickness term that enhances burial of calcite when total sediment accumulation is high
@@ -5855,7 +5857,7 @@ contains
             pre_totp(i,j,k)  = pre_totp(i,j,k) - e_juptake_po4(i,j,k)
             pre_totfe(i,j,k) = pre_totfe(i,j,k)- e_juptake_fed(i,j,k)
             ! pre_totc(i,j,k)  = pre_totc(i,j,k) - cobalt%c_2_n*e_juptake_no3(i,j,k)
-            pre_totc(i,j,k)  = pre_totc(i,j,k) - 9*e_juptake_no3(i,j,k)  ! C:N is 9 for sugar kelp
+            pre_totc(i,j,k)  = pre_totc(i,j,k) - c_2_n_kelp*e_juptake_no3(i,j,k)  ! C:N is 9 for sugar kelp
 
       enddo; enddo ; enddo  !} i,j,k
    end if
@@ -6060,12 +6062,12 @@ contains
        cobalt%jnh4(i,j,k) = cobalt%jprod_nh4(i,j,k) - phyto(DIAZO)%juptake_nh4(i,j,k) - &
                             phyto(LARGE)%juptake_nh4(i,j,k) - phyto(MEDIUM)%juptake_nh4(i,j,k) - &
                             phyto(SMALL)%juptake_nh4(i,j,k) - &
-                            cobalt%juptake_nh4nitrif(i,j,k) - cobalt%juptake_nh4amx(i,j,k) ! DKSmod TODO include jprod_nh4?
-
+                            cobalt%juptake_nh4nitrif(i,j,k) - cobalt%juptake_nh4amx(i,j,k) 
+                            
        ! DKSmod: add kelp NH4 production at bottom cell
        if (cobalt%do_external_source) then
           if (k .eq. grid_kmt(i,j)) then
-             cobalt%jnh4(i,j,k) = cobalt%jnh4(i,j,k) + jprod_nh4_kelp(i,j)
+             cobalt%jnh4(i,j,k) = cobalt%jnh4(i,j,k) + cobalt%jprod_nh4_kelp(i,j)
           endif
        endif
 
@@ -6182,8 +6184,8 @@ contains
       ! do j = jsc, jec; do i= isc, iec
       !    k = grid_kmt(i,j) !Get bottom layer
       !    if (mask_addition_t(i,j,1) .gt. 0.0) then
-      !       f_ndet_kelp(i,j) =  n_det_override(i,j) * dt 
-      !       ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + f_ndet_kelp
+      !       cobalt%f_ndet_kelp(i,j) =  n_det_override(i,j) * dt 
+      !       ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + cobalt%f_ndet_kelp
       !       cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
       !       cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
       !    endif
@@ -6192,11 +6194,11 @@ contains
       do j = jsc, jec; do i= isc, iec
          k = grid_kmt(i,j) !Get bottom layer
             if (mask_addition_t(i,j,1) .gt. 0.0) then
-               !f_ndet_kelp(i,j) =  n_det_override(i,j) * dt
-               pre_totn(i,j,k) = pre_totn(i,j,k) +f_ndet_kelp(i,j)
+               !cobalt%f_ndet_kelp(i,j) =  n_det_override(i,j) * dt
+               pre_totn(i,j,k) = pre_totn(i,j,k) +cobalt%f_ndet_kelp(i,j)
                pre_totp(i,j,k) = pre_totp(i,j,k) + p_det_override(i,j) * dt
                pre_totfe(i,j,k) = pre_totfe(i,j,k) + fedet_override(i,j) *dt 
-               pre_totc(i,j,k) = pre_totc(i,j,k) + 9*f_ndet_kelp(i,j)
+               pre_totc(i,j,k) = pre_totc(i,j,k) + c_2_n_kelp * cobalt%f_ndet_kelp(i,j)
 
             endif
          enddo; enddo !} i,j
@@ -6313,7 +6315,7 @@ contains
        ! DKSmod: add kelp remineralization DIC contribution at bottom cell
        if (cobalt%do_external_source) then
           if (k .eq. grid_kmt(i,j)) then
-             cobalt%jdic(i,j,k) = cobalt%jdic(i,j,k) + c_2_n_kelp * jprod_nh4_kelp(i,j)
+             cobalt%jdic(i,j,k) = cobalt%jdic(i,j,k) + c_2_n_kelp * cobalt%jprod_nh4_kelp(i,j)
           endif
        endif
 
@@ -6333,7 +6335,7 @@ contains
                                     e_juptake_no3(i,j,k)* grid_tmask(i,j,k) ! DKS
 
          cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) - &
-                                   9 * e_juptake_no3(i,j,k) ! C:N is 9 for sugar kelp 
+                                   c_2_n_kelp * e_juptake_no3(i,j,k) ! C:N is 9 for sugar kelp 
                                  ! cobalt%c_2_n * e_juptake_no3(i,j,k) ! DKS
       enddo; enddo ; enddo !} i,j,k
 
@@ -6491,7 +6493,6 @@ contains
 					cobalt%p_ndet_fast(i,j,k,tau) + &
                     cobalt%p_nsmz(i,j,k,tau) + cobalt%p_nmdz(i,j,k,tau) + &
                     cobalt%p_nlgz(i,j,k,tau)))*grid_tmask(i,j,k)\
-        ! DKSmod need to include p_ndet_kelp in post_totc
         imbal = (post_totc(i,j,k) - pre_totc(i,j,k) - net_srcc(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
            call mpp_error(FATAL,&
@@ -6532,11 +6533,11 @@ contains
       endif
     enddo; enddo ; enddo  !} i,j,k
 
-    if (cobalt%do_external_source) then
-       deallocate(jremin_ndet_kelp)
-       deallocate(jprod_nh4_kelp)
-       deallocate(f_ndet_kelp)
-    endif
+   !  if (cobalt%do_external_source) then
+   !     deallocate(jremin_ndet_kelp)
+   !     deallocate(jprod_nh4_kelp)
+   !     deallocate(f_ndet_kelp)
+   !  endif
 
     !
     !----------------
@@ -8405,6 +8406,10 @@ contains
          allocate(cobalt%f_n_det_addition(isd:ied, jsd:jed));  cobalt%f_n_det_addition=0.0
          allocate(cobalt%f_pdet_addition(isd:ied, jsd:jed));   cobalt%f_pdet_addition=0.0
          allocate(cobalt%f_fedet_addition(isd:ied, jsd:jed));  cobalt%f_fedet_addition=0.0
+
+         allocate(cobalt%jremin_ndet_kelp(isd:ied, jsd:jed));  cobalt%jremin_ndet_kelp=0.0
+         allocate(cobalt%jprod_nh4_kelp(isd:ied, jsd:jed));    cobalt%jprod_nh4_kelp=0.0
+         allocate(cobalt%f_ndet_kelp(isd:ied, jsd:jed));       cobalt%f_ndet_kelp=0.0
       end if
 
       ! DKS 2025/02/18 added detritus variables
@@ -9017,6 +9022,9 @@ contains
          deallocate(cobalt%f_n_det_addition)
          deallocate(cobalt%f_pdet_addition)
          deallocate(cobalt%f_fedet_addition)
+         deallocate(cobalt%jremin_ndet_kelp)
+         deallocate(cobalt%jprod_nh4_kelp)
+         deallocate(cobalt%f_ndet_kelp)
       end if
 
   end subroutine user_deallocate_arrays

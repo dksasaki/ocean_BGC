@@ -909,6 +909,10 @@ module cobalt_types
           f_n_det_addition,& !DKS
           f_pdet_addition,&  !DKS
           f_fedet_addition,&   !DKS
+          jremin_ndet_kelp,& !DKSmod
+          jprod_nh4_kelp,& !DKSmod
+          f_ndet_kelp,& !DKSmod
+
 
           f_alk_int_100, &
           f_dic_int_100, &
