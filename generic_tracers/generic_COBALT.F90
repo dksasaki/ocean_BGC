@@ -5775,9 +5775,9 @@ contains
        call g_tracer_get_pointer(tracer_list,'do14c','field',cobalt%p_do14c)
     endif
 
-    if (cobalt%do_external_source) then
-      call g_tracer_get_pointer(tracer_list, 'ndet_kelp', 'field', cobalt%p_ndet_kelp)
-    end if
+   !  if (cobalt%do_external_source) then
+   !    call g_tracer_get_pointer(tracer_list, 'ndet_kelp', 'field', cobalt%p_ndet_kelp)
+   !  end if
 
     ! CAS calculate total N and P before source/sink
     ! calculate internal sources (those not applied as air-sea or benthos
