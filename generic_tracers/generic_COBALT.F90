@@ -5115,6 +5115,9 @@ contains
                                         max(0.0, cobalt%f_ndet_kelp(i,j) * (1.0 - rp_kelp_agent))
                 cobalt%jprod_nh4_kelp(i,j) = cobalt%jprod_nh4_kelp(i,j) + cobalt%jremin_ndet_kelp(i,j)
                 cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + cobalt%jremin_ndet_kelp(i,j) * cobalt%o2_2_nh4
+
+                cobalt%f_ndet_kelp(i,j) = cobalt%f_ndet_kelp(i,j) - cobalt%jremin_ndet_kelp(i,j) * dt
+
             endif
 
         ! Calculate remineralization under anaerobic conditions
