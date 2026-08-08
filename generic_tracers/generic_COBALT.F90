@@ -5866,9 +5866,9 @@ contains
                                     cobalt%p_fed(i,j,k,tau))
             end if
 
-            pre_totn(i,j,k)  = pre_totn(i,j,k) - e_juptake_no3(i,j,k)
-            pre_totp(i,j,k)  = pre_totp(i,j,k) - e_juptake_po4(i,j,k)
-            pre_totfe(i,j,k) = pre_totfe(i,j,k)- e_juptake_fed(i,j,k)
+            pre_totn(i,j,k)  = pre_totn(i,j,k) - e_juptake_no3(i,j,k) * grid_tmask(i,j,k)
+            pre_totp(i,j,k)  = pre_totp(i,j,k) - e_juptake_po4(i,j,k) * grid_tmask(i,j,k)
+            pre_totfe(i,j,k) = pre_totfe(i,j,k)- e_juptake_fed(i,j,k) * grid_tmask(i,j,k)
             pre_totc(i,j,k)  = pre_totc(i,j,k) - c_2_n_kelp*e_juptake_no3(i,j,k)  ! C:N is 9 for sugar kelp
 
       enddo; enddo ; enddo  !} i,j,k
@@ -6205,12 +6205,12 @@ contains
 
       do j = jsc, jec; do i= isc, iec
          k = grid_kmt(i,j) !Get bottom layer
-            if (k .gt. 0 .and. mask_addition_t(i,j,1) .gt. 0.0) then
+            if (k .gt. 0) then
                !cobalt%f_ndet_kelp(i,j) =  n_det_override(i,j) * dt
-               pre_totn(i,j,k) = pre_totn(i,j,k) +cobalt%f_ndet_kelp(i,j)
-               pre_totp(i,j,k) = pre_totp(i,j,k) + p_det_override(i,j) * dt
-               pre_totfe(i,j,k) = pre_totfe(i,j,k) + fedet_override(i,j) *dt 
-               pre_totc(i,j,k) = pre_totc(i,j,k) + c_2_n_kelp * cobalt%jprod_nh4_kelp(i,j) *dt
+               pre_totn(i,j,k) = pre_totn(i,j,k) +cobalt%f_ndet_kelp(i,j) * grid_tmask(i,j,k)
+               pre_totp(i,j,k) = pre_totp(i,j,k) + p_det_override(i,j) * dt  * grid_tmask(i,j,k)
+               pre_totfe(i,j,k) = pre_totfe(i,j,k) + fedet_override(i,j) *dt  * grid_tmask(i,j,k) 
+               pre_totc(i,j,k) = pre_totc(i,j,k) + c_2_n_kelp * cobalt%jprod_nh4_kelp(i,j) *dt  * grid_tmask(i,j,k)
                cobalt%f_ndet_kelp(i,j) = cobalt%f_ndet_kelp(i,j) - cobalt%jremin_ndet_kelp(i,j) * dt
             endif
          enddo; enddo !} i,j
@@ -6340,11 +6340,11 @@ contains
       do k = 1, nk ; do j = jsc, jec ; do i = isc, iec  !{
 
          cobalt%p_o2(i,j,k,tau) = cobalt%p_o2(i,j,k,tau) + &
-                                 cobalt%o2_2_no3 * e_juptake_no3(i,j,k) ! DKS
+                                 cobalt%o2_2_no3 * e_juptake_no3(i,j,k) * grid_tmask(i,j,k)! DKS
                                  
                                  
          cobalt%p_alk(i,j,k,tau) = cobalt%p_alk(i,j,k,tau) + &
-                                    e_juptake_no3(i,j,k)* grid_tmask(i,j,k) ! DKS
+                                    e_juptake_no3(i,j,k)* grid_tmask(i,j,k) * grid_tmask(i,j,k)! DKS
 
          cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) - &
                                    c_2_n_kelp * e_juptake_no3(i,j,k) ! C:N is 9 for sugar kelp 
@@ -6491,8 +6491,8 @@ contains
                     cobalt%p_nlgz(i,j,k,tau))*grid_tmask(i,j,k)
          ! DKSmod need to include p_ndet_kelp in post_totn
          if (cobalt%do_external_source) then
-               if (k .eq. grid_kmt(i,j)) then
-                  post_totn(i,j,k) = post_totn(i,j,k) + cobalt%f_ndet_kelp(i,j)
+            if (k .eq. grid_kmt(i,j) .and. k .gt. 0) then
+                  post_totn(i,j,k) = post_totn(i,j,k) + cobalt%f_ndet_kelp(i,j) * grid_tmask(i,j,k)
                endif
          endif
 
@@ -6510,14 +6510,11 @@ contains
                     cobalt%p_srdon(i,j,k,tau) + cobalt%p_ndet(i,j,k,tau) + &
 					cobalt%p_ndet_fast(i,j,k,tau) + &
                     cobalt%p_nsmz(i,j,k,tau) + cobalt%p_nmdz(i,j,k,tau) + &
-                    cobalt%p_nlgz(i,j,k,tau)))*grid_tmask(i,j,k)
+                    cobalt%p_nlgz(i,j,k,tau)))*grid_tmask(i,j,k)L
 
 
         imbal = (post_totc(i,j,k) - pre_totc(i,j,k) - net_srcc(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
-
-           call mpp_error(FATAL,&
-           err_msg)
            call mpp_error(FATAL,&
            '==>biological source/sink imbalance (generic_COBALT_update_from_source): Carbon')
          endif
