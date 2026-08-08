@@ -6516,8 +6516,8 @@ contains
         imbal = (post_totc(i,j,k) - pre_totc(i,j,k) - net_srcc(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
 
-           call mpp_error(err_msg,&
-           '==>biological source/sink imbalance (generic_COBALT_update_from_source): Carbon')
+           call mpp_error(FATAL,&
+           err_msg)
            call mpp_error(FATAL,&
            '==>biological source/sink imbalance (generic_COBALT_update_from_source): Carbon')
          endif
