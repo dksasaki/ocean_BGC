@@ -2759,8 +2759,6 @@ contains
     real, dimension(:,:,:),pointer :: grid_tmask
     real, dimension(:,:,:),pointer :: temp_field
     integer, dimension(:,:),pointer :: grid_kmt
-    character(len=256) :: err_msg!DKSmod temporary
-
 
     call g_tracer_get_common(isc,iec,jsc,jec,isd,ied,jsd,jed,nk,ntau,grid_tmask=grid_tmask,&
                              grid_kmt=grid_kmt)
@@ -3137,7 +3135,8 @@ contains
     integer :: isc,iec, jsc,jec,isd,ied,jsd,jed,nk,ntau, i, j, k , m, n, k_100, k_200, kmld_ref
     real, dimension(:,:,:) ,pointer :: grid_tmask
     integer, dimension(:,:),pointer :: mask_coast,grid_kmt
-    !
+   character(len=256) :: err_msg
+
     !------------------------------------------------------------------------
     ! Local Variables
     !------------------------------------------------------------------------
