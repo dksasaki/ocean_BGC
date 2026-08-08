@@ -3030,7 +3030,7 @@ contains
 
           !DKSmod adjust bottom concentrations by including kelp (generic_COBALT_update_from_bottom)
           if (cobalt%do_external_source) then
-             cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + cobalt%f_ndet_kelp(i,j)
+             cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + cobalt%f_ndet_kelp(i,j)/dt
           endif
        endif !}
     enddo; enddo  !} i, j
@@ -5365,10 +5365,7 @@ contains
             cobalt%f_fesm_btf(i,j,1) + cobalt%f_femd_btf(i,j,1) + cobalt%f_felg_btf(i,j,1)
           cobalt%fsitot_btm(i,j) = cobalt%f_sidet_btf(i,j,1) + cobalt%f_silg_btf(i,j,1) + &
             cobalt%f_simd_btf(i,j,1)
-            
-         ! DKSmod fntot_btm -> included cobalt%f_ndet_kelp (which already is in the bottom)
-         if (cobalt%do_external_source) &
-            cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + cobalt%f_ndet_kelp(i,j)
+
 
 
 
@@ -5467,8 +5464,8 @@ contains
              cobalt%fn_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fntot_btm(i,j)
              cobalt%fp_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fptot_btm(i,j)
 
-            ! DKSmod fpoc_btm need to remove cobalt%f_ndet_kelp to do c_2_n and then need to add it, but multiply by c_2_n_kelp
-            ! DKSmod frac_burial will be adjusted here
+            
+            ! DKSmod fpoc_btm check
 
              ! Denitrification follows Middelburg et al., 1996. Denitrification in marine sediments: a modeling study
              ! Global Biogeochemical Cycles 10(4).  pp. 661-673.  https://doi.org/10.1029/96GB02562. COBALT uses the
@@ -6517,6 +6514,9 @@ contains
 
         imbal = (post_totc(i,j,k) - pre_totc(i,j,k) - net_srcc(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
+            write(stdout(),*) 'C', i,j,k, imbal, pre_totc(i,j,k), post_totc(i,j,k), &
+                              cobalt%jprod_nh4_kelp(i,j), cobalt%f_ndet_kelp(i,j), &
+                              grid_tmask(i,j,k), mask_addition_t(i,j,1)
            call mpp_error(FATAL,&
            '==>biological source/sink imbalance (generic_COBALT_update_from_source): Carbon')
          endif
