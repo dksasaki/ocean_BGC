@@ -6516,10 +6516,8 @@ contains
         imbal = (post_totc(i,j,k) - pre_totc(i,j,k) - net_srcc(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
 
-         write(err_msg, '(A,3(I0,1X),3(ES14.6,1X),2(F10.4,1X),2(I0,1X))') &
-            'C ', i, j, k, imbal, pre_totc(i,j,k), post_totc(i,j,k), &
-            cobalt%jprod_nh4_kelp(i,j), cobalt%f_ndet_kelp(i,j), &
-            grid_tmask(i,j,k), mask_addition_t(i,j,1)
+           call mpp_error(err_msg,&
+           '==>biological source/sink imbalance (generic_COBALT_update_from_source): Carbon')
            call mpp_error(FATAL,&
            '==>biological source/sink imbalance (generic_COBALT_update_from_source): Carbon')
          endif
