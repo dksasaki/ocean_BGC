@@ -814,7 +814,9 @@ module cobalt_types
           ! DKS --
           e_juptake_no3,&
           e_juptake_po4,&
-          e_juptake_fed
+          e_juptake_fed,&
+          f_ndet_kelp !DKSmod
+
           ! -- DKS
 
 !==============================================================================================================
@@ -911,9 +913,7 @@ module cobalt_types
           f_fedet_addition,&   !DKS
           jremin_ndet_kelp,& !DKSmod
           jprod_nh4_kelp,& !DKSmod
-          f_ndet_kelp,& !DKSmod
-
-
+          f_ndet_kelp_2d,& !DKSmod
           f_alk_int_100, &
           f_dic_int_100, &
           f_din_int_100, &
@@ -1594,9 +1594,11 @@ module cobalt_types
           id_dmsos              = -1, &
           id_irr_aclm_sfc_dayint= -1, &
           id_irr_sfc_dms        = -1, &
-          id_chl_dmsp           = -1
-
-
+          id_chl_dmsp           = -1, &
+!==============================================
+          id_ndet_kelp_2d      = -1, &
+          id_jremin_ndet_kelp  = -1, &
+          id_jprod_nh4_kelp    = -1
 !==============================================================================================================
   end type generic_COBALT_type
 

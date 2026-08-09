@@ -2459,6 +2459,20 @@ module COBALT_reg_diag
     cobalt%id_cased_2d = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+     if (cobalt%do_external_source) then
+     vardesc_temp = vardesc("ndet_kelp_2d","kelp detritus benthic pool",'h','1','s','mol kg-1','f')
+     cobalt%id_ndet_kelp_2d = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+          init_time, vardesc_temp%longname, vardesc_temp%units, missing_value = missing_value1)
+
+     vardesc_temp = vardesc("jremin_ndet_kelp","kelp detritus remineralization rate",'h','1','s','mol kg-1 s-1','f')
+     cobalt%id_jremin_ndet_kelp = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+          init_time, vardesc_temp%longname, vardesc_temp%units, missing_value = missing_value1)
+
+     vardesc_temp = vardesc("jprod_nh4_kelp","NH4 production from kelp detritus remineralization",'h','1','s','mol kg-1 s-1','f')
+     cobalt%id_jprod_nh4_kelp = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+          init_time, vardesc_temp%longname, vardesc_temp%units, missing_value = missing_value1)
+     endif
+
     vardesc_temp = vardesc("sfc_co3_ion","Surface Carbonate Ion",'h','1','s','mol kg-1','f')
     cobalt%id_sfc_co3_ion = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)

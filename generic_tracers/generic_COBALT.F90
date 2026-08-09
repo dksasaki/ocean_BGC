@@ -2680,6 +2680,16 @@ contains
          units      = 'dimensionless',         &
          prog       = .false.              )
 
+   if (cobalt%do_external_source) then
+      call g_tracer_add(tracer_list, package=package_name,      &
+         name             = 'ndet_kelp',                      &
+         longname         = 'Kelp detritus benthic pool',     &
+         units            = 'mol/kg',                         &
+         prog             = .false.,                          &
+         const_init_value = 0.0,                              &
+         requires_src_info = .false.)
+   end if
+
   end subroutine user_add_tracers
 
 
@@ -3030,11 +3040,16 @@ contains
 
           !DKSmod adjust bottom concentrations by including kelp (generic_COBALT_update_from_bottom)
           if (cobalt%do_external_source) then
-             cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + cobalt%f_ndet_kelp(i,j)/dt
+             cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + cobalt%f_ndet_kelp(i,j,1)/dt
           endif
        endif !}
     enddo; enddo  !} i, j
- 
+   
+   if (cobalt%do_external_source) then
+      do j = jsc, jec; do i = isc, iec
+         cobalt%f_ndet_kelp_2d(i,j) = cobalt%f_ndet_kelp(i,j,1)
+      enddo; enddo
+   endif
 
     used = g_send_data(cobalt%id_ffetot_btm,   cobalt%ffetot_btm,             &
     model_time, rmask = grid_tmask(:,:,1),&
@@ -3500,6 +3515,10 @@ contains
     call g_tracer_get_values(tracer_list,'irr_aclm_z','field',cobalt%f_irr_aclm_z ,isd,jsd)
     call g_tracer_get_values(tracer_list,'irr_aclm_sfc','field',cobalt%f_irr_aclm_sfc ,isd,jsd)
 
+    if (cobalt%do_external_source) then
+      call g_tracer_get_values(tracer_list,'ndet_kelp','field',cobalt%f_ndet_kelp,isd,jsd) 
+    end if
+
     ! zero out cumulative COBALT-wide production diagnostics
     do k = 1, nk  ; do j = jsc, jec ; do i = isc, iec
        cobalt%jprod_fed(i,j,k) = 0.0
@@ -3594,7 +3613,7 @@ contains
       do j = jsc, jec; do i= isc, iec
          k = grid_kmt(i,j) !Get bottom layer
          if (k .gt. 0 .and. mask_addition_t(i,j,1) .gt. 0.0) then
-            cobalt%f_ndet_kelp(i,j) =  cobalt%f_ndet_kelp(i,j) + n_det_override(i,j) * dt 
+            cobalt%f_ndet_kelp(i,j,1) =  cobalt%f_ndet_kelp(i,j,1) + n_det_override(i,j) * dt 
          endif
       enddo; enddo !} i,j
 
@@ -5189,12 +5208,12 @@ contains
             if (cobalt%btm_o2(i,j) .gt. cobalt%o2_min) then
                cobalt%jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,grid_kmt(i,j)) * &
                   cobalt%btm_o2(i,j)/(cobalt%k_o2 + cobalt%btm_o2(i,j)) * &
-                  max(0.0, cobalt%f_ndet_kelp(i,j)*(1.0 - rp_kelp_agent))
+                  max(0.0, cobalt%f_ndet_kelp(i,j,1)*(1.0 - rp_kelp_agent))
             else
                cobalt%jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * &
                   (cobalt%o2_min/(cobalt%k_o2 + cobalt%o2_min)) * &
                   (cobalt%btm_no3(i,j)/(cobalt%k_no3_denit + cobalt%btm_no3(i,j))) * &
-                  max(0.0, cobalt%f_ndet_kelp(i,j)*(1.0 - rp_kelp_agent))
+                  max(0.0, cobalt%f_ndet_kelp(i,j,1)*(1.0 - rp_kelp_agent))
             endif
 
             cobalt%jprod_nh4_kelp(i,j) = cobalt%jremin_ndet_kelp(i,j)
@@ -5740,6 +5759,13 @@ contains
        cobalt%f_cased(i,j,k) = 0.0
     enddo; enddo ; enddo  !} i,j,k
 
+   if (cobalt%do_external_source) then
+      do k = 2, nk ; do j = jsc, jec ; do i = isc, iec   !{
+         cobalt%f_ndet_kelp(i,j,k) = 0.0
+      enddo; enddo ; enddo  !} i,j,k
+   end if
+
+
     call g_tracer_set_values(tracer_list,'alk',  'btf', cobalt%b_alk ,isd,jsd)
     call g_tracer_set_values(tracer_list,'dic',  'btf', cobalt%b_dic ,isd,jsd)
     call g_tracer_set_values(tracer_list,'fed',  'btf', cobalt%b_fed ,isd,jsd)
@@ -6267,7 +6293,7 @@ contains
          do k = grid_kmt(i,j),k_bot(i,j),-1
             ! k = grid_kmt(i,j) !Get bottom layer
             if (k .gt. 0 .and. mask_addition_t(i,j,1) .gt. 0.0) then
-               ! cobalt%f_ndet_kelp(i,j) =  n_det_override(i,j) * dt 
+               ! cobalt%f_ndet_kelp(i,j,1) =  n_det_override(i,j) * dt 
                ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + cobalt%f_ndet_kelp
                cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
                cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
@@ -6278,14 +6304,14 @@ contains
          if (grid_kmt(i,j) .gt. 0) then
             do k = grid_kmt(i,j),k_bot(i,j),-1
             ! if (k .gt. 0) then
-                  !cobalt%f_ndet_kelp(i,j) =  n_det_override(i,j) * dt
-                  pre_totn(i,j,k) = pre_totn(i,j,k) + cobalt%f_ndet_kelp(i,j) * grid_tmask(i,j,k)
+                  !cobalt%f_ndet_kelp(i,j,1) =  n_det_override(i,j) * dt
+                  pre_totn(i,j,k) = pre_totn(i,j,k) + cobalt%f_ndet_kelp(i,j,1) * grid_tmask(i,j,k)
                   pre_totp(i,j,k) = pre_totp(i,j,k) + p_det_override(i,j) * dt  * grid_tmask(i,j,k)
                   pre_totfe(i,j,k) = pre_totfe(i,j,k) + fedet_override(i,j) *dt  * grid_tmask(i,j,k) 
                   pre_totc(i,j,k) = pre_totc(i,j,k) + c_2_n_kelp * cobalt%jprod_nh4_kelp(i,j) *dt  * grid_tmask(i,j,k)
                   ! endif
             enddo !} k
-            cobalt%f_ndet_kelp(i,j) = cobalt%f_ndet_kelp(i,j) - cobalt%jremin_ndet_kelp(i,j) * dt
+            cobalt%f_ndet_kelp(i,j,1) = cobalt%f_ndet_kelp(i,j,1) - cobalt%jremin_ndet_kelp(i,j) * dt
          endif
       enddo; enddo; !} i,j
 
@@ -6540,6 +6566,10 @@ contains
     call g_tracer_set_values(tracer_list,'pcmlim_aclm_nmd' ,'field',phyto(MEDIUM)%f_pcmlim_aclm ,isd,jsd)
     call g_tracer_set_values(tracer_list,'pcmlim_aclm_nsm' ,'field',phyto(SMALL)%f_pcmlim_aclm ,isd,jsd)
 
+    if (cobalt%do_external_source) then
+      call g_tracer_set_values(tracer_list,'ndet_kelp','field',cobalt%f_ndet_kelp,isd,jsd)
+    end if
+
     ! CAS calculate totals after source/sinks have been applied
     ! Imbalance in one timestep is converted from moles kg-1 to units of mmoles m-3 day-1 and compared
     ! to a tolerance set in the input namelist. This means that imbalance is not sensetive to the timestep
@@ -6567,7 +6597,7 @@ contains
          if (cobalt%do_external_source) then
             ! if (k .eq. grid_kmt(i,j) .and. k .gt. 0) then
             if (k .ge. k_bot(i,j) .and. k .le. grid_kmt(i,j)) then
-                  post_totn(i,j,k) = post_totn(i,j,k) + cobalt%f_ndet_kelp(i,j) * grid_tmask(i,j,k)
+                  post_totn(i,j,k) = post_totn(i,j,k) + cobalt%f_ndet_kelp(i,j,1) * grid_tmask(i,j,k)
                endif
 
          endif
@@ -6577,7 +6607,7 @@ contains
          write(outunit,*) 'N IMBAL i,j,k=',i,j,k,' kmt=',grid_kmt(i,j)
          write(outunit,*) '  imbal=',imbal,' tol=',imbalance_tolerance
          write(outunit,*) '  pre=',pre_totn(i,j,k),' post=',post_totn(i,j,k),' src=',net_srcn(i,j,k)
-         write(outunit,*) '  f_ndet_kelp=',cobalt%f_ndet_kelp(i,j)
+         write(outunit,*) '  f_ndet_kelp=',cobalt%f_ndet_kelp(i,j,1)
          write(outunit,*) '  jremin_kelp=',cobalt%jremin_ndet_kelp(i,j)
          write(outunit,*) '  n_det_add=',cobalt%f_n_det_addition(i,j)
          write(outunit,*) '  tmask=',grid_tmask(i,j,k),' dzt=',dzt(i,j,k)
@@ -8515,7 +8545,9 @@ contains
 
          allocate(cobalt%jremin_ndet_kelp(isd:ied, jsd:jed));  cobalt%jremin_ndet_kelp=0.0
          allocate(cobalt%jprod_nh4_kelp(isd:ied, jsd:jed));    cobalt%jprod_nh4_kelp=0.0
-         allocate(cobalt%f_ndet_kelp(isd:ied, jsd:jed));       cobalt%f_ndet_kelp=0.0
+         allocate(cobalt%f_ndet_kelp(isd:ied, jsd:jed,1:nk));       cobalt%f_ndet_kelp=0.0
+         allocate(cobalt%f_ndet_kelp_2d(isd:ied, jsd:jed));       cobalt%f_ndet_kelp_2d=0.0
+
       end if
 
       ! DKS 2025/02/18 added detritus variables
@@ -9131,6 +9163,7 @@ contains
          deallocate(cobalt%jremin_ndet_kelp)
          deallocate(cobalt%jprod_nh4_kelp)
          deallocate(cobalt%f_ndet_kelp)
+         deallocate(cobalt%f_ndet_kelp_2d)
       end if
 
   end subroutine user_deallocate_arrays

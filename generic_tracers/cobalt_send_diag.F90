@@ -1716,6 +1716,23 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_cased_2d, cobalt%cased_2d, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+          if (cobalt%do_external_source) then
+            if (cobalt%id_ndet_kelp_2d .gt. 0) then
+                used = g_send_data(cobalt%id_ndet_kelp_2d, cobalt%f_ndet_kelp_2d, &
+                    model_time, rmask=grid_tmask(:,:,1), &
+                    is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            endif
+            if (cobalt%id_jremin_ndet_kelp .gt. 0) then
+                used = g_send_data(cobalt%id_jremin_ndet_kelp, cobalt%jremin_ndet_kelp, &
+                    model_time, rmask=grid_tmask(:,:,1), &
+                    is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            endif
+            if (cobalt%id_jprod_nh4_kelp .gt. 0) then
+                used = g_send_data(cobalt%id_jprod_nh4_kelp, cobalt%jprod_nh4_kelp, &
+                    model_time, rmask=grid_tmask(:,:,1), &
+                    is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            endif
+          endif
           !
           ! Radiocarbon fields
           !
