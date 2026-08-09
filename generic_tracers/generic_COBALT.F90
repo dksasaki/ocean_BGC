@@ -5133,17 +5133,6 @@ contains
           cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + &
 		        (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)) * cobalt%o2_2_nh4
 
-            ! if (cobalt%do_external_source .and. k .eq. grid_kmt(i,j) .and. mask_addition_t(i,j,1) .gt. 0.0) then
-            !     cobalt%jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,k) * &
-            !                             cobalt%f_o2(i,j,k) / ( cobalt%k_o2 + cobalt%f_o2(i,j,k) ) * &
-            !                             max(0.0, cobalt%f_ndet_kelp(i,j) * (1.0 - rp_kelp_agent))
-            !     cobalt%jprod_nh4_kelp(i,j) = cobalt%jprod_nh4_kelp(i,j) + cobalt%jremin_ndet_kelp(i,j)
-            !     cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + cobalt%jremin_ndet_kelp(i,j) * cobalt%o2_2_nh4
-
-            !    !  cobalt%f_ndet_kelp(i,j) = cobalt%f_ndet_kelp(i,j) - cobalt%jremin_ndet_kelp(i,j) * dt
-
-            ! endif
-
         ! Calculate remineralization under anaerobic conditions
         else !}{
           cobalt%jremin_ndet(i,j,k) = cobalt%gamma_ndet * cobalt%o2_min / &
@@ -5161,21 +5150,6 @@ contains
 		       (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)) * cobalt%n_2_n_denit
           cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)
 
-            ! if (cobalt%do_external_source .and. k .eq. grid_kmt(i,j) .and. mask_addition_t(i,j,1) .gt. 0.0) then
-            !    ! n_2_n_denit: mol NO3 consumed as OXIDANT per mol organic N remineralized.
-            !    ! The NO3 comes from p_no3, not from f_ndet_kelp. Kelp N -> NH4 at 1:1;
-            !    ! the 5.9 is dissolved nitrate destroyed to N2 and declared in net_srcn.
-            !     cobalt%jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%f_ndet_kelp(i,j) * &
-            !                             (cobalt%o2_min / (cobalt%k_o2 + cobalt%o2_min)) * &
-            !                             (cobalt%f_no3(i,j,k) / (cobalt%k_no3_denit + cobalt%f_no3(i,j,k))) * &
-            !                             (1.0 - rp_kelp_agent)
-            !     cobalt%jno3denit_wc(i,j,k) = cobalt%jno3denit_wc(i,j,k) + &
-            !                                 cobalt%jremin_ndet_kelp(i,j) * cobalt%n_2_n_denit
-            !     cobalt%jprod_nh4_kelp(i,j) = cobalt%jprod_nh4_kelp(i,j) + cobalt%jremin_ndet_kelp(i,j)
-
-               !  cobalt%f_ndet_kelp(i,j) = cobalt%f_ndet_kelp(i,j) - cobalt%jremin_ndet_kelp(i,j) * dt
-
-            ! endif
 
         endif !}
 
