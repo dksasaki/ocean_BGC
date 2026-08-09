@@ -6498,13 +6498,13 @@ contains
 
       imbal = (post_totn(i,j,k) - pre_totn(i,j,k) - net_srcn(i,j,k))*86400.0/dt*1.03e6
       if (abs(imbal).gt.imbalance_tolerance) then
-         write(stdoutunit,*) 'N IMBAL i,j,k=',i,j,k,' kmt=',grid_kmt(i,j)
-         write(stdoutunit,*) '  imbal=',imbal,' tol=',imbalance_tolerance
-         write(stdoutunit,*) '  pre=',pre_totn(i,j,k),' post=',post_totn(i,j,k),' src=',net_srcn(i,j,k)
-         write(stdoutunit,*) '  f_ndet_kelp=',cobalt%f_ndet_kelp(i,j)
-         write(stdoutunit,*) '  jremin_kelp=',cobalt%jremin_ndet_kelp(i,j)
-         write(stdoutunit,*) '  n_det_add=',cobalt%f_n_det_addition(i,j)
-         write(stdoutunit,*) '  tmask=',grid_tmask(i,j,k),' dzt=',dzt(i,j,k)
+         write(outunit,*) 'N IMBAL i,j,k=',i,j,k,' kmt=',grid_kmt(i,j)
+         write(outunit,*) '  imbal=',imbal,' tol=',imbalance_tolerance
+         write(outunit,*) '  pre=',pre_totn(i,j,k),' post=',post_totn(i,j,k),' src=',net_srcn(i,j,k)
+         write(outunit,*) '  f_ndet_kelp=',cobalt%f_ndet_kelp(i,j)
+         write(outunit,*) '  jremin_kelp=',cobalt%jremin_ndet_kelp(i,j)
+         write(outunit,*) '  n_det_add=',cobalt%f_n_det_addition(i,j)
+         write(outunit,*) '  tmask=',grid_tmask(i,j,k),' dzt=',dzt(i,j,k)
          call mpp_error(FATAL, '...Nitrogen')
       endif
 
