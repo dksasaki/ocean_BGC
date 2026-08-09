@@ -5521,7 +5521,7 @@ contains
              fpoc_btm = cobalt%fntot_btm(i,j)*cobalt%c_2_n*sperd*1000.0
 
              if (cobalt%do_external_source)then
-               fpoc_btm = fpoc_btm + n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0/dt * rho_dzt_bot(i,j)
+               fpoc_btm = fpoc_btm + n_det_override(i,j)*c_2_n_kelp*sperd*1000.0/dt * rho_dzt_bot(i,j)
              end if
 
 
@@ -5655,7 +5655,7 @@ contains
           else
             cobalt%ffe_sed(i,j) = cobalt%ffe_sed_max * tanh( &
                                     (cobalt%fntot_btm(i,j)*cobalt%c_2_n + n_det_override(i,j)*rho_dzt_bot(i,j)* &
-                                    cobalt%c_2_n_kelp)*sperd*1.0e3 / &
+                                    c_2_n_kelp)*sperd*1.0e3 / &
                                     max(cobalt%btm_o2(i,j)*1.0e6,epsln) )
           endif
 
@@ -5731,9 +5731,7 @@ contains
           else
             cobalt%fcased_redis_surfresp(i,j)=min(0.5*cobalt%f_cadet_calc_btf(i,j,1), &
             cobalt%phi_surfresp_cased*(cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
-                                      n_det_override(i,j)*rho_dzt_bot(i,j)*cobalt%c_2_n_kelp)
-            )
-          
+                                      n_det_override(i,j)*rho_dzt_bot(i,j)*c_2_n_kelp))
          endif
 
          ! DKSmod fcased_redis_surfresp -> need to consider whether we will need to add cobalt%f_ndet_kelp
@@ -5747,7 +5745,7 @@ contains
             cobalt%cased_redis_coef(i,j) = cobalt%gamma_cased*max(0.0,1.0-cobalt%btm_omega_calc(i,j)+ &
             cobalt%phi_deepresp_cased *spery * &
              (cobalt%fntot_btm(i,j)*cobalt%c_2_n*spery + &
-              n_det_override(i,j)*rho_dzt_bot(i,j)*cobalt%c_2_n_kelp))**cobalt%alpha_cased
+              n_det_override(i,j)*rho_dzt_bot(i,j)*c_2_n_kelp))**cobalt%alpha_cased
  
          endif
 
