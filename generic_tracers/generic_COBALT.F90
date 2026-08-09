@@ -5869,7 +5869,7 @@ contains
             pre_totn(i,j,k)  = pre_totn(i,j,k) - e_juptake_no3(i,j,k) * grid_tmask(i,j,k)
             pre_totp(i,j,k)  = pre_totp(i,j,k) - e_juptake_po4(i,j,k) * grid_tmask(i,j,k)
             pre_totfe(i,j,k) = pre_totfe(i,j,k)- e_juptake_fed(i,j,k) * grid_tmask(i,j,k)
-            pre_totc(i,j,k)  = pre_totc(i,j,k) - c_2_n_kelp*e_juptake_no3(i,j,k)  ! C:N is 9 for sugar kelp
+            pre_totc(i,j,k)  = pre_totc(i,j,k) - c_2_n_kelp*e_juptake_no3(i,j,k)  * grid_tmask(i,j,k)  ! C:N is 9 for sugar kelp
 
       enddo; enddo ; enddo  !} i,j,k
    end if
@@ -6496,11 +6496,23 @@ contains
                endif
          endif
 
-         imbal = (post_totn(i,j,k) - pre_totn(i,j,k) - net_srcn(i,j,k))*86400.0/dt*1.03e6
-         if (abs(imbal).gt.imbalance_tolerance) then
-           call mpp_error(FATAL,&
-           '==>biological source/sink imbalance (generic_COBALT_update_from_source): Nitrogen')
-         endif
+      imbal = (post_totn(i,j,k) - pre_totn(i,j,k) - net_srcn(i,j,k))*86400.0/dt*1.03e6
+      if (abs(imbal).gt.imbalance_tolerance) then
+         write(stdoutunit,*) 'N IMBAL i,j,k=',i,j,k,' kmt=',grid_kmt(i,j)
+         write(stdoutunit,*) '  imbal=',imbal,' tol=',imbalance_tolerance
+         write(stdoutunit,*) '  pre=',pre_totn(i,j,k),' post=',post_totn(i,j,k),' src=',net_srcn(i,j,k)
+         write(stdoutunit,*) '  f_ndet_kelp=',cobalt%f_ndet_kelp(i,j)
+         write(stdoutunit,*) '  jremin_kelp=',cobalt%jremin_ndet_kelp(i,j)
+         write(stdoutunit,*) '  n_det_add=',cobalt%f_n_det_addition(i,j)
+         write(stdoutunit,*) '  tmask=',grid_tmask(i,j,k),' dzt=',dzt(i,j,k)
+         call mpp_error(FATAL, '...Nitrogen')
+      endif
+
+         ! imbal = (post_totn(i,j,k) - pre_totn(i,j,k) - net_srcn(i,j,k))*86400.0/dt*1.03e6
+         ! if (abs(imbal).gt.imbalance_tolerance) then
+         !   call mpp_error(FATAL,&
+         !   '==>biological source/sink imbalance (generic_COBALT_update_from_source): Nitrogen')
+         ! endif
 
          post_totc(i,j,k) = (cobalt%p_dic(i,j,k,tau) + &
                     cobalt%p_cadet_arag(i,j,k,tau) + cobalt%p_cadet_calc(i,j,k,tau) + &
