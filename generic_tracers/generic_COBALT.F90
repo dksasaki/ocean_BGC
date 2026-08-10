@@ -1807,7 +1807,7 @@ contains
    call get_param(param_file, "generic_COBALT", "do_external_source", cobalt%do_external_source, &
                   "Enable 3D external nutrient uptake sinks via data_override", default=.false.)
    call get_param(param_file, "generic_COBALT", "c_2_n_kelp", cobalt%c_2_n_kelp, &
-                  "carbon to nitrogen ratio of externally-sourced kelp detritus", default=9.0)
+                  "carbon to nitrogen ratio of externally-sourced kelp detritus", units="mol C mol N-1", default=9.0)
     call g_tracer_end_param_list(package_name)
 
 
