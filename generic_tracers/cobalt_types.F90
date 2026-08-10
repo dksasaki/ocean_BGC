@@ -564,7 +564,8 @@ module cobalt_types
           hp_ipa_lgz,       & ! "  "  "  "  "  "  "  "  "   large zooplankton to hp
           hp_ipa_det,       & ! "  "  "  "  "  "  "  "  "   detritus to hp
           hp_phi_det,       & ! fraction of ingested N to detritus
-          frac_fastsinking    ! fraction of higher predator detritus that is fast-sinking
+          frac_fastsinking, & ! fraction of higher predator detritus that is fast-sinking
+          c_2_n_kelp          !< C:N ratio of externally-sourced kelp detritus DKS
 
      real, dimension(3)                    :: total_atm_co2
 
@@ -816,7 +817,6 @@ module cobalt_types
           e_juptake_po4,&
           e_juptake_fed,&
           f_ndet_kelp !DKSmod
-
           ! -- DKS
 
 !==============================================================================================================
@@ -914,6 +914,10 @@ module cobalt_types
           jremin_ndet_kelp,& !DKSmod
           jprod_nh4_kelp,& !DKSmod
           f_ndet_kelp_2d,& !DKSmod
+          n_det_override,& !DKSmod
+          p_det_override,& !DKSmod
+          fedet_override,& !DKSmod
+          rho_dzt_bot,&   !DKSmod
           f_alk_int_100, &
           f_dic_int_100, &
           f_din_int_100, &
@@ -963,6 +967,10 @@ module cobalt_types
           wc_vert_int_jfe_iceberg,&
           wc_vert_int_jno3_iceberg,&
           wc_vert_int_jpo4_iceberg
+!==============================================================================================================
+
+     integer, dimension(:,:), ALLOCATABLE :: &
+          k_bot   !< k-index of the shallowest layer included in the bottom boundary slab DKSmod
 !==============================================================================================================
 
      real, dimension(:,:,:,:), pointer :: &

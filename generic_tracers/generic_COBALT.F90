@@ -1806,6 +1806,8 @@ contains
                   "Enable 3D external nutrient uptake sinks via data_override", default=.false.)
    call get_param(param_file, "generic_COBALT", "do_external_source", cobalt%do_external_source, &
                   "Enable 3D external nutrient uptake sinks via data_override", default=.false.)
+   call get_param(param_file, "generic_COBALT", "c_2_n_kelp", cobalt%c_2_n_kelp, &
+                  "carbon to nitrogen ratio of externally-sourced kelp detritus", default=9.0)
     call g_tracer_end_param_list(package_name)
 
 
@@ -3040,7 +3042,7 @@ contains
 
          !  !DKSmod adjust bottom concentrations by including kelp (generic_COBALT_update_from_bottom)
          !  if (cobalt%do_external_source .and. .not. do_CBED) then
-         !     cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + cobalt%f_ndet_kelp(i,j,1)/dt * rho_dzt_bot(i,j)
+         !     cobalt%fntot_btm(i,j) = cobalt%fntot_btm(i,j) + cobalt%f_ndet_kelp(i,j,1)/dt * cobalt%rho_dzt_bot(i,j)
          !  endif
        endif !}
     enddo; enddo  !} i, j
@@ -3166,9 +3168,9 @@ contains
     real :: frac_sfc_irrad_aclm, irrad_aclm_thresh
     real :: tmp_irrad_aclm, tmp_zaclm
     real :: drho_dzt
-    integer, dimension(:,:), Allocatable :: k_bot, kblt
+    integer, dimension(:,:), Allocatable :: kblt
     real, dimension(:), Allocatable   :: tmp_irr_band
-    real, dimension(:,:), Allocatable :: rho_dzt_100,rho_dzt_200,rho_dzt_bot,sfc_irrad
+    real, dimension(:,:), Allocatable :: rho_dzt_100,rho_dzt_200,sfc_irrad
     ! << local variables used for neritic CaCO3 burial
     integer :: k_150
     real, dimension(:,:), Allocatable :: rho_dzt_150
@@ -3231,9 +3233,6 @@ contains
 
     
    ! --- DKS 2025/02/18 added detritus local variables  --
-    real, dimension(:,:), Allocatable :: n_det_override
-    real, dimension(:,:), Allocatable :: p_det_override
-    real, dimension(:,:), Allocatable :: fedet_override
     real, dimension(:,:,:), Allocatable :: mask_addition_t
 
     logical :: ndet_add_override
@@ -3245,7 +3244,6 @@ contains
    !  real, dimension(:,:), Allocatable :: jremin_ndet_kelp
    !  real, dimension(:,:), Allocatable :: jprod_nh4_kelp
    !  real, dimension(:,:), Allocatable :: f_ndet_kelp
-    real :: c_2_n_kelp
     real :: rp_kelp_agent
     ! --
 
@@ -3546,19 +3544,12 @@ contains
 
 
     ! --- DKS 2025/02/18 added allocate local variables  --
-      c_2_n_kelp = 9.0
       rp_kelp_agent = 0.0
 
     if (cobalt%do_external_source) then
-      allocate(n_det_override(isc:iec,jsc:jec))
-      allocate( p_det_override(isc:iec,jsc:jec))
-      allocate(fedet_override(isc:iec,jsc:jec))
       allocate(mask_addition_t(isc:iec,jsc:jec,1:nk))
 
-      allocate(rho_dzt_bot(isc:iec,jsc:jec))
-      allocate(k_bot(isc:iec,jsc:jec))
-      
-      rho_dzt_bot(:,:) = 0.
+      cobalt%rho_dzt_bot(:,:) = 0.
 
       ! DKSmod
       ! borrowed these loops from  a calculatation of bottom conditions and fluxes to the bottom
@@ -3566,14 +3557,14 @@ contains
       ! we chose to copy these for code maintainability
       do j = jsc, jec; do i = isc, iec  !{
          if (grid_kmt(i,j) .gt. 0) then !{
-            k_bot(i,j) = 0
+            cobalt%k_bot(i,j) = 0
             ! Note that grid_kmt is always the total number of layers in MOM6
             do k = grid_kmt(i,j),1,-1   !{
                ! Check if the top of layer k is within the bottom thickness.  If so, include its properties in the bottom
                ! layer averages.  Overshoots will be subtracted off later.
-               if (rho_dzt_bot(i,j).lt.(cobalt%Rho_0*cobalt%bottom_thickness)) then
-               k_bot(i,j) = k
-               rho_dzt_bot(i,j) = rho_dzt_bot(i,j) + rho_dzt(i,j,k)
+               if (cobalt%rho_dzt_bot(i,j).lt.(cobalt%Rho_0*cobalt%bottom_thickness)) then
+               cobalt%k_bot(i,j) = k
+               cobalt%rho_dzt_bot(i,j) = cobalt%rho_dzt_bot(i,j) + rho_dzt(i,j,k)
 
                end if
             end do !}
@@ -3584,11 +3575,11 @@ contains
       ! allocate(jremin_ndet_kelp(isc:iec, jsc:jec))
       ! allocate(jprod_nh4_kelp(isc:iec, jsc:jec))
       ! allocate(f_ndet_kelp(isc:iec, jsc:jec))
-      
 
-      n_det_override(:,:)    = 0.0
-      p_det_override(:,:)    = 0.0
-      fedet_override(:,:)    = 0.0
+
+      cobalt%n_det_override(:,:)    = 0.0
+      cobalt%p_det_override(:,:)    = 0.0
+      cobalt%fedet_override(:,:)    = 0.0
       mask_addition_t(:,:,:) = 0
 
       cobalt%jremin_ndet_kelp = 0.0
@@ -3604,22 +3595,19 @@ contains
          k = grid_kmt(i,j) !Get bottom layer
          if (k .gt. 0 .and. mask_addition_t(i,j,1) .gt. 0) then
             ! You would access your override variables here
-            n_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_n_det_addition(i,j)/rho_dzt_bot(i,j)
-            p_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_pdet_addition(i,j)/rho_dzt_bot(i,j)
-            fedet_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_fedet_addition(i,j)/rho_dzt_bot(i,j)
+            cobalt%n_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_n_det_addition(i,j)/cobalt%rho_dzt_bot(i,j)
+            cobalt%p_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_pdet_addition(i,j)/cobalt%rho_dzt_bot(i,j)
+            cobalt%fedet_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_fedet_addition(i,j)/cobalt%rho_dzt_bot(i,j)
          endif
       enddo; enddo !} i,j
 
       do j = jsc, jec; do i= isc, iec
          k = grid_kmt(i,j) !Get bottom layer
          if (k .gt. 0 .and. mask_addition_t(i,j,1) .gt. 0.0) then
-            cobalt%f_ndet_kelp(i,j,1) =  cobalt%f_ndet_kelp(i,j,1) + n_det_override(i,j) * dt 
+            cobalt%f_ndet_kelp(i,j,1) =  cobalt%f_ndet_kelp(i,j,1) + cobalt%n_det_override(i,j) * dt
          endif
       enddo; enddo !} i,j
 
-
-      deallocate(rho_dzt_bot)
-   
    end if!
 !
 !-----------------------------------------------------------------------------------
@@ -5219,7 +5207,7 @@ contains
             cobalt%jprod_nh4_kelp(i,j) = cobalt%jremin_ndet_kelp(i,j)
 
             ! distribute the O2 demand / NO3 demand across the slab
-            do k = grid_kmt(i,j), k_bot(i,j), -1
+            do k = grid_kmt(i,j), cobalt%k_bot(i,j), -1
                if (cobalt%btm_o2(i,j) .gt. cobalt%o2_min) then
                   cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + &
                      cobalt%jremin_ndet_kelp(i,j)*cobalt%o2_2_nh4
@@ -5339,15 +5327,11 @@ contains
 
     enddo; enddo; enddo  !} i,j,k
 
-    if (cobalt%do_external_source) then
-      deallocate(k_bot)
-    endif
-
 !     ! --- DKS 2025/02/18 added allocate local variables  --
 !     if (cobalt%do_external_source) then
-!       allocate(n_det_override(isc:iec,jsc:jec))
-!       allocate( p_det_override(isc:iec,jsc:jec))
-!       allocate(fedet_override(isc:iec,jsc:jec))
+!       allocate(cobalt%n_det_override(isc:iec,jsc:jec))
+!       allocate( cobalt%p_det_override(isc:iec,jsc:jec))
+!       allocate(cobalt%fedet_override(isc:iec,jsc:jec))
 !       allocate(mask_addition_t(isc:iec,jsc:jec,1:nk))
 
 !       ! DKSmod
@@ -5355,11 +5339,11 @@ contains
 !       allocate(jprod_nh4_kelp(isc:iec, jsc:jec))
 !       allocate(f_ndet_kelp(isc:iec, jsc:jec))
       
-!       c_2_n_kelp = 9.0
+!       cobalt%c_2_n_kelp = 9.0
 
-!       n_det_override(:,:)    = 0.0
-!       p_det_override(:,:)    = 0.0
-!       fedet_override(:,:)    = 0.0
+!       cobalt%n_det_override(:,:)    = 0.0
+!       cobalt%p_det_override(:,:)    = 0.0
+!       cobalt%fedet_override(:,:)    = 0.0
 !       mask_addition_t(:,:,:) = 0
 
 !       jremin_ndet_kelp = 0.0
@@ -5376,9 +5360,9 @@ contains
 !          k = grid_kmt(i,j) !Get bottom layer
 !          if (mask_addition_t(i,j,1) .gt. 0) then
 !             ! You would access your override variables here
-!             n_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_n_det_addition(i,j)
-!             p_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_pdet_addition(i,j)
-!             fedet_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_fedet_addition(i,j)
+!             cobalt%n_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_n_det_addition(i,j)
+!             cobalt%p_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_pdet_addition(i,j)
+!             cobalt%fedet_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_fedet_addition(i,j)
 !          endif
 !       enddo; enddo !} i,j
 
@@ -5411,9 +5395,6 @@ contains
     ! uses conditions over a specified bottom layer thickness (cobalt%bottom_thickness, default = 1m) for bottom calcs.
 
     ! Local variables used to determine the layers falling within the bottom thickness
-    allocate(rho_dzt_bot(isc:iec,jsc:jec))
-    allocate(k_bot(isc:iec,jsc:jec))
-
     do j = jsc, jec; do i = isc, iec  !{
        if (grid_kmt(i,j) .gt. 0) then !{
 
@@ -5432,7 +5413,7 @@ contains
 
           ! Calculate the values of tracers influencing the sedimentary transformations
           ! and fluxes over a layer defined by "bottom_thickess".
-          rho_dzt_bot(i,j) = 0.0  ! kg/m2
+          cobalt%rho_dzt_bot(i,j) = 0.0  ! kg/m2
           cobalt%btm_temp(i,j) = 0.0
           cobalt%btm_o2(i,j) = 0.0
           cobalt%btm_no3(i,j) = 0.0
@@ -5441,14 +5422,14 @@ contains
           cobalt%btm_co3_sol_calc(i,j) = 0.0
           cobalt%btm_co3_ion(i,j) = 0.0
           cobalt%btm_omega_calc(i,j) = 0.0
-          k_bot(i,j) = 0
+          cobalt%k_bot(i,j) = 0
           ! Note that grid_kmt is always the total number of layers in MOM6
           do k = grid_kmt(i,j),1,-1   !{
             ! Check if the top of layer k is within the bottom thickness.  If so, include its properties in the bottom
             ! layer averages.  Overshoots will be subtracted off later.
-            if (rho_dzt_bot(i,j).lt.(cobalt%Rho_0*cobalt%bottom_thickness)) then
-              k_bot(i,j) = k
-              rho_dzt_bot(i,j) = rho_dzt_bot(i,j) + rho_dzt(i,j,k)
+            if (cobalt%rho_dzt_bot(i,j).lt.(cobalt%Rho_0*cobalt%bottom_thickness)) then
+              cobalt%k_bot(i,j) = k
+              cobalt%rho_dzt_bot(i,j) = cobalt%rho_dzt_bot(i,j) + rho_dzt(i,j,k)
               cobalt%btm_temp(i,j) = cobalt%btm_temp(i,j) + Temp(i,j,k)*rho_dzt(i,j,k)
               cobalt%btm_o2(i,j) = cobalt%btm_o2(i,j) + cobalt%f_o2(i,j,k)*rho_dzt(i,j,k)
               cobalt%btm_no3(i,j) = cobalt%btm_no3(i,j) + cobalt%f_no3(i,j,k)*rho_dzt(i,j,k)
@@ -5459,14 +5440,14 @@ contains
             endif
           enddo
           ! Subtract off overshoot
-          drho_dzt = rho_dzt_bot(i,j) - cobalt%Rho_0*cobalt%bottom_thickness
-          cobalt%btm_temp(i,j)=cobalt%btm_temp(i,j)-Temp(i,j,k_bot(i,j))*drho_dzt
-          cobalt%btm_o2(i,j)=cobalt%btm_o2(i,j)-cobalt%f_o2(i,j,k_bot(i,j))*drho_dzt
-          cobalt%btm_no3(i,j)=cobalt%btm_no3(i,j)-cobalt%f_no3(i,j,k_bot(i,j))*drho_dzt
-          cobalt%btm_alk(i,j)=cobalt%btm_alk(i,j)-cobalt%f_alk(i,j,k_bot(i,j))*drho_dzt
-          cobalt%btm_dic(i,j)=cobalt%btm_dic(i,j)-cobalt%f_dic(i,j,k_bot(i,j))*drho_dzt
-          cobalt%btm_co3_sol_calc(i,j)=cobalt%btm_co3_sol_calc(i,j)-cobalt%co3_sol_calc(i,j,k_bot(i,j))*drho_dzt
-          cobalt%btm_co3_ion(i,j)=cobalt%btm_co3_ion(i,j)-cobalt%f_co3_ion(i,j,k_bot(i,j))*drho_dzt
+          drho_dzt = cobalt%rho_dzt_bot(i,j) - cobalt%Rho_0*cobalt%bottom_thickness
+          cobalt%btm_temp(i,j)=cobalt%btm_temp(i,j)-Temp(i,j,cobalt%k_bot(i,j))*drho_dzt
+          cobalt%btm_o2(i,j)=cobalt%btm_o2(i,j)-cobalt%f_o2(i,j,cobalt%k_bot(i,j))*drho_dzt
+          cobalt%btm_no3(i,j)=cobalt%btm_no3(i,j)-cobalt%f_no3(i,j,cobalt%k_bot(i,j))*drho_dzt
+          cobalt%btm_alk(i,j)=cobalt%btm_alk(i,j)-cobalt%f_alk(i,j,cobalt%k_bot(i,j))*drho_dzt
+          cobalt%btm_dic(i,j)=cobalt%btm_dic(i,j)-cobalt%f_dic(i,j,cobalt%k_bot(i,j))*drho_dzt
+          cobalt%btm_co3_sol_calc(i,j)=cobalt%btm_co3_sol_calc(i,j)-cobalt%co3_sol_calc(i,j,cobalt%k_bot(i,j))*drho_dzt
+          cobalt%btm_co3_ion(i,j)=cobalt%btm_co3_ion(i,j)-cobalt%f_co3_ion(i,j,cobalt%k_bot(i,j))*drho_dzt
           ! convert back to moles kg-1
           cobalt%btm_temp(i,j)=cobalt%btm_temp(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
           cobalt%btm_o2(i,j)=cobalt%btm_o2(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
@@ -5521,7 +5502,7 @@ contains
              fpoc_btm = cobalt%fntot_btm(i,j)*cobalt%c_2_n*sperd*1000.0
 
              if (cobalt%do_external_source)then
-               fpoc_btm = fpoc_btm + n_det_override(i,j)*c_2_n_kelp*sperd*1000.0/dt * rho_dzt_bot(i,j)
+               fpoc_btm = fpoc_btm + cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0/dt * cobalt%rho_dzt_bot(i,j)
              end if
 
 
@@ -5532,7 +5513,7 @@ contains
 
              if (cobalt%do_external_source)then
                 cobalt%fn_burial(i,j) =  cobalt%fn_burial(i,j) + cobalt%frac_burial(i,j)* &
-                                       n_det_override(i,j) * rho_dzt_bot(i,j)
+                                       cobalt%n_det_override(i,j) * cobalt%rho_dzt_bot(i,j)
              end if
              
              cobalt%fp_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fptot_btm(i,j)
@@ -5574,7 +5555,7 @@ contains
                      cobalt%zt(i,j,k) / (cobalt%z_denit + cobalt%zt(i,j,k))
              else
                cobalt%fno3denit_sed(i,j) = min(cobalt%btm_no3(i,j)*cobalt%bottom_thickness*cobalt%Rho_0*r_dt,  &
-                     min((cobalt%fntot_btm(i,j)  + n_det_override(i,j)*rho_dzt_bot(i,j) -cobalt%fn_burial(i,j))*cobalt%n_2_n_denit, &
+                     min((cobalt%fntot_btm(i,j)  + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j) -cobalt%fn_burial(i,j))*cobalt%n_2_n_denit, &
                      10.0**(-0.9543+0.7662*log10_fpoc_btm - 0.235*log10_fpoc_btm**2.0)/(cobalt%c_2_n*sperd*100.0)* &
                      cobalt%n_2_n_denit*cobalt%btm_no3(i,j)/(cobalt%k_no3_denit + cobalt%btm_no3(i,j)))) * &
                      cobalt%zt(i,j,k) / (cobalt%z_denit + cobalt%zt(i,j,k))
@@ -5625,12 +5606,12 @@ contains
                if (cobalt%btm_o2(i,j) .gt. cobalt%o2_min) then  !{
                   cobalt%fnoxic_sed(i,j) = max(0.0, min(cobalt%btm_o2(i,j)*cobalt%bottom_thickness* &
                                           cobalt%Rho_0*r_dt*(1.0/cobalt%o2_2_nh4), &
-                                          cobalt%fntot_btm(i,j) + n_det_override(i,j)*rho_dzt_bot(i,j) - cobalt%fn_burial(i,j) - &
+                                          cobalt%fntot_btm(i,j) + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j) - cobalt%fn_burial(i,j) - &
                                           cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit))
                else
                   cobalt%fnoxic_sed(i,j) = 0.0
                endif !}
-               cobalt%fnso4red_sed(i,j) = max(0.0, cobalt%fntot_btm(i,j) + n_det_override(i,j)*rho_dzt_bot(i,j) - &
+               cobalt%fnso4red_sed(i,j) = max(0.0, cobalt%fntot_btm(i,j) + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j) - &
                                           cobalt%fnoxic_sed(i,j)- &
                                           cobalt%fn_burial(i,j)-cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit)
              end if
@@ -5654,12 +5635,12 @@ contains
                                  max(cobalt%btm_o2(i,j)*1.0e6,epsln) )
           else
             cobalt%ffe_sed(i,j) = cobalt%ffe_sed_max * tanh( &
-                                    (cobalt%fntot_btm(i,j)*cobalt%c_2_n + n_det_override(i,j)*rho_dzt_bot(i,j)* &
-                                    c_2_n_kelp)*sperd*1.0e3 / &
+                                    (cobalt%fntot_btm(i,j)*cobalt%c_2_n + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)* &
+                                    cobalt%c_2_n_kelp)*sperd*1.0e3 / &
                                     max(cobalt%btm_o2(i,j)*1.0e6,epsln) )
           endif
 
-         ! DKSmod ffe_sed need to remove cobalt%f_ndet_kelp to do c_2_n and then need to add it, but multiply by c_2_n_kelp
+         ! DKSmod ffe_sed need to remove cobalt%f_ndet_kelp to do c_2_n and then need to add it, but multiply by cobalt%c_2_n_kelp
 
 
           ! Additional coastal iron (Optional, default fe_coast = 0)
@@ -5731,7 +5712,7 @@ contains
           else
             cobalt%fcased_redis_surfresp(i,j)=min(0.5*cobalt%f_cadet_calc_btf(i,j,1), &
             cobalt%phi_surfresp_cased*(cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
-                                      n_det_override(i,j)*rho_dzt_bot(i,j)*c_2_n_kelp))
+                                      cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp))
          endif
 
          ! DKSmod fcased_redis_surfresp -> need to consider whether we will need to add cobalt%f_ndet_kelp
@@ -5745,7 +5726,7 @@ contains
             cobalt%cased_redis_coef(i,j) = cobalt%gamma_cased*max(0.0,1.0-cobalt%btm_omega_calc(i,j)+ &
             cobalt%phi_deepresp_cased *spery * &
              (cobalt%fntot_btm(i,j)*cobalt%c_2_n*spery + &
-              n_det_override(i,j)*rho_dzt_bot(i,j)*c_2_n_kelp))**cobalt%alpha_cased
+              cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp))**cobalt%alpha_cased
  
          endif
 
@@ -5795,7 +5776,7 @@ contains
          if (.not. cobalt%do_external_source) then
             cobalt%b_nh4(i,j) = - cobalt%fntot_btm(i,j) + cobalt%fn_burial(i,j)
          else
-            cobalt%b_nh4(i,j) = - cobalt%fntot_btm(i,j) - n_det_override(i,j)*rho_dzt_bot(i,j) + cobalt%fn_burial(i,j)
+            cobalt%b_nh4(i,j) = - cobalt%fntot_btm(i,j) - cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j) + cobalt%fn_burial(i,j)
          endif
          cobalt%b_no3(i,j) = cobalt%fno3denit_sed(i,j)
 
@@ -5838,8 +5819,6 @@ contains
     call g_tracer_set_values(tracer_list,'sio4', 'btf', cobalt%b_sio4,isd,jsd)
 !
     endif !do_CBED
-    deallocate(rho_dzt_bot)
-    deallocate(k_bot)
 
 
     call mpp_clock_end(id_clock_ballast_loops)
@@ -5940,26 +5919,23 @@ contains
       ! for diagnostics and benthic flux calculations 
       ! we chose to copy these for code maintainability
       if (cobalt%do_external_source) then
-         allocate(k_bot(isc:iec,jsc:jec))
-         allocate(rho_dzt_bot(isc:iec,jsc:jec))
-         rho_dzt_bot(:,:) = 0
+         cobalt%rho_dzt_bot(:,:) = 0
 
          do j = jsc, jec; do i = isc, iec  !{
             if (grid_kmt(i,j) .gt. 0) then !{
-               k_bot(i,j) = 0
+               cobalt%k_bot(i,j) = 0
                ! Note that grid_kmt is always the total number of layers in MOM6
                do k = grid_kmt(i,j),1,-1   !{
                   ! Check if the top of layer k is within the bottom thickness.  If so, include its properties in the bottom
                   ! layer averages.  Overshoots will be subtracted off later.
-                  if (rho_dzt_bot(i,j).lt.(cobalt%Rho_0*cobalt%bottom_thickness)) then
-                  k_bot(i,j) = k
-                  rho_dzt_bot(i,j) = rho_dzt_bot(i,j) + rho_dzt(i,j,k)
+                  if (cobalt%rho_dzt_bot(i,j).lt.(cobalt%Rho_0*cobalt%bottom_thickness)) then
+                  cobalt%k_bot(i,j) = k
+                  cobalt%rho_dzt_bot(i,j) = cobalt%rho_dzt_bot(i,j) + rho_dzt(i,j,k)
 
                   end if
                end do !}
             end if !}
          end do;end do !}
-         deallocate(rho_dzt_bot)
       endif
 
     ! -- DKS
@@ -5978,8 +5954,8 @@ contains
                      cobalt%jnamx(i,j,k) + cobalt%jno3_iceberg(i,j,k))*dt*grid_tmask(i,j,k)
 
    if (cobalt%do_external_source) then
-      if (k .ge. k_bot(i,j) .and. k .le. grid_kmt(i,j)) then
-         net_srcn(i,j,k) = net_srcn(i,j,k) - cobalt%frac_burial(i,j) * n_det_override(i,j) * dt * grid_tmask(i,j,k)
+      if (k .ge. cobalt%k_bot(i,j) .and. k .le. grid_kmt(i,j)) then
+         net_srcn(i,j,k) = net_srcn(i,j,k) - cobalt%frac_burial(i,j) * cobalt%n_det_override(i,j) * dt * grid_tmask(i,j,k)
       endif
    endif
          ! << Apply neritic CaCO3 burial contribution to net carbon source/sink term
@@ -6032,7 +6008,7 @@ contains
             pre_totn(i,j,k)  = pre_totn(i,j,k) - e_juptake_no3(i,j,k) * grid_tmask(i,j,k)
             pre_totp(i,j,k)  = pre_totp(i,j,k) - e_juptake_po4(i,j,k) * grid_tmask(i,j,k)
             pre_totfe(i,j,k) = pre_totfe(i,j,k)- e_juptake_fed(i,j,k) * grid_tmask(i,j,k)
-            pre_totc(i,j,k)  = pre_totc(i,j,k) - c_2_n_kelp*e_juptake_no3(i,j,k)  * grid_tmask(i,j,k)  ! C:N is 9 for sugar kelp
+            pre_totc(i,j,k)  = pre_totc(i,j,k) - cobalt%c_2_n_kelp*e_juptake_no3(i,j,k)  * grid_tmask(i,j,k)  ! C:N is 9 for sugar kelp
 
       enddo; enddo ; enddo  !} i,j,k
    end if
@@ -6242,7 +6218,7 @@ contains
        ! DKSmod: add kelp NH4 production at bottom cell
        if (cobalt%do_external_source) then
          !  if (k .eq. grid_kmt(i,j)) then
-         if (k .ge. k_bot(i,j) .and. k .le. grid_kmt(i,j)) then
+         if (k .ge. cobalt%k_bot(i,j) .and. k .le. grid_kmt(i,j)) then
              cobalt%jnh4(i,j,k) = cobalt%jnh4(i,j,k) + cobalt%jprod_nh4_kelp(i,j)
           endif
        endif
@@ -6358,37 +6334,34 @@ contains
    ! DKS 2025/02/18 added detritus variables
     if (cobalt%do_external_source) then
       do j = jsc, jec; do i= isc, iec
-         do k = grid_kmt(i,j),k_bot(i,j),-1
+         do k = grid_kmt(i,j),cobalt%k_bot(i,j),-1
             ! k = grid_kmt(i,j) !Get bottom layer
             if (k .gt. 0 .and. mask_addition_t(i,j,1) .gt. 0.0) then
-               ! cobalt%f_ndet_kelp(i,j,1) =  n_det_override(i,j) * dt 
+               ! cobalt%f_ndet_kelp(i,j,1) =  cobalt%n_det_override(i,j) * dt 
                ! cobalt%p_ndet(i,j,k,tau) = cobalt%p_ndet(i,j,k,tau)   + cobalt%f_ndet_kelp
-               cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + p_det_override(i,j) * dt
-               cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + fedet_override(i,j) * dt
+               cobalt%p_pdet(i,j,k,tau) = cobalt%p_pdet(i,j,k,tau)   + cobalt%p_det_override(i,j) * dt
+               cobalt%p_fedet(i,j,k,tau) = cobalt%p_fedet(i,j,k,tau) + cobalt%fedet_override(i,j) * dt
             endif
       enddo; enddo; enddo !} i,j
 
       do j = jsc, jec; do i= isc, iec
          if (grid_kmt(i,j) .gt. 0) then
-            do k = grid_kmt(i,j),k_bot(i,j),-1
+            do k = grid_kmt(i,j),cobalt%k_bot(i,j),-1
             ! if (k .gt. 0) then
-                  !cobalt%f_ndet_kelp(i,j,1) =  n_det_override(i,j) * dt
+                  !cobalt%f_ndet_kelp(i,j,1) =  cobalt%n_det_override(i,j) * dt
                   pre_totn(i,j,k) = pre_totn(i,j,k) + cobalt%f_ndet_kelp(i,j,1) * grid_tmask(i,j,k)
-                  pre_totp(i,j,k) = pre_totp(i,j,k) + p_det_override(i,j) * dt  * grid_tmask(i,j,k)
-                  pre_totfe(i,j,k) = pre_totfe(i,j,k) + fedet_override(i,j) *dt  * grid_tmask(i,j,k) 
-                  pre_totc(i,j,k) = pre_totc(i,j,k) + c_2_n_kelp * cobalt%jprod_nh4_kelp(i,j) *dt  * grid_tmask(i,j,k)
+                  pre_totp(i,j,k) = pre_totp(i,j,k) + cobalt%p_det_override(i,j) * dt  * grid_tmask(i,j,k)
+                  pre_totfe(i,j,k) = pre_totfe(i,j,k) + cobalt%fedet_override(i,j) *dt  * grid_tmask(i,j,k) 
+                  pre_totc(i,j,k) = pre_totc(i,j,k) + cobalt%c_2_n_kelp * cobalt%jprod_nh4_kelp(i,j) *dt  * grid_tmask(i,j,k)
                   ! endif
             enddo !} k
             cobalt%f_ndet_kelp(i,j,1) = cobalt%f_ndet_kelp(i,j,1) - cobalt%jremin_ndet_kelp(i,j) * dt &
-                                      - cobalt%frac_burial(i,j) * n_det_override(i,j) * dt
+                                      - cobalt%frac_burial(i,j) * cobalt%n_det_override(i,j) * dt
          endif
       enddo; enddo; !} i,j
 
          
       
-      deallocate(n_det_override)
-      deallocate(p_det_override)
-      deallocate(fedet_override)
       deallocate(mask_addition_t)
     end if
 
@@ -6495,8 +6468,8 @@ contains
 
        ! DKSmod: add kelp remineralization DIC contribution at bottom cell
        if (cobalt%do_external_source) then
-         if (k .ge. k_bot(i,j) .and. k .le. grid_kmt(i,j)) then
-             cobalt%jdic(i,j,k) = cobalt%jdic(i,j,k) + c_2_n_kelp * cobalt%jprod_nh4_kelp(i,j)
+         if (k .ge. cobalt%k_bot(i,j) .and. k .le. grid_kmt(i,j)) then
+             cobalt%jdic(i,j,k) = cobalt%jdic(i,j,k) + cobalt%c_2_n_kelp * cobalt%jprod_nh4_kelp(i,j)
           endif
        endif
 
@@ -6516,7 +6489,7 @@ contains
                                     e_juptake_no3(i,j,k)* grid_tmask(i,j,k) * grid_tmask(i,j,k)! DKS
 
          cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) - &
-                                   c_2_n_kelp * e_juptake_no3(i,j,k) ! C:N is 9 for sugar kelp 
+                                   cobalt%c_2_n_kelp * e_juptake_no3(i,j,k) ! C:N is 9 for sugar kelp 
                                  ! cobalt%c_2_n * e_juptake_no3(i,j,k) ! DKS
       enddo; enddo ; enddo !} i,j,k
 
@@ -6665,7 +6638,7 @@ contains
          ! DKSmod need to include p_ndet_kelp in post_totn
          if (cobalt%do_external_source) then
             ! if (k .eq. grid_kmt(i,j) .and. k .gt. 0) then
-            if (k .ge. k_bot(i,j) .and. k .le. grid_kmt(i,j)) then
+            if (k .ge. cobalt%k_bot(i,j) .and. k .le. grid_kmt(i,j)) then
                   post_totn(i,j,k) = post_totn(i,j,k) + cobalt%f_ndet_kelp(i,j,1) * grid_tmask(i,j,k)
                endif
 
@@ -6739,10 +6712,6 @@ contains
          endif
       endif
     enddo; enddo ; enddo  !} i,j,k
-
-    if (cobalt%do_external_source) then
-            deallocate(k_bot)
-    endif
 
     !
     !----------------
@@ -7083,49 +7052,45 @@ contains
     ! Then find all the layers within the specified bottom boundary layer thickness.  The first layer is always included.
     ! Additional layers are included if they fall, in part or whole, within the specified bottom thickness.  This
     ! could be done more finely, but awaiting an explicit bottom boundary layer scheme.
-    allocate(rho_dzt_bot(isc:iec,jsc:jec))
-    allocate(k_bot(isc:iec,jsc:jec))
     do j = jsc, jec ; do i = isc, iec  !{
       k = grid_kmt(i,j)         ! start at the bottom
-      rho_dzt_bot(i,j) = 0.0    ! local variable to track the mass of the cells assigned to the bottom (kg m-2)
+      cobalt%rho_dzt_bot(i,j) = 0.0    ! tracks the mass of the cells assigned to the bottom (kg m-2)
       if (k .gt. 0) then !{
         do k = grid_kmt(i,j),1,-1   !{
-          if (rho_dzt_bot(i,j).lt.cobalt%Rho_0*cobalt%bottom_thickness) then
-            rho_dzt_bot(i,j) = rho_dzt_bot(i,j) + rho_dzt(i,j,k)
-            k_bot(i,j) = k      ! tracks the k index of the last layer included in the bottom boundary
+          if (cobalt%rho_dzt_bot(i,j).lt.cobalt%Rho_0*cobalt%bottom_thickness) then
+            cobalt%rho_dzt_bot(i,j) = cobalt%rho_dzt_bot(i,j) + rho_dzt(i,j,k)
+            cobalt%k_bot(i,j) = k      ! tracks the k index of the last layer included in the bottom boundary
           endif
         enddo
       endif
     enddo; enddo
 
     ! Lastly add the bottom fluxes to the bottom of the water column to form the "plus_btm" diagnostics.  The bottom
-    ! fluxes are in moles m-2 sec-1.  Dividing by the bottom layer mass (rho_dzt_bot, kg m-2) gives  moles kg-1 sec-1,
+    ! fluxes are in moles m-2 sec-1.  Dividing by the bottom layer mass (cobalt%rho_dzt_bot, kg m-2) gives  moles kg-1 sec-1,
     ! which is dimensionally consistent with other water column fluxes.
     ! Note: Updated to directly reference the bottom fluxes passed to the tridiagonal solver when possible.  The
     ! convention for these is that a negative flux is into the domain, explaining subtractions below
     do j = jsc, jec ; do i = isc, iec  !{
       k = grid_kmt(i,j)
       if (k .gt. 0) then !{
-        do k = grid_kmt(i,j),k_bot(i,j),-1   !{
+        do k = grid_kmt(i,j),cobalt%k_bot(i,j),-1   !{
           cobalt%jdiss_cadet_calc_plus_btm(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) +  &
-            cobalt%fcased_redis(i,j) / rho_dzt_bot(i,j)
+            cobalt%fcased_redis(i,j) / cobalt%rho_dzt_bot(i,j)
           cobalt%jdiss_cadet_arag_plus_btm(i,j,k)  = cobalt%jdiss_cadet_arag(i,j,k) +  &
-            cobalt%f_cadet_arag_btf(i,j,1) / rho_dzt_bot(i,j)
-          cobalt%jprod_nh4_plus_btm(i,j,k) = cobalt%jprod_nh4(i,j,k) - cobalt%b_nh4(i,j)/rho_dzt_bot(i,j)
-          cobalt%jalk_plus_btm(i,j,k) = cobalt%jalk(i,j,k) - cobalt%b_alk(i,j)/rho_dzt_bot(i,j)
-          cobalt%jo2_plus_btm(i,j,k) = cobalt%jo2(i,j,k) - cobalt%b_o2(i,j)/rho_dzt_bot(i,j)
-          cobalt%jdic_plus_btm(i,j,k) = cobalt%jdic(i,j,k) - cobalt%b_dic(i,j)/rho_dzt_bot(i,j)
-          cobalt%jfed_plus_btm(i,j,k) = cobalt%jfed(i,j,k) - cobalt%b_fed(i,j)/rho_dzt_bot(i,j)
-          cobalt%jnh4_plus_btm(i,j,k) = cobalt%jnh4(i,j,k) - cobalt%b_nh4(i,j)/rho_dzt_bot(i,j)
-          cobalt%jno3_plus_btm(i,j,k) = cobalt%jno3(i,j,k) - cobalt%fno3denit_sed(i,j)/rho_dzt_bot(i,j)
-          cobalt%jpo4_plus_btm(i,j,k) = cobalt%jpo4(i,j,k) - cobalt%b_po4(i,j)/rho_dzt_bot(i,j)
-          cobalt%jsio4_plus_btm(i,j,k) = cobalt%jsio4(i,j,k) - cobalt%b_sio4(i,j)/rho_dzt_bot(i,j)
+            cobalt%f_cadet_arag_btf(i,j,1) / cobalt%rho_dzt_bot(i,j)
+          cobalt%jprod_nh4_plus_btm(i,j,k) = cobalt%jprod_nh4(i,j,k) - cobalt%b_nh4(i,j)/cobalt%rho_dzt_bot(i,j)
+          cobalt%jalk_plus_btm(i,j,k) = cobalt%jalk(i,j,k) - cobalt%b_alk(i,j)/cobalt%rho_dzt_bot(i,j)
+          cobalt%jo2_plus_btm(i,j,k) = cobalt%jo2(i,j,k) - cobalt%b_o2(i,j)/cobalt%rho_dzt_bot(i,j)
+          cobalt%jdic_plus_btm(i,j,k) = cobalt%jdic(i,j,k) - cobalt%b_dic(i,j)/cobalt%rho_dzt_bot(i,j)
+          cobalt%jfed_plus_btm(i,j,k) = cobalt%jfed(i,j,k) - cobalt%b_fed(i,j)/cobalt%rho_dzt_bot(i,j)
+          cobalt%jnh4_plus_btm(i,j,k) = cobalt%jnh4(i,j,k) - cobalt%b_nh4(i,j)/cobalt%rho_dzt_bot(i,j)
+          cobalt%jno3_plus_btm(i,j,k) = cobalt%jno3(i,j,k) - cobalt%fno3denit_sed(i,j)/cobalt%rho_dzt_bot(i,j)
+          cobalt%jpo4_plus_btm(i,j,k) = cobalt%jpo4(i,j,k) - cobalt%b_po4(i,j)/cobalt%rho_dzt_bot(i,j)
+          cobalt%jsio4_plus_btm(i,j,k) = cobalt%jsio4(i,j,k) - cobalt%b_sio4(i,j)/cobalt%rho_dzt_bot(i,j)
           cobalt%jdin_plus_btm(i,j,k)  = cobalt%jno3_plus_btm(i,j,k) + cobalt%jnh4_plus_btm(i,j,k)
         enddo
       endif
     enddo; enddo
-    deallocate(rho_dzt_bot)
-    deallocate(k_bot)
 
 !****************************************************************************************************
 
@@ -8606,6 +8571,11 @@ contains
       allocate(cobalt%irr_sfc_dms(isd:ied, jsd:jed))        ; cobalt%irr_sfc_dms=0.0
       allocate(cobalt%chl_dmsp(isd:ied, jsd:jed))           ; cobalt%chl_dmsp=0.0
 
+      ! rho_dzt_bot/k_bot track the bottom-boundary-layer mass/k-index and are used throughout
+      ! generic_COBALT_update_from_source (and by generic_CBED_update_from_source) regardless of do_external_source
+      allocate(cobalt%rho_dzt_bot(isd:ied, jsd:jed)); cobalt%rho_dzt_bot=0.0
+      allocate(cobalt%k_bot(isd:ied, jsd:jed));       cobalt%k_bot=0
+
       ! DKS 2025/02/18 added detritus variables
       if (cobalt%do_external_source) then
          allocate(cobalt%f_n_det_addition(isd:ied, jsd:jed));  cobalt%f_n_det_addition=0.0
@@ -8616,6 +8586,10 @@ contains
          allocate(cobalt%jprod_nh4_kelp(isd:ied, jsd:jed));    cobalt%jprod_nh4_kelp=0.0
          allocate(cobalt%f_ndet_kelp(isd:ied, jsd:jed,1:nk));       cobalt%f_ndet_kelp=0.0
          allocate(cobalt%f_ndet_kelp_2d(isd:ied, jsd:jed));       cobalt%f_ndet_kelp_2d=0.0
+
+         allocate(cobalt%n_det_override(isd:ied, jsd:jed));   cobalt%n_det_override=0.0
+         allocate(cobalt%p_det_override(isd:ied, jsd:jed));   cobalt%p_det_override=0.0
+         allocate(cobalt%fedet_override(isd:ied, jsd:jed));   cobalt%fedet_override=0.0
 
       end if
 
@@ -9233,7 +9207,13 @@ contains
          deallocate(cobalt%jprod_nh4_kelp)
          deallocate(cobalt%f_ndet_kelp)
          deallocate(cobalt%f_ndet_kelp_2d)
+         deallocate(cobalt%n_det_override)
+         deallocate(cobalt%p_det_override)
+         deallocate(cobalt%fedet_override)
       end if
+
+      deallocate(cobalt%rho_dzt_bot)
+      deallocate(cobalt%k_bot)
 
   end subroutine user_deallocate_arrays
 

@@ -2034,10 +2034,21 @@ contains
                   ! Since burial is highly uncertain and often used in global earth system simulations to balance inputs and
                   ! outputs, a dimensionless scaling factor (cobalt%scale_burial) has also been included.
                   fpoc_btm = cobalt%fntot_btm(i,j)*cobalt%c_2_n*sperd*1000.0
+
+                  if (cobalt%do_external_source) then
+                     fpoc_btm = fpoc_btm + cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0/dt * cobalt%rho_dzt_bot(i,j)
+                  end if
+
                   cobalt%frac_burial(i,j) = 0.013 + 0.53*fpoc_btm**2.0/((7.0+fpoc_btm)**2.0) * &
                      cobalt%zt(i,j,k) / (cobalt%z_burial + cobalt%zt(i,j,k))
                   cobalt%frac_burial(i,j) = cobalt%scale_burial*cobalt%frac_burial(i,j)
                   cobalt%fn_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fntot_btm(i,j)
+
+                  if (cobalt%do_external_source) then
+                     cobalt%fn_burial(i,j) = cobalt%fn_burial(i,j) + cobalt%frac_burial(i,j)* &
+                                            cobalt%n_det_override(i,j) * cobalt%rho_dzt_bot(i,j)
+                  end if
+
                   cobalt%fp_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fptot_btm(i,j)
 
                   !-----------------------------------------------
@@ -2076,11 +2087,20 @@ contains
                   ! areas, a depth scale (z_denit) was included to ramp up rates to full Middelburg values only in deeper
                   ! waters.
                   log10_fpoc_btm = log10(min(43.0,0.1*fpoc_btm))
-                  cobalt%fno3denit_sed(i,j) = min(cobalt%btm_no3(i,j)*cobalt%bottom_thickness*cobalt%Rho_0*r_dt,  &
-                     min((cobalt%fntot_btm(i,j)-cobalt%fn_burial(i,j))*cobalt%n_2_n_denit, &
-                     10.0**(-0.9543+0.7662*log10_fpoc_btm - 0.235*log10_fpoc_btm**2.0)/(cobalt%c_2_n*sperd*100.0)* &
-                     cobalt%n_2_n_denit*cobalt%btm_no3(i,j)/(cobalt%k_no3_denit + cobalt%btm_no3(i,j)))) * &
-                     cobalt%zt(i,j,k) / (cobalt%z_denit + cobalt%zt(i,j,k))
+
+                  if (.not. cobalt%do_external_source) then
+                     cobalt%fno3denit_sed(i,j) = min(cobalt%btm_no3(i,j)*cobalt%bottom_thickness*cobalt%Rho_0*r_dt,  &
+                        min((cobalt%fntot_btm(i,j)-cobalt%fn_burial(i,j))*cobalt%n_2_n_denit, &
+                        10.0**(-0.9543+0.7662*log10_fpoc_btm - 0.235*log10_fpoc_btm**2.0)/(cobalt%c_2_n*sperd*100.0)* &
+                        cobalt%n_2_n_denit*cobalt%btm_no3(i,j)/(cobalt%k_no3_denit + cobalt%btm_no3(i,j)))) * &
+                        cobalt%zt(i,j,k) / (cobalt%z_denit + cobalt%zt(i,j,k))
+                  else
+                     cobalt%fno3denit_sed(i,j) = min(cobalt%btm_no3(i,j)*cobalt%bottom_thickness*cobalt%Rho_0*r_dt,  &
+                        min((cobalt%fntot_btm(i,j) + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j) -cobalt%fn_burial(i,j))*cobalt%n_2_n_denit, &
+                        10.0**(-0.9543+0.7662*log10_fpoc_btm - 0.235*log10_fpoc_btm**2.0)/(cobalt%c_2_n*sperd*100.0)* &
+                        cobalt%n_2_n_denit*cobalt%btm_no3(i,j)/(cobalt%k_no3_denit + cobalt%btm_no3(i,j)))) * &
+                        cobalt%zt(i,j,k) / (cobalt%z_denit + cobalt%zt(i,j,k))
+                  end if
 
                   ! Calculate the rate of organic matter degradation in the sediment after accounting for burial
                   ! and denitrification.  Two pathways are tracked:
@@ -2109,16 +2129,30 @@ contains
                   ! The thickness of the bottom boundary layer (cobalt%bottom_thickness) impacts this upper bound.
                   ! Efforts are underway to implement a more dynamic bottom boundary layer scheme.
                   !
-                  if (cobalt%btm_o2(i,j) .gt. cobalt%o2_min) then  !{
-                     cobalt%fnoxic_sed(i,j) = max(0.0, min(cobalt%btm_o2(i,j)*cobalt%bottom_thickness* &
-                        cobalt%Rho_0*r_dt*(1.0/cobalt%o2_2_nh4), &
-                        cobalt%fntot_btm(i,j) - cobalt%fn_burial(i,j) - &
-                        cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit))
+                  if (.not. cobalt%do_external_source) then
+                     if (cobalt%btm_o2(i,j) .gt. cobalt%o2_min) then  !{
+                        cobalt%fnoxic_sed(i,j) = max(0.0, min(cobalt%btm_o2(i,j)*cobalt%bottom_thickness* &
+                           cobalt%Rho_0*r_dt*(1.0/cobalt%o2_2_nh4), &
+                           cobalt%fntot_btm(i,j) - cobalt%fn_burial(i,j) - &
+                           cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit))
+                     else
+                        cobalt%fnoxic_sed(i,j) = 0.0
+                     endif !}
+                     cobalt%fnso4red_sed(i,j) = max(0.0, cobalt%fntot_btm(i,j)-cobalt%fnoxic_sed(i,j)- &
+                        cobalt%fn_burial(i,j)-cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit)
                   else
-                     cobalt%fnoxic_sed(i,j) = 0.0
-                  endif !}
-                  cobalt%fnso4red_sed(i,j) = max(0.0, cobalt%fntot_btm(i,j)-cobalt%fnoxic_sed(i,j)- &
-                     cobalt%fn_burial(i,j)-cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit)
+                     if (cobalt%btm_o2(i,j) .gt. cobalt%o2_min) then  !{
+                        cobalt%fnoxic_sed(i,j) = max(0.0, min(cobalt%btm_o2(i,j)*cobalt%bottom_thickness* &
+                           cobalt%Rho_0*r_dt*(1.0/cobalt%o2_2_nh4), &
+                           cobalt%fntot_btm(i,j) + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j) - cobalt%fn_burial(i,j) - &
+                           cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit))
+                     else
+                        cobalt%fnoxic_sed(i,j) = 0.0
+                     endif !}
+                     cobalt%fnso4red_sed(i,j) = max(0.0, cobalt%fntot_btm(i,j) + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j) - &
+                        cobalt%fnoxic_sed(i,j)- &
+                        cobalt%fn_burial(i,j)-cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit)
+                  end if
                else
                   cobalt%fnso4red_sed(i,j) = 0.0
                   cobalt%fno3denit_sed(i,j) = 0.0
@@ -2133,8 +2167,15 @@ contains
                ! hyperbolic tangent requires the flux of carbon to the sediments (as mmoles m-2 day-1) in the numerator
                ! and the bottom water oxygen concentration (in microMolar units) in the denominator. Note that ffe_sed_max
                ! was converted to moles Fe m-2 sec-1 during parameter input, so ffe_sed is in moles Fe m-2 sec-1
-               cobalt%ffe_sed(i,j) = cobalt%ffe_sed_max * tanh( (cobalt%fntot_btm(i,j)*cobalt%c_2_n*sperd*1.0e3)/ &
-                  max(cobalt%btm_o2(i,j)*1.0e6,epsln) )
+               if (.not. cobalt%do_external_source) then
+                  cobalt%ffe_sed(i,j) = cobalt%ffe_sed_max * tanh( (cobalt%fntot_btm(i,j)*cobalt%c_2_n*sperd*1.0e3)/ &
+                     max(cobalt%btm_o2(i,j)*1.0e6,epsln) )
+               else
+                  cobalt%ffe_sed(i,j) = cobalt%ffe_sed_max * tanh( &
+                                          (cobalt%fntot_btm(i,j)*cobalt%c_2_n + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)* &
+                                          cobalt%c_2_n_kelp)*sperd*1.0e3 / &
+                                          max(cobalt%btm_o2(i,j)*1.0e6,epsln) )
+               endif
 
                ! Additional coastal iron (Optional, default fe_coast = 0)
                !
@@ -2198,13 +2239,26 @@ contains
 
                ! Enhanced dissolution by fast respiration near the sediment surface, proportional
                ! to organic flux, moles Ca m-2 s-1, limited to a max 1/2 the instantaneous calcite flux
-               cobalt%fcased_redis_surfresp(i,j)=min(0.5*cobalt%f_cadet_calc_btf(i,j,1), &
-                  cobalt%phi_surfresp_cased*cobalt%fntot_btm(i,j)*cobalt%c_2_n)
+               if (.not. cobalt%do_external_source) then
+                  cobalt%fcased_redis_surfresp(i,j)=min(0.5*cobalt%f_cadet_calc_btf(i,j,1), &
+                     cobalt%phi_surfresp_cased*cobalt%fntot_btm(i,j)*cobalt%c_2_n)
+               else
+                  cobalt%fcased_redis_surfresp(i,j)=min(0.5*cobalt%f_cadet_calc_btf(i,j,1), &
+                     cobalt%phi_surfresp_cased*(cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                                               cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp))
+               endif
 
                ! Ca-specific dissolution coeficient, depends on calcite saturation state and is enhanced by
                ! respiration deep in the sediment (s-1), non-linearity controlled by alpha_cased
-               cobalt%cased_redis_coef(i,j) = cobalt%gamma_cased*max(0.0,1.0-cobalt%btm_omega_calc(i,j)+ &
-                  cobalt%phi_deepresp_cased*cobalt%fntot_btm(i,j)*cobalt%c_2_n*spery)**cobalt%alpha_cased
+               if (.not. cobalt%do_external_source) then
+                  cobalt%cased_redis_coef(i,j) = cobalt%gamma_cased*max(0.0,1.0-cobalt%btm_omega_calc(i,j)+ &
+                     cobalt%phi_deepresp_cased*cobalt%fntot_btm(i,j)*cobalt%c_2_n*spery)**cobalt%alpha_cased
+               else
+                  cobalt%cased_redis_coef(i,j) = cobalt%gamma_cased*max(0.0,1.0-cobalt%btm_omega_calc(i,j)+ &
+                     cobalt%phi_deepresp_cased *spery * &
+                      (cobalt%fntot_btm(i,j)*cobalt%c_2_n*spery + &
+                       cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp))**cobalt%alpha_cased
+               endif
 
                ! Effective thickness term that enhances burial of calcite when total sediment accumulation is high
                ! dimensionless value between 0 and 1
@@ -2245,7 +2299,11 @@ contains
                cobalt%b_dic(i,j) =  - cobalt%fcased_redis(i,j) - cobalt%f_cadet_arag_btf(i,j,1) -       &
                   (cobalt%fntot_btm(i,j) - cobalt%fn_burial(i,j)) * cobalt%c_2_n
                cobalt%b_fed(i,j) = - cobalt%ffe_sed(i,j) - cobalt%ffe_geotherm(i,j)
-               cobalt%b_nh4(i,j) = - cobalt%fntot_btm(i,j) + cobalt%fn_burial(i,j)
+               if (.not. cobalt%do_external_source) then
+                  cobalt%b_nh4(i,j) = - cobalt%fntot_btm(i,j) + cobalt%fn_burial(i,j)
+               else
+                  cobalt%b_nh4(i,j) = - cobalt%fntot_btm(i,j) - cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j) + cobalt%fn_burial(i,j)
+               endif
                cobalt%b_no3(i,j) = cobalt%fno3denit_sed(i,j)
                ! Include latent O2 demand and alkalinity effects of HS- (see stoichiometry)
                if (cobalt%do_fnso4red_sed) then
