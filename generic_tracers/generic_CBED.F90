@@ -42,6 +42,11 @@ module generic_CBED
       real, dimension(:,:,:), allocatable :: f_om1   ! tracer organic matter 1 (fast reacting) concentration field
       real, dimension(:,:,:), allocatable :: f_om2   ! tracer organic matter 2 (medium reacting) concentration field
       real, dimension(:,:,:), allocatable :: f_om3   ! tracer organic matter 3 (slow reacting) concentration field
+      ! Kelp-carbon shadow pools: track only the externally-sourced kelp share of f_om1/f_om2/f_om3,
+      ! so burial/remineralization can convert each source's carbon back to N at its own C:N ratio.
+      real, dimension(:,:,:), allocatable :: f_om1_kelp
+      real, dimension(:,:,:), allocatable :: f_om2_kelp
+      real, dimension(:,:,:), allocatable :: f_om3_kelp
       real, dimension(:,:,:), allocatable :: f_nh4   ! tracer nh4 (ammonium) concentration field
       real, dimension(:,:,:), allocatable :: f_no3   ! tracer no3 (nitrate) concentration field
       real, dimension(:,:,:), allocatable :: f_dic   ! tracer dic (dissolved inorganic carbon) concentration field
@@ -67,6 +72,7 @@ module generic_CBED
       real, dimension(:,:), allocatable :: talk_flux !benthic talk flux
       real, dimension(:,:), allocatable :: odu_flux !benthic odu flux
       real, dimension(:,:), allocatable :: burial_om !organic matter burial at the bottom of sediment column
+      real, dimension(:,:), allocatable :: burial_om_kelp !kelp-sourced share of burial_om
       real, dimension(:,:), allocatable :: denit
       real, dimension(:,:), allocatable :: cbed_k1
       real, dimension(:,:), allocatable :: cbed_k2
@@ -104,6 +110,9 @@ module generic_CBED
       integer :: id_om1                              ! tracer om1 diagnostics id
       integer :: id_om2                              ! tracer om2 diagnostics id
       integer :: id_om3                              ! tracer om3 diagnostics id
+      integer :: id_om1_kelp                         ! kelp-sourced om1 diagnostics id
+      integer :: id_om2_kelp                         ! kelp-sourced om2 diagnostics id
+      integer :: id_om3_kelp                         ! kelp-sourced om3 diagnostics id
       integer :: id_nh4                              ! tracer nh4 diagnostics id
       integer :: id_no3                              ! tracer no3 diagnostics id
       integer :: id_dic                              ! tracer dic diagnostics id
@@ -128,6 +137,7 @@ module generic_CBED
       integer :: id_talk_flux
       integer :: id_odu_flux
       integer :: id_burial_om
+      integer :: id_burial_om_kelp
       integer :: id_denit
       integer :: id_cbed_k1
       integer :: id_cbed_k2
@@ -251,7 +261,8 @@ contains
       r = r_mid
    end function find_r
 
-   subroutine generic_CBED_init(isc,iec,jsc,jec,isd,ied,jsd,jed,nk)
+   subroutine generic_CBED_init(cobalt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk)
+      type(generic_COBALT_type), intent(in) :: cobalt
       integer,     intent(in) :: isc,iec,jsc,jec,isd,ied,jsd,jed,nk
       !Locals
       type(domain2D), pointer :: domain
@@ -347,6 +358,12 @@ contains
       allocate(k2(isd:ied,jsd:jed)); k2=0.0
       allocate(k3(isd:ied,jsd:jed)); k3=0.0
 
+      if (cobalt%do_external_source) then
+         allocate(cbed%f_om1_kelp(isd:ied,jsd:jed,nk_cbed));cbed%f_om1_kelp=0.0
+         allocate(cbed%f_om2_kelp(isd:ied,jsd:jed,nk_cbed));cbed%f_om2_kelp=0.0
+         allocate(cbed%f_om3_kelp(isd:ied,jsd:jed,nk_cbed));cbed%f_om3_kelp=0.0
+         allocate(cbed%burial_om_kelp(isd:ied,jsd:jed));cbed%burial_om_kelp=0.0
+      end if
       !if (cbed%read_porosity_from_file) then
       !   call data_override('OCN', 'por', por(isc:iec,jsc:jec,nk_cbed+1), model_time, override=.true.)
       !   svf(isc:iec,jsc:jec,nk_cbed+1) = 1.0 - por(isc:iec,jsc:jec,nk_cbed+1)
@@ -402,8 +419,9 @@ contains
 
    end subroutine generic_CBED_init
 
-   subroutine generic_CBED_reg_diagnostics(axes,init_time)
+   subroutine generic_CBED_reg_diagnostics(cobalt, axes,init_time)
       USE diag_manager_mod, ONLY: register_diag_field, diag_axis_init
+      type(generic_COBALT_type), intent(in) :: cobalt
       integer,         intent(in) :: axes(3)
       type(time_type), intent(in) :: init_time
       !Locals
@@ -446,6 +464,12 @@ contains
          call register_restart_field(fileobj, "cbed_b_no3_acc", cbed%cbed_b_no3_acc, (/"x","y"/))
          call register_restart_field(fileobj, "cbed_b_alk_org_acc", cbed%cbed_b_alk_org_acc, (/"x","y"/))
          call register_restart_field(fileobj, "cbed_b_odu_acc", cbed%cbed_b_odu_acc, (/"x","y"/))
+
+         if (cobalt%do_external_source)then
+            call register_restart_field(fileobj, "cbed_om1_kelp", cbed%f_om1_kelp, (/"x","y","lev"/))
+            call register_restart_field(fileobj, "cbed_om2_kelp", cbed%f_om2_kelp, (/"x","y","lev"/))
+            call register_restart_field(fileobj, "cbed_om3_kelp", cbed%f_om3_kelp, (/"x","y","lev"/))
+         end if
 
          call read_restart(fileobj)
       endif
@@ -567,10 +591,22 @@ contains
       cbed%id_cbed_svf = register_diag_field(package_name, 'cbed_svf', (/axes(1),axes(2),id_layer_i/), init_time,&
          'sediment solid volume fraction', 'dimensionless', missing_value = missing_value1)
 
+      if (cobalt%do_external_source) then
+         cbed%id_om1_kelp = register_diag_field(package_name, 'cbed_om1_kelp_conc', (/axes(1),axes(2),id_layer/), init_time,&
+            'cbed OM1 concentration, kelp-sourced share', 'mol m-3', missing_value = missing_value1)
+         cbed%id_om2_kelp = register_diag_field(package_name, 'cbed_om2_kelp_conc', (/axes(1),axes(2),id_layer/), init_time,&
+            'cbed OM2 concentration, kelp-sourced share', 'mol m-3', missing_value = missing_value1)
+         cbed%id_om3_kelp = register_diag_field(package_name, 'cbed_om3_kelp_conc', (/axes(1),axes(2),id_layer/), init_time,&
+            'cbed OM3 concentration, kelp-sourced share', 'mol m-3', missing_value = missing_value1)
+         cbed%id_burial_om_kelp = register_diag_field(package_name, 'cbed_burial_om_kelp', (/axes(1),axes(2)/), init_time,&
+            'cbed organic carbon burial, kelp-sourced share', 'mol m-2 s-1', missing_value = missing_value1)
+
+      endif
    end subroutine generic_CBED_reg_diagnostics
 
-   subroutine generic_CBED_send_diagnostics(model_time, isc,iec,jsc,jec, isd,ied,jsd,jed,nk, grid_tmask)
+   subroutine generic_CBED_send_diagnostics(cobalt, model_time, isc,iec,jsc,jec, isd,ied,jsd,jed,nk, grid_tmask)
       USE diag_manager_mod, ONLY: send_data
+      type(generic_COBALT_type), intent(in) :: cobalt
       type(time_type),          intent(in) :: model_time
       real, dimension(:,:,:),    pointer   :: grid_tmask
       integer,                  intent(in) :: isc,iec,jsc,jec, isd,ied,jsd,jed,nk
@@ -690,10 +726,21 @@ contains
          is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed+1)
 
 
+         if (cobalt%do_external_source) then
+            used = send_data(cbed%id_om1_kelp, cbed%f_om1_kelp, model_time, rmask = cbed_tmask,&
+               is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+            used = send_data(cbed%id_om2_kelp, cbed%f_om2_kelp, model_time, rmask = cbed_tmask,&
+               is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+            used = send_data(cbed%id_om3_kelp, cbed%f_om3_kelp, model_time, rmask = cbed_tmask,&
+               is_in=isc, js_in=jsc,ie_in=iec, je_in=jec, ks_in=1, ke_in=nk_cbed)
+            used = send_data(cbed%id_burial_om_kelp, cbed%burial_om_kelp, model_time, rmask = cbed_tmask(:,:,1),&
+               is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+         endif
 
    end subroutine generic_CBED_send_diagnostics
 
-   subroutine generic_CBED_end()
+   subroutine generic_CBED_end(cobalt)
+      type(generic_COBALT_type), intent(in) :: cobalt
       !Locals
       type(FmsNetcdfDomainFile_t) :: fileobj ! netCDF file object returned by call to fms2_open_file
       character(len=64)           :: restart_file
@@ -727,6 +774,12 @@ contains
          call register_restart_field(fileobj, "cbed_b_no3_acc", cbed%cbed_b_no3_acc, (/"x","y"/))
          call register_restart_field(fileobj, "cbed_b_alk_org_acc", cbed%cbed_b_alk_org_acc, (/"x","y"/))
          call register_restart_field(fileobj, "cbed_b_odu_acc", cbed%cbed_b_odu_acc, (/"x","y"/))
+
+         if (cobalt%do_external_source) then
+            call register_restart_field(fileobj, "cbed_om1_kelp", cbed%f_om1_kelp, (/"x","y","lev"/))
+            call register_restart_field(fileobj, "cbed_om2_kelp", cbed%f_om2_kelp, (/"x","y","lev"/))
+            call register_restart_field(fileobj, "cbed_om3_kelp", cbed%f_om3_kelp, (/"x","y","lev"/))
+         end if
 
          call write_restart(fileobj)
          call close_file(fileobj)
@@ -808,6 +861,12 @@ contains
       deallocate(cbed%cbed_por)
       deallocate(cbed%cbed_svf)
 
+      if (cobalt%do_external_source) then
+         deallocate(cbed%f_om1_kelp)
+         deallocate(cbed%f_om2_kelp)
+         deallocate(cbed%f_om3_kelp)
+         deallocate(cbed%burial_om_kelp)
+      endif
 
    end subroutine generic_CBED_end
 
@@ -867,6 +926,14 @@ contains
          trim(field_name) == "f_om2" .or. &
          trim(field_name) == "f_om3") then
          is_solid = .true.
+      endif
+
+      if (cobalt%do_external_source) then
+         if (trim(field_name) == "f_om1_kelp" .or. &
+            trim(field_name) == "f_om2_kelp" .or. &
+            trim(field_name) == "f_om3_kelp") then
+            is_solid = .true.
+         endif
       endif
 
       ! -----------------------------------------------------------------------
@@ -964,6 +1031,16 @@ contains
                         else if (trim(field_name) == "f_om3") then
                            f_old(1) = f_old(1) + (frac_OM3(i,j) * cobalt%fntot_btm(i,j) * cobalt%c_2_n * dt) / capacity(1)
                         endif
+
+                        if (cobalt%do_external_source) then
+                           if (trim(field_name) == "f_om1" .or. trim(field_name) == "f_om1_kelp") then
+                              f_old(1) = f_old(1) + (frac_OM1(i,j) * cobalt%n_det_override(i,j) * cobalt%rho_dzt_bot(i,j) * cobalt%c_2_n_kelp * dt) / capacity(1)
+                           else if (trim(field_name) == "f_om2" .or. trim(field_name) == "f_om2_kelp") then
+                              f_old(1) = f_old(1) + (frac_OM2(i,j) * cobalt%n_det_override(i,j) * cobalt%rho_dzt_bot(i,j) * cobalt%c_2_n_kelp * dt) / capacity(1)
+                           else if (trim(field_name) == "f_om3" .or. trim(field_name) == "f_om3_kelp") then
+                              f_old(1) = f_old(1) + (frac_OM3(i,j) * cobalt%n_det_override(i,j) * cobalt%rho_dzt_bot(i,j) * cobalt%c_2_n_kelp * dt) / capacity(1)
+                           endif
+                        endif
                      endif
 
                   else if (k == nk_cbed) then
@@ -1031,6 +1108,8 @@ contains
       integer :: i, j, k
       integer :: stdoutunit
       real :: fpoc_btm, drho_dzt, log10_fpoc_btm
+      real :: kelp_frac1, kelp_frac2, kelp_frac3  ! kelp-sourced share of om1/om2/om3 at a given point, used to apply pro-rata reaction loss
+      real :: R_o2_kelp, R_no3_kelp, R_anoxic_kelp, R_dic_kelp  ! kelp-sourced share of the O2/NO3/anoxic/total carbon degradation rate at a point
       integer, dimension(isc:iec,jsc:jec) :: k_bot
       real,    dimension(isc:iec,jsc:jec) :: rho_dzt_bot
 
@@ -1244,10 +1323,31 @@ contains
                   odu_depo(i,j,k) = (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))*min(1.0, 0.233*(w(i,j,k)*100.0*spery)**0.336)
 
                   ! TA calculation
-                  R_talk(i,j,k) = svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) + &
-                     svf(i,j,k)/por(i,j,k)*(0.8+1.0/cobalt%c_2_n)*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                     svf(i,j,k)/por(i,j,k)*(1.0+1.0/cobalt%c_2_n)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
-                     2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k) - 0.4*R_ana(i,j,k)
+                  if (.not. cobalt%do_external_source) then
+                     R_talk(i,j,k) = svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) + &
+                        svf(i,j,k)/por(i,j,k)*(0.8+1.0/cobalt%c_2_n)*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
+                        svf(i,j,k)/por(i,j,k)*(1.0+1.0/cobalt%c_2_n)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
+                        2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k) - 0.4*R_ana(i,j,k)
+                  else
+                     ! Split the organic-N-release (NH4) alkalinity contribution by carbon source (native vs. kelp),
+                     ! since kelp detritus has a different C:N (cobalt%c_2_n_kelp) than native OM (cobalt%c_2_n).
+                     ! The 0.8/1.0 redox terms (NO3/anoxic pathway) are source-independent and left unsplit.
+                     kelp_frac1 = max(0.0, cbed%f_om1_kelp(i,j,k)) / max(c_om1(i,j,k), epsln)
+                     kelp_frac2 = max(0.0, cbed%f_om2_kelp(i,j,k)) / max(c_om2(i,j,k), epsln)
+                     kelp_frac3 = max(0.0, cbed%f_om3_kelp(i,j,k)) / max(c_om3(i,j,k), epsln)
+                     R_o2_kelp     = kelp_frac1*R_om1_o2(i,j,k)     + kelp_frac2*R_om2_o2(i,j,k)     + kelp_frac3*R_om3_o2(i,j,k)
+                     R_no3_kelp    = kelp_frac1*R_om1_no3(i,j,k)    + kelp_frac2*R_om2_no3(i,j,k)    + kelp_frac3*R_om3_no3(i,j,k)
+                     R_anoxic_kelp = kelp_frac1*R_om1_anoxic(i,j,k) + kelp_frac2*R_om2_anoxic(i,j,k) + kelp_frac3*R_om3_anoxic(i,j,k)
+                     R_talk(i,j,k) = svf(i,j,k)/por(i,j,k)*( &
+                           (R_om1_o2(i,j,k)+R_om2_o2(i,j,k)+R_om3_o2(i,j,k) - R_o2_kelp)/cobalt%c_2_n + R_o2_kelp/cobalt%c_2_n_kelp) + &
+                        svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
+                        svf(i,j,k)/por(i,j,k)*( &
+                           (R_om1_no3(i,j,k)+R_om2_no3(i,j,k)+R_om3_no3(i,j,k) - R_no3_kelp)/cobalt%c_2_n + R_no3_kelp/cobalt%c_2_n_kelp) + &
+                        svf(i,j,k)/por(i,j,k)*1.0*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) + &
+                        svf(i,j,k)/por(i,j,k)*( &
+                           (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k) - R_anoxic_kelp)/cobalt%c_2_n + R_anoxic_kelp/cobalt%c_2_n_kelp) - &
+                        2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k) - 0.4*R_ana(i,j,k)
+                  endif
 
                   ! calculations for diagnostics
                   cbed%R_om_o2(i,j,k) = R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)
@@ -1325,7 +1425,10 @@ contains
                ! some other diags , other local variables
                !-----------------
                cbed%burial_om(i,j)  = (c_om1(i,j,nk_cbed)+c_om2(i,j,nk_cbed)+c_om3(i,j,nk_cbed))*w(i,j,nk_cbed+1) * svf(i,j,nk_cbed+1) ! mol/m2/s
-
+               if (cobalt%do_external_source) then
+                  cbed%burial_om_kelp(i,j) = (max(0.0,cbed%f_om1_kelp(i,j,nk_cbed)) + max(0.0,cbed%f_om2_kelp(i,j,nk_cbed)) &
+                                             + max(0.0,cbed%f_om3_kelp(i,j,nk_cbed))) * w(i,j,nk_cbed+1) * svf(i,j,nk_cbed+1) ! mol/m2/s, kelp-sourced share
+               end if
                cbed%denit(i,j) = sum(dz_cbed(:)*(svf(i,j,1:nk_cbed)*0.8*cbed%R_om_no3(i,j,:) + por(i,j,1:nk_cbed)*1.6*R_ana(i,j,:)))
 
                !cbed%cbed_k1(i,j) = k1(i,j)
@@ -1565,10 +1668,31 @@ contains
                         odu_depo(i,j,k) = (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k))*min(1.0, 0.233*(w(i,j,k)*100.0*spery)**0.336)
 
                         ! TA calculation
-                        R_talk(i,j,k) = svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) + &
-                           svf(i,j,k)/por(i,j,k)*(0.8+1.0/cobalt%c_2_n)*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
-                           svf(i,j,k)/por(i,j,k)*(1.0+1.0/cobalt%c_2_n)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
-                           2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k) - 0.4*R_ana(i,j,k)
+                        if (.not. cobalt%do_external_source) then
+                           R_talk(i,j,k) = svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_om1_o2(i,j,k) + R_om2_o2(i,j,k) + R_om3_o2(i,j,k)) + &
+                              svf(i,j,k)/por(i,j,k)*(0.8+1.0/cobalt%c_2_n)*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
+                              svf(i,j,k)/por(i,j,k)*(1.0+1.0/cobalt%c_2_n)*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) - &
+                              2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k) - 0.4*R_ana(i,j,k)
+                        else
+                           ! Split the organic-N-release (NH4) alkalinity contribution by carbon source (native vs. kelp),
+                           ! since kelp detritus has a different C:N (cobalt%c_2_n_kelp) than native OM (cobalt%c_2_n).
+                           ! The 0.8/1.0 redox terms (NO3/anoxic pathway) are source-independent and left unsplit.
+                           kelp_frac1 = max(0.0, cbed%f_om1_kelp(i,j,k)) / max(c_om1(i,j,k), epsln)
+                           kelp_frac2 = max(0.0, cbed%f_om2_kelp(i,j,k)) / max(c_om2(i,j,k), epsln)
+                           kelp_frac3 = max(0.0, cbed%f_om3_kelp(i,j,k)) / max(c_om3(i,j,k), epsln)
+                           R_o2_kelp     = kelp_frac1*R_om1_o2(i,j,k)     + kelp_frac2*R_om2_o2(i,j,k)     + kelp_frac3*R_om3_o2(i,j,k)
+                           R_no3_kelp    = kelp_frac1*R_om1_no3(i,j,k)    + kelp_frac2*R_om2_no3(i,j,k)    + kelp_frac3*R_om3_no3(i,j,k)
+                           R_anoxic_kelp = kelp_frac1*R_om1_anoxic(i,j,k) + kelp_frac2*R_om2_anoxic(i,j,k) + kelp_frac3*R_om3_anoxic(i,j,k)
+                           R_talk(i,j,k) = svf(i,j,k)/por(i,j,k)*( &
+                                 (R_om1_o2(i,j,k)+R_om2_o2(i,j,k)+R_om3_o2(i,j,k) - R_o2_kelp)/cobalt%c_2_n + R_o2_kelp/cobalt%c_2_n_kelp) + &
+                              svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
+                              svf(i,j,k)/por(i,j,k)*( &
+                                 (R_om1_no3(i,j,k)+R_om2_no3(i,j,k)+R_om3_no3(i,j,k) - R_no3_kelp)/cobalt%c_2_n + R_no3_kelp/cobalt%c_2_n_kelp) + &
+                              svf(i,j,k)/por(i,j,k)*1.0*(R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k)) + &
+                              svf(i,j,k)/por(i,j,k)*( &
+                                 (R_om1_anoxic(i,j,k)+R_om2_anoxic(i,j,k)+R_om3_anoxic(i,j,k) - R_anoxic_kelp)/cobalt%c_2_n + R_anoxic_kelp/cobalt%c_2_n_kelp) - &
+                              2.0*R_nox(i,j,k) - 1.0*R_oduox(i,j,k) - 0.4*R_ana(i,j,k)
+                        endif
 
                      enddo !k
 
@@ -1629,8 +1753,31 @@ contains
 
                         cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt_sub(i,j)
 
-                        cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                           ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(max(0.0,cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) - c_nh4(i,j,k)) )*dt_sub(i,j)
+                        if (cobalt%do_external_source) then
+                           ! Kelp shadow pools: apply same relative loss as parent pool (first-order kinetics
+                           ! are linear in concentration, so kelp-sourced share decays pro-rata)
+                           kelp_frac1 = max(0.0, cbed%f_om1_kelp(i,j,k)) / max(c_om1(i,j,k), epsln)
+                           kelp_frac2 = max(0.0, cbed%f_om2_kelp(i,j,k)) / max(c_om2(i,j,k), epsln)
+                           kelp_frac3 = max(0.0, cbed%f_om3_kelp(i,j,k)) / max(c_om3(i,j,k), epsln)
+                           cbed%f_om1_kelp(i,j,k) = cbed%f_om1_kelp(i,j,k) + &
+                              ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) * kelp_frac1 )*dt_sub(i,j)
+                           cbed%f_om2_kelp(i,j,k) = cbed%f_om2_kelp(i,j,k) + &
+                              ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) * kelp_frac2 )*dt_sub(i,j)
+                           cbed%f_om3_kelp(i,j,k) = cbed%f_om3_kelp(i,j,k) + &
+                              ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) * kelp_frac3 )*dt_sub(i,j)
+                        endif
+
+                        if (.not. cobalt%do_external_source) then
+                           cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
+                              ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(max(0.0,cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) - c_nh4(i,j,k)) )*dt_sub(i,j)
+                        else
+                           ! Split NH4 production by carbon source, so kelp-degraded carbon releases N at its
+                           ! own C:N (cobalt%c_2_n_kelp) instead of the native cobalt%c_2_n.
+                           R_dic_kelp = kelp_frac1*R_dic_om1(i,j,k) + kelp_frac2*R_dic_om2(i,j,k) + kelp_frac3*R_dic_om3(i,j,k)
+                           cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*( &
+                                 (R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k) - R_dic_kelp)/cobalt%c_2_n + R_dic_kelp/cobalt%c_2_n_kelp) + &
+                              ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(max(0.0,cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) - c_nh4(i,j,k)) )*dt_sub(i,j)
+                        endif
 
                         cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
                            (R_nox(i,j,k) - 0.6*R_ana(i,j,k)) + bioirri(i,j,k)*(max(0.0,cobalt%btm_no3(i,j)*cobalt%Rho_0) - c_no3(i,j,k)) )*dt_sub(i,j)
@@ -1656,6 +1803,11 @@ contains
                      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt_sub(i,j), tau, i,i,j,j,i,i,j,j,nk, nk_cbed)
                      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_odu, "f_odu", D_odu, w, por, grid_kmt, dt_sub(i,j), tau, i,i,j,j,i,i,j,j,nk, nk_cbed)
                      call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_talk, "f_talk", D_dic, w, por, grid_kmt, dt_sub(i,j), tau, i,i,j,j,i,i,j,j,nk, nk_cbed)
+                     if (cobalt%do_external_source)then
+                        call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1_kelp, "f_om1_kelp", Db, w, svf, grid_kmt, dt_sub(i,j), tau, i,i,j,j,i,i,j,j,nk, nk_cbed)
+                        call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2_kelp, "f_om2_kelp", Db, w, svf, grid_kmt, dt_sub(i,j), tau, i,i,j,j,i,i,j,j,nk, nk_cbed)
+                        call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3_kelp, "f_om3_kelp", Db, w, svf, grid_kmt, dt_sub(i,j), tau, i,i,j,j,i,i,j,j,nk, nk_cbed)
+                     end if
 
                   enddo
                   ! --- END ADAPTIVE SUB-STEPPING LOOP ---
@@ -1676,13 +1828,34 @@ contains
                         (2.0*R_nox(i,j,k)+R_oduox(i,j,k)) + bioirri(i,j,k)*(max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0) - c_o2(i,j,k)) )*dt
 
                      cbed%f_om1(i,j,k) = cbed%f_om1(i,j,k) + ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) )*dt
-
                      cbed%f_om2(i,j,k) = cbed%f_om2(i,j,k) + ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) )*dt
-
                      cbed%f_om3(i,j,k) = cbed%f_om3(i,j,k) + ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) )*dt
 
-                     cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
-                        ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(max(0.0,cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) - c_nh4(i,j,k)) )*dt
+                     if (cobalt%do_external_source) then
+                        ! Kelp shadow pools: apply same relative loss as parent pool (first-order kinetics
+                        ! are linear in concentration, so kelp-sourced share decays pro-rata)
+                        kelp_frac1 = max(0.0, cbed%f_om1_kelp(i,j,k)) / max(c_om1(i,j,k), epsln)
+                        kelp_frac2 = max(0.0, cbed%f_om2_kelp(i,j,k)) / max(c_om2(i,j,k), epsln)
+                        kelp_frac3 = max(0.0, cbed%f_om3_kelp(i,j,k)) / max(c_om3(i,j,k), epsln)
+                        cbed%f_om1_kelp(i,j,k) = cbed%f_om1_kelp(i,j,k) + &
+                           ( - (R_om1_o2(i,j,k) + R_om1_no3(i,j,k) + R_om1_anoxic(i,j,k)) * kelp_frac1 )*dt
+                        cbed%f_om2_kelp(i,j,k) = cbed%f_om2_kelp(i,j,k) + &
+                           ( - (R_om2_o2(i,j,k) + R_om2_no3(i,j,k) + R_om2_anoxic(i,j,k)) * kelp_frac2 )*dt
+                        cbed%f_om3_kelp(i,j,k) = cbed%f_om3_kelp(i,j,k) + &
+                           ( - (R_om3_o2(i,j,k) + R_om3_no3(i,j,k) + R_om3_anoxic(i,j,k)) * kelp_frac3 )*dt
+                     endif
+
+                     if (.not. cobalt%do_external_source) then
+                        cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*(1.0/cobalt%c_2_n)*(R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k)) + &
+                           ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(max(0.0,cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) - c_nh4(i,j,k)) )*dt
+                     else
+                        ! Split NH4 production by carbon source, so kelp-degraded carbon releases N at its
+                        ! own C:N (cobalt%c_2_n_kelp) instead of the native cobalt%c_2_n.
+                        R_dic_kelp = kelp_frac1*R_dic_om1(i,j,k) + kelp_frac2*R_dic_om2(i,j,k) + kelp_frac3*R_dic_om3(i,j,k)
+                        cbed%f_nh4(i,j,k) = cbed%f_nh4(i,j,k) + ( + svf(i,j,k)/por(i,j,k)*( &
+                              (R_dic_om1(i,j,k) + R_dic_om2(i,j,k) + R_dic_om3(i,j,k) - R_dic_kelp)/cobalt%c_2_n + R_dic_kelp/cobalt%c_2_n_kelp) + &
+                           ( - R_nox(i,j,k) - R_ana(i,j,k)) + bioirri(i,j,k)*(max(0.0,cobalt%f_nh4(i,j,nk)*cobalt%Rho_0) - c_nh4(i,j,k)) )*dt
+                     endif
 
                      cbed%f_no3(i,j,k) = cbed%f_no3(i,j,k) + ( - svf(i,j,k)/por(i,j,k)*0.8*(R_om1_no3(i,j,k) + R_om2_no3(i,j,k) + R_om3_no3(i,j,k)) + &
                         (R_nox(i,j,k) - 0.6*R_ana(i,j,k)) + bioirri(i,j,k)*(max(0.0,cobalt%btm_no3(i,j)*cobalt%Rho_0) - c_no3(i,j,k)) )*dt
@@ -1711,6 +1884,11 @@ contains
          call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_dic, "f_dic", D_dic, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
          call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_odu, "f_odu", D_odu, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
          call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_talk, "f_talk", D_dic, w, por, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+         if (cobalt%do_external_source) then
+            call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om1_kelp, "f_om1_kelp", Db, w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+            call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om2_kelp, "f_om2_kelp", Db, w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+            call vertdiff_CBED(cobalt_tracer_list,cobalt, cbed%f_om3_kelp, "f_om3_kelp", Db, w, svf, grid_kmt, dt, tau, isc,iec,jsc,jec,isd,ied,jsd,jed,nk, nk_cbed)
+         end if
 
 
       endif
@@ -2043,20 +2221,23 @@ contains
                      cobalt%zt(i,j,k) / (cobalt%z_burial + cobalt%zt(i,j,k))
                   cobalt%frac_burial(i,j) = cobalt%scale_burial*cobalt%frac_burial(i,j)
                   cobalt%fn_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fntot_btm(i,j)
-
-                  if (cobalt%do_external_source) then
-                     cobalt%fn_burial(i,j) = cobalt%fn_burial(i,j) + cobalt%frac_burial(i,j)* &
-                                            cobalt%n_det_override(i,j) * cobalt%rho_dzt_bot(i,j)
-                  end if
-
                   cobalt%fp_burial(i,j) = cobalt%frac_burial(i,j)*cobalt%fptot_btm(i,j)
 
                   !-----------------------------------------------
                   !!! replace cobalt burial with CBED burial calculation
                   !-----------------------------------------------
 
+                  ! fn_burial/fp_burial computed above from frac_burial are placeholders, overwritten below.
+                  ! cbed%burial_om already reflects externally-sourced kelp detritus, since the om1/om2/om3
+                  ! rain (vertdiff_CBED) includes the kelp carbon flux when do_external_source is true.
+                  ! cbed%burial_om_kelp tracks the kelp-sourced share of that buried carbon (via the
+                  ! f_om1_kelp/f_om2_kelp/f_om3_kelp shadow pools), so native and kelp carbon are converted
+                  ! back to nitrogen using their own respective C:N ratios instead of a single blended one.
                   !cobalt%frac_burial(i,j) = cbed_burial_frac(i,j)
                   cobalt%fn_burial(i,j) = cbed%burial_om(i,j) * (1.0/cobalt%c_2_n)
+                  if (cobalt%do_external_source) &
+                     cobalt%fn_burial(i,j) = cobalt%fn_burial(i,j) + &
+                        cbed%burial_om_kelp(i,j) * (1.0/cobalt%c_2_n_kelp - 1.0/cobalt%c_2_n)
                   cobalt%fp_burial(i,j) = min(1.0, cbed_burial_frac(i,j)) * cobalt%fptot_btm(i,j)
 
                   !!!------------------------------------------

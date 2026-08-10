@@ -353,7 +353,7 @@ contains
     call g_tracer_get_common(isc,iec,jsc,jec,isd,ied,jsd,jed,nk,ntau,axes=axes,init_time=init_time)
     !
     call cobalt_reg_diagnostics(diag_list,axes,init_time,phyto,zoo,bact,cobalt)
-    if(do_CBED) call generic_CBED_reg_diagnostics(axes,init_time)
+    if(do_CBED) call generic_CBED_reg_diagnostics(cobalt, axes,init_time)
   end subroutine generic_COBALT_register_diag
 
   !
@@ -3069,7 +3069,7 @@ contains
     ! send_diag for integeral outputs
     call cobalt_send_diagnostics(tracer_list,model_time,grid_tmask,Temp,Salt,rho_dzt,dzt, &
          ilb,jlb,tau,phyto,zoo,bact,cobalt,post_vertdiff=.true.)
-    if(do_CBED) call generic_CBED_send_diagnostics(model_time,isc,iec,jsc,jec,isd,ied,jsd,jed,nk,grid_tmask)
+    if(do_CBED) call generic_CBED_send_diagnostics(cobalt, model_time,isc,iec,jsc,jec,isd,ied,jsd,jed,nk,grid_tmask)
 
   end subroutine generic_COBALT_update_from_bottom
 
@@ -7944,7 +7944,7 @@ contains
   subroutine generic_COBALT_end
     character(len=fm_string_len), parameter :: sub_name = 'generic_COBALT_end'
 
-    if(do_CBED) call generic_CBED_end
+    if(do_CBED) call generic_CBED_end(cobalt)
 
     call user_deallocate_arrays
 
@@ -7959,7 +7959,7 @@ contains
 
     call g_tracer_get_common(isc,iec,jsc,jec,isd,ied,jsd,jed,nk,ntau)
 
-    if(do_CBED) call generic_CBED_init(isc,iec,jsc,jec,isd,ied,jsd,jed,nk) !This call is here because we have access to domain indices here,
+    if(do_CBED) call generic_CBED_init(cobalt, isc,iec,jsc,jec,isd,ied,jsd,jed,nk) !This call is here because we have access to domain indices here,
                                                                            !otherwise, inside generic_COBALT_init would have been a natural choice.
 
     !Allocate all the private arrays.
