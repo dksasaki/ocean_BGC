@@ -5327,47 +5327,6 @@ contains
 
     enddo; enddo; enddo  !} i,j,k
 
-!     ! --- DKS 2025/02/18 added allocate local variables  --
-!     if (cobalt%do_external_source) then
-!       allocate(cobalt%n_det_override(isc:iec,jsc:jec))
-!       allocate( cobalt%p_det_override(isc:iec,jsc:jec))
-!       allocate(cobalt%fedet_override(isc:iec,jsc:jec))
-!       allocate(mask_addition_t(isc:iec,jsc:jec,1:nk))
-
-!       ! DKSmod
-!       allocate(jremin_ndet_kelp(isc:iec, jsc:jec))
-!       allocate(jprod_nh4_kelp(isc:iec, jsc:jec))
-!       allocate(f_ndet_kelp(isc:iec, jsc:jec))
-      
-!       cobalt%c_2_n_kelp = 9.0
-
-!       cobalt%n_det_override(:,:)    = 0.0
-!       cobalt%p_det_override(:,:)    = 0.0
-!       cobalt%fedet_override(:,:)    = 0.0
-!       mask_addition_t(:,:,:) = 0
-
-!       jremin_ndet_kelp = 0.0
-!       jprod_nh4_kelp   = 0.0
-!       f_ndet_kelp      = 0.0
-
-!       call data_override('OCN', 'ndet_addition', cobalt%f_n_det_addition(isc:iec, jsc:jec), model_time,override=ndet_add_override)
-!       call data_override('OCN', 'pdet_addition', cobalt%f_pdet_addition(isc:iec, jsc:jec), model_time,override=pdet_add_override)
-!       call data_override('OCN', 'fedet_addition', cobalt%f_fedet_addition(isc:iec, jsc:jec), model_time,override=fedet_add_override)
-!       call data_override('OCN', 'mask_addition_t', mask_addition_t(isc:iec, jsc:jec,1:nk), model_time,override=mask_addition_override)
-
-
-!       do j = jsc, jec; do i = isc, iec
-!          k = grid_kmt(i,j) !Get bottom layer
-!          if (mask_addition_t(i,j,1) .gt. 0) then
-!             ! You would access your override variables here
-!             cobalt%n_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_n_det_addition(i,j)
-!             cobalt%p_det_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_pdet_addition(i,j)
-!             cobalt%fedet_override(i, j) = mask_addition_t(i,j,1) * cobalt%f_fedet_addition(i,j)
-!          endif
-!       enddo; enddo !} i,j
-
-!    end if
-! !
 !-------------------------------------------------------------------------------------------------
 ! 5: Sediment, coastal and ice dynamics
 !-------------------------------------------------------------------------------------------------
