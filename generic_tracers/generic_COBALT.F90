@@ -3184,6 +3184,7 @@ contains
     real :: tot_prey_hp, sw_fac_denom, assim_eff
     real :: bact_uptake_ratio, vmax_bact, growth_ratio, food1, food2
     real :: fpoc_btm, log10_fpoc_btm
+    real :: kelp_c_frac_btm, kelp_stoich_corr
     real :: fe_salt
     real :: sal,tt,tkb,ts,ts2,ts3,ts4,ts5
     real :: rho_mld_ref,rho_k,dK,dKm1,afac,deltaRhoAtK,deltaRhoAtKm1,deltaRhoFlag
@@ -5193,27 +5194,46 @@ contains
       do j = jsc, jec; do i = isc, iec
          if (grid_kmt(i,j) .gt. 0 .and. mask_addition_t(i,j,1) .gt. 0.0) then
 
+            ! Oxidant availability limits remineralization rate in both branches.
+            ! Without a ceiling, a large kelp pool can consume more oxidant than
+            ! exists in one timestep, driving concentrations negative.
+            ! The outer min() caps the rate so that:
+            !   aerobic:   jremin_ndet_kelp * o2_2_nh4  * dt  <= btm_o2 
+            !   anaerobic: jremin_ndet_kelp * n_2_n_denit * dt <= btm_no3
+            ! Excess organic matter not processed here falls to the next pathway
+            ! in the oxidant cascade (sulfate reduction), but no explicit kelp
+            ! equivalent of fnso4red_sed exists yet.
+            ! c_2_n_kelp/c_2_n is a conversion factor that corrects
+            ! the oxidant ceiling considering kelp's higher C:N ratio
             if (cobalt%btm_o2(i,j) .gt. cobalt%o2_min) then
-               cobalt%jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,grid_kmt(i,j)) * &
-                  cobalt%btm_o2(i,j)/(cobalt%k_o2 + cobalt%btm_o2(i,j)) * &
-                  max(0.0, cobalt%f_ndet_kelp(i,j,1)*(1.0 - rp_kelp_agent))
+               cobalt%jremin_ndet_kelp(i,j) = min( &
+                     cobalt%btm_o2(i,j) / ( (cobalt%c_2_n_kelp/cobalt%c_2_n) * &
+                     cobalt%o2_2_nh4 * dt), &
+                     cobalt%gamma_ndet * cobalt%expkreminT(i,j,grid_kmt(i,j)) * &
+                     cobalt%btm_o2(i,j)/(cobalt%k_o2 + cobalt%btm_o2(i,j)) * &
+                  max(0.0, cobalt%f_ndet_kelp(i,j,1)*(1.0 - rp_kelp_agent)))
             else
-               cobalt%jremin_ndet_kelp(i,j) = cobalt%gamma_ndet * &
+               cobalt%jremin_ndet_kelp(i,j) = min( &
+                  cobalt%btm_no3(i,j) / ((cobalt%c_2_n_kelp/cobalt%c_2_n) *  &
+                  cobalt%n_2_n_denit * dt), &
+                  cobalt%gamma_ndet * &
                   (cobalt%o2_min/(cobalt%k_o2 + cobalt%o2_min)) * &
                   (cobalt%btm_no3(i,j)/(cobalt%k_no3_denit + cobalt%btm_no3(i,j))) * &
-                  max(0.0, cobalt%f_ndet_kelp(i,j,1)*(1.0 - rp_kelp_agent))
+                  max(0.0, cobalt%f_ndet_kelp(i,j,1)*(1.0 - rp_kelp_agent)))
             endif
 
             cobalt%jprod_nh4_kelp(i,j) = cobalt%jremin_ndet_kelp(i,j)
 
             ! distribute the O2 demand / NO3 demand across the slab
-            do k = grid_kmt(i,j), cobalt%k_bot(i,j), -1
+            ! c_2_n_kelp/c_2_n is a conversion factor that corrects
+            ! the oxidant ceiling considering kelp's higher C:N ratio
+            do k = grid_kmt(i,j), k_bot(i,j), -1
                if (cobalt%btm_o2(i,j) .gt. cobalt%o2_min) then
                   cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + &
-                     cobalt%jremin_ndet_kelp(i,j)*cobalt%o2_2_nh4
+                     cobalt%jremin_ndet_kelp(i,j) * (cobalt%c_2_n_kelp/cobalt%c_2_n) * cobalt%o2_2_nh4
                else
                   cobalt%jno3denit_wc(i,j,k) = cobalt%jno3denit_wc(i,j,k) + &
-                     cobalt%jremin_ndet_kelp(i,j)*cobalt%n_2_n_denit
+                     cobalt%jremin_ndet_kelp(i,j) * (cobalt%c_2_n_kelp/cobalt%c_2_n) * cobalt%n_2_n_denit
                endif
             enddo
 
@@ -5442,6 +5462,10 @@ contains
           ! denitrification, and remineralization via sulfate reduction.  Note that the latter pathway is effectively
           ! a "catch all" for any other anaerobic pathway and the sulfate cycle is not explicitly modeled.
           k = grid_kmt(i,j)
+          ! Defaults so that b_o2 below always sees a well-defined value, including
+          ! for cells that take the fntot_btm <= 0.0 branch further down.
+          kelp_c_frac_btm  = 0.0
+          kelp_stoich_corr = 1.0
           if (cobalt%fntot_btm(i,j) .gt. 0.0) then !{
 
              ! The Burial flux estimates are based on Dunne et al., 2007. A synthesis of global particle export from
@@ -5462,6 +5486,15 @@ contains
 
              if (cobalt%do_external_source)then
                fpoc_btm = fpoc_btm + cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0/dt * cobalt%rho_dzt_bot(i,j)
+
+               ! kelp_c_frac_btm: kelp's share of the total benthic carbon rain (fpoc_btm).
+               ! kelp_stoich_corr converts between "N in the combined native+kelp pool" and the
+               ! true O2/NO3 demand of that pool's actual (mixed) carbon content, since kelp's
+               ! higher C:N (c_2_n_kelp) means it needs more oxidant per mole of N than native
+               ! detritus does. It is 1.0 whenever there is no kelp carbon in the mix.
+               kelp_c_frac_btm = cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0/dt * &
+                                 cobalt%rho_dzt_bot(i,j) / (fpoc_btm + epsln)
+               kelp_stoich_corr = (1.0 - kelp_c_frac_btm) + kelp_c_frac_btm*(cobalt%c_2_n/cobalt%c_2_n_kelp)
              end if
 
 
@@ -5513,15 +5546,19 @@ contains
                      cobalt%n_2_n_denit*cobalt%btm_no3(i,j)/(cobalt%k_no3_denit + cobalt%btm_no3(i,j)))) * &
                      cobalt%zt(i,j,k) / (cobalt%z_denit + cobalt%zt(i,j,k))
              else
+               ! Mass-balance cap: the old formula treated 1 mole of kelp N as carrying the
+               ! same carbon load as 1 mole of native N, understating the true NO3-demand
+               ! ceiling since kelp's C:N (c_2_n_kelp) is higher than native detritus's (c_2_n):
+               ! T_new = (fntot_btm + kelp_N*(c_2_n_kelp/c_2_n)) * (1-frac_burial) * n_2_n_denit
+               ! T_new is the same as the case without external source when kelp_N = 0;
                cobalt%fno3denit_sed(i,j) = min(cobalt%btm_no3(i,j)*cobalt%bottom_thickness*cobalt%Rho_0*r_dt,  &
-                     min((cobalt%fntot_btm(i,j)  + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j) -cobalt%fn_burial(i,j))*cobalt%n_2_n_denit, &
+                     min((cobalt%fntot_btm(i,j) + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)* &
+                          (cobalt%c_2_n_kelp/cobalt%c_2_n)) * (1.0 - cobalt%frac_burial(i,j)) * cobalt%n_2_n_denit, &
                      10.0**(-0.9543+0.7662*log10_fpoc_btm - 0.235*log10_fpoc_btm**2.0)/(cobalt%c_2_n*sperd*100.0)* &
                      cobalt%n_2_n_denit*cobalt%btm_no3(i,j)/(cobalt%k_no3_denit + cobalt%btm_no3(i,j)))) * &
                      cobalt%zt(i,j,k) / (cobalt%z_denit + cobalt%zt(i,j,k))
              end if
 
-
-            ! DKSmod fno3denit_sed -> need to to include think abot btm_no3 
 
              ! Calculate the rate of organic matter degradation in the sediment after accounting for burial
              ! and denitrification.  Two pathways are tracked:
@@ -5562,17 +5599,23 @@ contains
                cobalt%fnso4red_sed(i,j) = max(0.0, cobalt%fntot_btm(i,j)-cobalt%fnoxic_sed(i,j)- &
                                              cobalt%fn_burial(i,j)-cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit)
              else
+               ! kelp_stoich_corr rescales both the O2-availability cap and the N-recovered-
+               ! from-denitrification term to account for kelp's higher C:N (see derivation
+               ! above); it is 1.0 whenever there is no kelp contribution to fpoc_btm.
                if (cobalt%btm_o2(i,j) .gt. cobalt%o2_min) then  !{
                   cobalt%fnoxic_sed(i,j) = max(0.0, min(cobalt%btm_o2(i,j)*cobalt%bottom_thickness* &
-                                          cobalt%Rho_0*r_dt*(1.0/cobalt%o2_2_nh4), &
-                                          cobalt%fntot_btm(i,j) + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j) - cobalt%fn_burial(i,j) - &
-                                          cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit))
+                                          cobalt%Rho_0*r_dt*(kelp_stoich_corr/cobalt%o2_2_nh4), &
+                                          cobalt%fntot_btm(i,j) + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j) - &
+                                          cobalt%fn_burial(i,j) - &
+                                          cobalt%fno3denit_sed(i,j)*kelp_stoich_corr/cobalt%n_2_n_denit))
                else
                   cobalt%fnoxic_sed(i,j) = 0.0
                endif !}
-               cobalt%fnso4red_sed(i,j) = max(0.0, cobalt%fntot_btm(i,j) + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j) - &
+               cobalt%fnso4red_sed(i,j) = max(0.0, cobalt%fntot_btm(i,j) + cobalt%n_det_override(i,j) * &
+                                          cobalt%rho_dzt_bot(i,j) - &
                                           cobalt%fnoxic_sed(i,j)- &
-                                          cobalt%fn_burial(i,j)-cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit)
+                                          cobalt%fn_burial(i,j)-cobalt%fno3denit_sed(i,j) * &
+                                          kelp_stoich_corr/cobalt%n_2_n_denit)
              end if
 
           else
@@ -5596,11 +5639,9 @@ contains
             cobalt%ffe_sed(i,j) = cobalt%ffe_sed_max * tanh( &
                                     (cobalt%fntot_btm(i,j)*cobalt%c_2_n + cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)* &
                                     cobalt%c_2_n_kelp)*sperd*1.0e3 / &
-                                    max(cobalt%btm_o2(i,j)*1.0e6,epsln) )
+                                    max(cobalt%btm_o2(i,j)*1.0e6,epsln) )             !DKSmod
+
           endif
-
-         ! DKSmod ffe_sed need to remove cobalt%f_ndet_kelp to do c_2_n and then need to add it, but multiply by cobalt%c_2_n_kelp
-
 
           ! Additional coastal iron (Optional, default fe_coast = 0)
           !
@@ -5674,8 +5715,6 @@ contains
                                       cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp))
          endif
 
-         ! DKSmod fcased_redis_surfresp -> need to consider whether we will need to add cobalt%f_ndet_kelp
-
           ! Ca-specific dissolution coeficient, depends on calcite saturation state and is enhanced by
           ! respiration deep in the sediment (s-1), non-linearity controlled by alpha_cased
           if (.not. cobalt%do_external_source) then
@@ -5688,9 +5727,6 @@ contains
               cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp))**cobalt%alpha_cased
  
          endif
-
-         ! DKSmod cased_redis_coef -> need to consider whether we will need to add cobalt%f_ndet_kelp
-
 
           ! Effective thickness term that enhances burial of calcite when total sediment accumulation is high
           ! dimensionless value between 0 and 1
@@ -5728,8 +5764,19 @@ contains
           ! Bottom flux boundaries passed to the vertical mixing routine
           ! (negative values are fluxes into the ocean)
           !
-          cobalt%b_dic(i,j) =  - cobalt%fcased_redis(i,j) - cobalt%f_cadet_arag_btf(i,j,1) -       &
-             (cobalt%fntot_btm(i,j) - cobalt%fn_burial(i,j)) * cobalt%c_2_n
+          ! DIC returned to the water column should reflect all respired carbon, native and
+          ! kelp. The non-external term below is fntot_btm*(1-frac_burial)*c_2_n, which is
+          ! equivalent to fntot_btm * c_2_n * (1-frac_burial).
+          ! The second term is adapted to be (fntot_btm*c_2_n + kelp_n*c_2_n_kelp) * (1-frac_burial).
+          if (.not. cobalt%do_external_source) then
+             cobalt%b_dic(i,j) =  - cobalt%fcased_redis(i,j) - cobalt%f_cadet_arag_btf(i,j,1) -       &
+                (cobalt%fntot_btm(i,j) - cobalt%fn_burial(i,j)) * cobalt%c_2_n
+          else
+             cobalt%b_dic(i,j) =  - cobalt%fcased_redis(i,j) - cobalt%f_cadet_arag_btf(i,j,1) -       &
+                (cobalt%fntot_btm(i,j)*cobalt%c_2_n + cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp *  &
+                cobalt%rho_dzt_bot(i,j)) * &
+                (1.0 - cobalt%frac_burial(i,j))
+          endif
           cobalt%b_fed(i,j) = - cobalt%ffe_sed(i,j) - cobalt%ffe_geotherm(i,j)
          !  cobalt%b_nh4(i,j) = - cobalt%fntot_btm(i,j) + cobalt%fn_burial(i,j)
          if (.not. cobalt%do_external_source) then
@@ -5739,15 +5786,16 @@ contains
          endif
          cobalt%b_no3(i,j) = cobalt%fno3denit_sed(i,j)
 
-          ! DKSmod b_dic -  check if fntot_btm and fn_burial and b_no3 are okay (and others)
-
           ! Include latent O2 demand and alkalinity effects of HS- (see stoichiometry)
+          ! o2_2_nh4/kelp_stoich_corr rescales the O2:N ratio to match the true (mixed
+          ! native+kelp) carbon content of fnoxic_sed/fnso4red_sed; kelp_stoich_corr is 1.0
+          ! whenever there is no kelp carbon in the mix, so this is safe unconditionally.
           if (cobalt%do_fnso4red_sed) then
-            cobalt%b_o2(i,j)  = cobalt%o2_2_nh4 * (cobalt%fnoxic_sed(i,j) + cobalt%fnso4red_sed(i,j))
+            cobalt%b_o2(i,j)  = (cobalt%o2_2_nh4/kelp_stoich_corr) * (cobalt%fnoxic_sed(i,j) + cobalt%fnso4red_sed(i,j))
             cobalt%b_alk(i,j) = - 2.0*(cobalt%fcased_redis(i,j)+cobalt%f_cadet_arag_btf(i,j,1)) -    &
               cobalt%fnoxic_sed(i,j) - cobalt%fno3denit_sed(i,j)*cobalt%alk_2_n_denit - cobalt%fnso4red_sed(i,j)
           else
-            cobalt%b_o2(i,j)  = cobalt%o2_2_nh4 * cobalt%fnoxic_sed(i,j)
+            cobalt%b_o2(i,j)  = (cobalt%o2_2_nh4/kelp_stoich_corr) * cobalt%fnoxic_sed(i,j)
             cobalt%b_alk(i,j) = - 2.0*(cobalt%fcased_redis(i,j)+cobalt%f_cadet_arag_btf(i,j,1)) -    &
                cobalt%fnoxic_sed(i,j) - cobalt%fno3denit_sed(i,j)*cobalt%alk_2_n_denit
           endif
