@@ -5227,7 +5227,7 @@ contains
             ! distribute the O2 demand / NO3 demand across the slab
             ! c_2_n_kelp/c_2_n is a conversion factor that corrects
             ! the oxidant ceiling considering kelp's higher C:N ratio
-            do k = grid_kmt(i,j), k_bot(i,j), -1
+            do k = grid_kmt(i,j), cobalt%k_bot(i,j), -1
                if (cobalt%btm_o2(i,j) .gt. cobalt%o2_min) then
                   cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + &
                      cobalt%jremin_ndet_kelp(i,j) * (cobalt%c_2_n_kelp/cobalt%c_2_n) * cobalt%o2_2_nh4
