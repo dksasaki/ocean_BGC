@@ -5488,10 +5488,10 @@ contains
                fpoc_btm = fpoc_btm + cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0/dt * cobalt%rho_dzt_bot(i,j)
 
                ! kelp_c_frac_btm: kelp's share of the total benthic carbon rain (fpoc_btm).
-               ! kelp_stoich_corr converts between "N in the combined native+kelp pool" and the
-               ! true O2/NO3 demand of that pool's actual (mixed) carbon content, since kelp's
-               ! higher C:N (c_2_n_kelp) means it needs more oxidant per mole of N than native
-               ! detritus does. It is 1.0 whenever there is no kelp carbon in the mix.
+               ! kelp_stoich_corr: nitrogen-equivalence factor for the mixed native+kelp pool. For a
+               ! given amount of carbon, it is the moles of N the actual pool contains relative to the
+               ! moles a pure Redfield pool would contain. Ranges from 1.0 (no kelp) down to
+               ! c_2_n/c_2_n_kelp (all kelp), since kelp packs more C per N.
                kelp_c_frac_btm = cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0/dt * &
                                  cobalt%rho_dzt_bot(i,j) / (fpoc_btm + epsln)
                kelp_stoich_corr = (1.0 - kelp_c_frac_btm) + kelp_c_frac_btm*(cobalt%c_2_n/cobalt%c_2_n_kelp)
