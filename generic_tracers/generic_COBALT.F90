@@ -5492,6 +5492,9 @@ contains
                ! given amount of carbon, it is the moles of N the actual pool contains relative to the
                ! moles a pure Redfield pool would contain. Ranges from 1.0 (no kelp) down to
                ! c_2_n/c_2_n_kelp (all kelp), since kelp packs more C per N.
+               ! For instance:
+               !   O2 -> N  : multiply by kelp_stoich_corr  (a given O2 supply oxidizes fewer moles of N)
+               !   N  -> O2 : divide by kelp_stoich_corr    (each mole of N demands more O2)
                kelp_c_frac_btm = cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0/dt * &
                                  cobalt%rho_dzt_bot(i,j) / (fpoc_btm + epsln)
                kelp_stoich_corr = (1.0 - kelp_c_frac_btm) + kelp_c_frac_btm*(cobalt%c_2_n/cobalt%c_2_n_kelp)
