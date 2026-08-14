@@ -140,13 +140,7 @@ module generic_COBALT
   use fms_mod,           only: check_nml_error
   use MOM_EOS,           only: calculate_density, EOS_type
 
-  ! DKSmod --
-  use fms2_io_mod,      only: FmsNetcdfDomainFile_t, open_file, close_file
-  use fms2_io_mod,      only: read_restart, write_restart
-  use fms2_io_mod,      only: register_restart_field, register_axis, register_field
-  use mpp_domains_mod,  only: domain2D
-  use g_tracer_utils,   only: g_tracer_get_domain
-  ! -- --
+
 
   use g_tracer_utils, only : g_tracer_type,g_tracer_start_param_list,g_tracer_end_param_list
   use g_tracer_utils, only : g_tracer_add,g_tracer_add_param, g_tracer_set_files
@@ -9352,61 +9346,5 @@ contains
     n = exp(ln_n_m)
   end function n_sw
 
-!> Read/write the kelp detritus nitrogen standing stock (f_ndet_kelp) restart.
-  !! f_ndet_kelp is a 2-D bottom-cell stock that is not part of the generic tracer
-  !! list, so it needs its own restart file. Called with mode="read" on the first
-  !! timestep and mode="write" at the end of the run.
-  subroutine kelp_restart_io(mode)
-    character(len=*), intent(in) :: mode !< "read" or "write"
-
-    character(len=fm_string_len), parameter :: sub_name = 'kelp_restart_io'
-    type(domain2D),              pointer    :: domain
-    type(FmsNetcdfDomainFile_t)             :: fileobj
-    character(len=64)                       :: restart_file
-    logical                                 :: file_open_success
-
-    if (.not. cobalt%do_external_source) return
-
-    call g_tracer_get_domain(domain)
-
-    select case (trim(mode))
-
-    case ("read")
-       restart_file = 'INPUT/ocean_cobalt_kelp.res.nc'
-       file_open_success = open_file(fileobj, trim(restart_file), "read", domain, is_restart=.true.)
-       if (file_open_success) then
-          call register_axis(fileobj, 'xh', 'x')
-          call register_axis(fileobj, 'yh', 'y')
-          call register_restart_field(fileobj, "ndet_kelp", cobalt%f_ndet_kelp, (/"xh","yh"/))
-          call read_restart(fileobj)
-          call close_file(fileobj)
-       else
-          ! Cold start: leave f_ndet_kelp at its allocated value of 0.0
-          if (is_root_pe()) write(stdout(),*) trim(sub_name)// &
-               ': no kelp restart found, starting f_ndet_kelp from zero'
-       endif
-
-    case ("write")
-       restart_file = 'RESTART/ocean_cobalt_kelp.res.nc'
-       file_open_success = open_file(fileobj, trim(restart_file), "overwrite", domain, is_restart=.true.)
-       if (file_open_success) then
-          call register_axis(fileobj, 'xh', 'x')
-          call register_axis(fileobj, 'yh', 'y')
-          !!< Register the domain decomposed dimensions as variables so the combiner works
-          call register_field(fileobj, "xh", "double", (/"xh"/))
-          call register_field(fileobj, "yh", "double", (/"yh"/))
-          call register_restart_field(fileobj, "ndet_kelp", cobalt%f_ndet_kelp, (/"xh","yh"/))
-          call write_restart(fileobj)
-          call close_file(fileobj)
-       else
-          call mpp_error(WARNING, trim(sub_name)//': could not open '//trim(restart_file)//' for writing')
-       endif
-
-    case default
-       call mpp_error(FATAL, trim(sub_name)//': unknown mode "'//trim(mode)//'"')
-
-    end select
-
-  end subroutine kelp_restart_io
 
 end module generic_COBALT
