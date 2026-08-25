@@ -1228,13 +1228,24 @@ contains
                      cobalt%ffetot_btm(i,j)*160.0/5.24 + &
                      cobalt%fptot_btm(i,j)*120.0/2.3 + &
                      cobalt%fntot_btm(i,j)*cobalt%c_2_n*22.4/0.9)/10000.0*spery/svf(i,j,k) )/100.0/spery
+
+                  if (cobalt%do_external_source) then
+                     w(i,j,k) = w(i,j,k) + ( (cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)* &
+                        cobalt%c_2_n_kelp*22.4/0.9)/10000.0*spery/svf(i,j,k) )/100.0/spery
+                  endif
                enddo
 
                !------------------
                !Bioturbation
                !------------------
                ! relation from Archer. POC flux unit in umol cm-2 y-1.
-               Db_0(i,j) = ( 0.0232*((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**0.85) ) /1e4/spery ! in cobalt unit m2/s
+               if (.not. cobalt%do_external_source) then
+                  Db_0(i,j) = ( 0.0232*((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**0.85) ) /1e4/spery ! in cobalt unit m2/s
+               else
+                  Db_0(i,j) = ( 0.0232*(((cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) &
+                     *1e6/1e4*spery)**0.85) ) /1e4/spery ! in cobalt unit m2/s
+               endif
 
                do k = 1, nk_cbed+1
                   ! relation from Archer. POC flux unit in umol cm-2 y-1.
@@ -1245,9 +1256,19 @@ contains
                ! Bioirrigation
                !--------------------
                ! relation from Archer. POC flux unit in umol cm-2 y-1.
-               bioirri_0(i,j) = ( 11.0*(((atan((5.0*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery) -400.0)/400.0))/pi)+0.5) &
-                  - 0.9 + 20.0*((max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0))/(max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)+0.01)) * exp(-max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)/0.01) * &
-                  ((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)/((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)+30.0)) )/spery   ! in cobalt unit s^-1
+               if (.not. cobalt%do_external_source) then
+                  bioirri_0(i,j) = ( 11.0*(((atan((5.0*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery) -400.0)/400.0))/pi)+0.5) &
+                     - 0.9 + 20.0*((max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0))/(max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)+0.01)) * exp(-max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)/0.01) * &
+                     ((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)/((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)+30.0)) )/spery   ! in cobalt unit s^-1
+               else
+                  bioirri_0(i,j) = ( 11.0*(((atan((5.0*((cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) *1e6/1e4*spery) -400.0)/400.0))/pi)+0.5) &
+                     - 0.9 + 20.0*((max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0))/(max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)+0.01)) * exp(-max(0.0,cobalt%btm_o2(i,j)*cobalt%Rho_0)/0.01) * &
+                     (((cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) *1e6/1e4*spery)/ &
+                     (((cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) *1e6/1e4*spery)+30.0)) )/spery   ! in cobalt unit s^-1
+               endif
                do k = 1, nk_cbed
                   ! relation from Archer. POC flux unit in umol cm-2 y-1.
                   bioirri(i,j,k) = max(0.0, bioirri_0(i,j)*exp(-(z_cbed_mid(k)/bioirri_l)**2.0) )
@@ -1268,9 +1289,18 @@ contains
                !Calculate OM decay rates. k1,k2,k3 [unit: s-1]
                !------------------
                ! POC flux unit in umol cm-2 y-1. Unit of k is y-1
-               k1(i,j) = ( 0.15*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
-               k2(i,j) = ( 0.0015*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
-               k3(i,j) = ( 0.00009*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
+               if (.not. cobalt%do_external_source) then
+                  k1(i,j) = ( 0.15*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
+                  k2(i,j) = ( 0.0015*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
+                  k3(i,j) = ( 0.00009*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
+               else
+                  k1(i,j) = ( 0.15*((cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) *1e6/1e4*spery)**(0.85) )/spery
+                  k2(i,j) = ( 0.0015*((cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) *1e6/1e4*spery)**(0.85) )/spery
+                  k3(i,j) = ( 0.00009*((cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) *1e6/1e4*spery)**(0.85) )/spery
+               endif
 
 
                !-----------------------
@@ -1439,7 +1469,13 @@ contains
                !------------------------------
                ! some other local variables
                !------------------------------
-               cbed_burial_frac(i,j) = max(0.0, cbed%burial_om(i,j)/(cobalt%fntot_btm(i,j)*cobalt%c_2_n + epsln) )  ! burial / rain . ratio
+
+               if (.not. cobalt%do_external_source) then
+                  cbed_burial_frac(i,j) = max(0.0, cbed%burial_om(i,j)/(cobalt%fntot_btm(i,j)*cobalt%c_2_n + epsln) )  ! burial / rain . ratio
+               else
+                  cbed_burial_frac(i,j) = max(0.0, cbed%burial_om(i,j)/(cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp + epsln) )  ! burial / rain . ratio
+               endif
 
                cbed_org_alk(i,j) = sum(dz_cbed(:)*por(i,j,1:nk_cbed)*R_talk(i,j,:))  ! mol m-2 s-1 (net production of alklinity from organic matter degradation)
 
@@ -2214,7 +2250,7 @@ contains
                   fpoc_btm = cobalt%fntot_btm(i,j)*cobalt%c_2_n*sperd*1000.0
 
                   if (cobalt%do_external_source) then
-                     fpoc_btm = fpoc_btm + cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0/dt * cobalt%rho_dzt_bot(i,j)
+                     fpoc_btm = fpoc_btm + cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0 * cobalt%rho_dzt_bot(i,j)
                   end if
 
                   cobalt%frac_burial(i,j) = 0.013 + 0.53*fpoc_btm**2.0/((7.0+fpoc_btm)**2.0) * &

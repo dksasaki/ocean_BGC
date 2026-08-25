@@ -3550,9 +3550,16 @@ contains
       ! borrowed these loops from  a calculatation of bottom conditions and fluxes to the bottom
       ! for diagnostics and benthic flux calculations (later in the code)
       ! we chose to copy these for code maintainability
+      !
+      ! DKSmod btm_o2/btm_no3 are accumulated here too: the kelp remineralization block below
+      ! reads them to cap its oxidant demand, but the loop that sets them for the sediment
+      ! scheme runs after that point, so otherwise the kelp block sees the previous timestep's
+      ! values, and zero on the first step of a run or restart since they are not restarted.
       do j = jsc, jec; do i = isc, iec  !{
          if (grid_kmt(i,j) .gt. 0) then !{
             cobalt%k_bot(i,j) = 0
+            cobalt%btm_o2(i,j) = 0.0
+            cobalt%btm_no3(i,j) = 0.0
             ! Note that grid_kmt is always the total number of layers in MOM6
             do k = grid_kmt(i,j),1,-1   !{
                ! Check if the top of layer k is within the bottom thickness.  If so, include its properties in the bottom
@@ -3560,9 +3567,18 @@ contains
                if (cobalt%rho_dzt_bot(i,j).lt.(cobalt%Rho_0*cobalt%bottom_thickness)) then
                cobalt%k_bot(i,j) = k
                cobalt%rho_dzt_bot(i,j) = cobalt%rho_dzt_bot(i,j) + rho_dzt(i,j,k)
+               cobalt%btm_o2(i,j) = cobalt%btm_o2(i,j) + cobalt%f_o2(i,j,k)*rho_dzt(i,j,k)
+               cobalt%btm_no3(i,j) = cobalt%btm_no3(i,j) + cobalt%f_no3(i,j,k)*rho_dzt(i,j,k)
 
                end if
             end do !}
+            ! Subtract off overshoot
+            drho_dzt = cobalt%rho_dzt_bot(i,j) - cobalt%Rho_0*cobalt%bottom_thickness
+            cobalt%btm_o2(i,j)=cobalt%btm_o2(i,j)-cobalt%f_o2(i,j,cobalt%k_bot(i,j))*drho_dzt
+            cobalt%btm_no3(i,j)=cobalt%btm_no3(i,j)-cobalt%f_no3(i,j,cobalt%k_bot(i,j))*drho_dzt
+            ! convert back to moles kg-1
+            cobalt%btm_o2(i,j)=cobalt%btm_o2(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
+            cobalt%btm_no3(i,j)=cobalt%btm_no3(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
          end if !}
       end do;end do !}
 
@@ -3580,6 +3596,7 @@ contains
       cobalt%jremin_ndet_kelp = 0.0
       cobalt%jprod_nh4_kelp   = 0.0
 
+      ! units mol/m2/s
       call data_override('OCN', 'ndet_addition', cobalt%f_n_det_addition(isc:iec, jsc:jec), model_time,override=ndet_add_override)
       call data_override('OCN', 'pdet_addition', cobalt%f_pdet_addition(isc:iec, jsc:jec), model_time,override=pdet_add_override)
       call data_override('OCN', 'fedet_addition', cobalt%f_fedet_addition(isc:iec, jsc:jec), model_time,override=fedet_add_override)
@@ -5269,14 +5286,17 @@ contains
                                             cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * &
                                             cobalt%jremin_ndet(i,j,k)
 
-            if (cobalt%do_external_source .and. k .eq. grid_kmt(i,j)) then
+            if (cobalt%do_external_source .and. k .ge. cobalt%k_bot(i,j) .and. k .le. grid_kmt(i,j)) then
                ! DKSmod adding external source of kelp detrius behavior
                ! DKSmod modified jdiss_cadet_arag to include cobalt%jremin_ndet_kelp
                ! DKSmod modified jdiss_cadet_calc to include cobalt%jremin_ndet_kelp
+               ! resp_ca_2_n_arag and resp_ca_2_n_calc have an implicit c2n scale
                cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
-                  cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * cobalt%jremin_ndet_kelp(i,j)
+                  cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * cobalt%jremin_ndet_kelp(i,j) * &
+                  (cobalt%c_2_n_kelp/cobalt%c_2_n)
                cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
-                  cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * cobalt%jremin_ndet_kelp(i,j)
+                  cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * cobalt%jremin_ndet_kelp(i,j) * &
+                  (cobalt%c_2_n_kelp/cobalt%c_2_n)
             endif
 
         enddo; enddo; enddo  !} i,j,k
@@ -5500,7 +5520,7 @@ contains
              fpoc_btm = cobalt%fntot_btm(i,j)*cobalt%c_2_n*sperd*1000.0
 
              if (cobalt%do_external_source)then
-               fpoc_btm = fpoc_btm + cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0/dt * cobalt%rho_dzt_bot(i,j)
+               fpoc_btm = fpoc_btm + cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0 * cobalt%rho_dzt_bot(i,j)
 
                ! kelp_c_frac_btm: kelp's share of the total benthic carbon rain (fpoc_btm).
                ! kelp_stoich_corr: nitrogen-equivalence factor for the mixed native+kelp pool. For a
@@ -5510,7 +5530,7 @@ contains
                ! For instance:
                !   O2 -> N  : multiply by kelp_stoich_corr  (a given O2 supply oxidizes fewer moles of N)
                !   N  -> O2 : divide by kelp_stoich_corr    (each mole of N demands more O2)
-               kelp_c_frac_btm = cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0/dt * &
+               kelp_c_frac_btm = cobalt%n_det_override(i,j)*cobalt%c_2_n_kelp*sperd*1000.0 * &
                                  cobalt%rho_dzt_bot(i,j) / (fpoc_btm + epsln)
                kelp_stoich_corr = (1.0 - kelp_c_frac_btm) + kelp_c_frac_btm*(cobalt%c_2_n/cobalt%c_2_n_kelp)
              end if
@@ -5722,7 +5742,7 @@ contains
 
           k = grid_kmt(i,j)
 
-          ! Enhanced dissolution by fast respiration near the sediment surface, proportional
+          ! Enhanced dissolution near the sediment surface, proportional
           ! to organic flux, moles Ca m-2 s-1, limited to a max 1/2 the instantaneous calcite flux
           if (.not. cobalt%do_external_source) then
           cobalt%fcased_redis_surfresp(i,j)=min(0.5*cobalt%f_cadet_calc_btf(i,j,1), &
