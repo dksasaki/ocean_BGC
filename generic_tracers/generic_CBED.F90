@@ -1242,10 +1242,12 @@ contains
                if (.not. cobalt%do_external_source) then
                   Db_0(i,j) = ( 0.0232*((cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**0.85) ) /1e4/spery ! in cobalt unit m2/s
                else
-                  Db_0(i,j) = ( 0.0232*(((cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                  ! DKS mod the cap avoids ngative tracer concentrations associated with numerical instability
+                  ! and diffusion. It is based on COBALT's code.
+                  Db_0(i,j) = ( 0.0232*((min(43.0*365.0, (cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
                      cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) &
-                     *1e6/1e4*spery)**0.85) ) /1e4/spery ! in cobalt unit m2/s
-               endif
+                     *1e6/1e4*spery))**0.85) ) /1e4/spery ! in cobalt unit m2/s
+              endif
 
                do k = 1, nk_cbed+1
                   ! relation from Archer. POC flux unit in umol cm-2 y-1.
@@ -1294,13 +1296,15 @@ contains
                   k2(i,j) = ( 0.0015*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
                   k3(i,j) = ( 0.00009*(cobalt%fntot_btm(i,j)*cobalt%c_2_n *1e6/1e4*spery)**(0.85) )/spery
                else
-                  k1(i,j) = ( 0.15*((cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
-                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) *1e6/1e4*spery)**(0.85) )/spery
-                  k2(i,j) = ( 0.0015*((cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
-                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) *1e6/1e4*spery)**(0.85) )/spery
-                  k3(i,j) = ( 0.00009*((cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
-                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) *1e6/1e4*spery)**(0.85) )/spery
-               endif
+                  ! DKS mod the cap avoids ngative tracer concentrations associated with numerical instability
+                  ! and diffusion. It is based on COBALT's code.
+                  k1(i,j) = ( 0.15*(min(43.0*365.0, (cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) *1e6/1e4*spery))**(0.85) )/spery
+                  k2(i,j) = ( 0.0015*(min(43.0*365.0, (cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) *1e6/1e4*spery))**(0.85) )/spery
+                  k3(i,j) = ( 0.00009*(min(43.0*365.0, (cobalt%fntot_btm(i,j)*cobalt%c_2_n + &
+                     cobalt%n_det_override(i,j)*cobalt%rho_dzt_bot(i,j)*cobalt%c_2_n_kelp) *1e6/1e4*spery))**(0.85) )/spery
+              endif
 
 
                !-----------------------
