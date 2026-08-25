@@ -5235,6 +5235,27 @@ contains
       enddo; enddo
    endif
 
+   !DKSmod
+   ! Reduce the kelp source to the fraction that actually settles to the sediment.
+   !
+   ! Kelp is deposited in the deepest water-column layer, where jremin_ndet_kelp
+   ! (above) remineralizes part of it.  Only the remainder reaches the sediment, so
+   ! n_det_override is reduced to that settling flux here, before any sediment code
+   ! reads it: COBALT's own sediment scheme further below, or CBED via
+   ! generic_CBED_update_from_source.  Without this, the same kelp nitrogen is spent
+   ! twice - once as water-column remineralization, and again in full as organic
+   ! matter arriving at the seafloor.
+   !
+   ! Floored at zero because jremin_ndet_kelp is drawn from f_ndet_kelp, which can
+   ! exceed a single step's input whenever the pool carries material over from
+   ! previous steps.
+   !
+   if (cobalt%do_external_source) then
+      do j = jsc, jec; do i = isc, iec
+         cobalt%n_det_override(i,j) = max(0.0, cobalt%n_det_override(i,j) - cobalt%jremin_ndet_kelp(i,j))
+      enddo; enddo
+   endif
+
     ! << Enhanced CaCO3 dissolution driven by localized undersaturation around sinking particles >>
     ! Add CaCO3 dissolution enhancement associated with organic matter (OM) decomposition
     !
@@ -5959,7 +5980,10 @@ contains
 
    if (cobalt%do_external_source) then
       if (k .ge. cobalt%k_bot(i,j) .and. k .le. grid_kmt(i,j)) then
-         net_srcn(i,j,k) = net_srcn(i,j,k) - cobalt%frac_burial(i,j) * cobalt%n_det_override(i,j) * dt * grid_tmask(i,j,k)
+         ! The settled kelp leaves the water column here, but only returns as b_nh4 during
+         ! vertical diffusion, i.e. after this check.  The whole settling flux is therefore a
+         ! within-step sink, not just the fraction that ends up buried.
+         net_srcn(i,j,k) = net_srcn(i,j,k) - cobalt%n_det_override(i,j) * dt * grid_tmask(i,j,k)
       endif
    endif
          ! << Apply neritic CaCO3 burial contribution to net carbon source/sink term
@@ -6359,8 +6383,15 @@ contains
                   pre_totc(i,j,k) = pre_totc(i,j,k) + cobalt%c_2_n_kelp * cobalt%jprod_nh4_kelp(i,j) *dt  * grid_tmask(i,j,k)
                   ! endif
             enddo !} k
+            ! Drain the pool by everything that left it this step: remineralized in the water
+            ! column (jremin_ndet_kelp) plus settled to the sediment (n_det_override, already
+            ! reduced by jremin_ndet_kelp above).  The two sum to the raw input, so the pool
+            ! nets to zero.  frac_burial is deliberately absent here: burial is one of the
+            ! fates of the settled material, decided inside the sediment scheme, and applying
+            ! it here would leave the non-buried remainder in the pool to be remineralized
+            ! a second time.
             cobalt%f_ndet_kelp(i,j,1) = cobalt%f_ndet_kelp(i,j,1) - cobalt%jremin_ndet_kelp(i,j) * dt &
-                                      - cobalt%frac_burial(i,j) * cobalt%n_det_override(i,j) * dt
+                                      - cobalt%n_det_override(i,j) * dt
          endif
       enddo; enddo; !} i,j
 
